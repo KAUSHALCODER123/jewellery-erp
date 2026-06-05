@@ -1,0 +1,38 @@
+Live MCX / IBJA gold rate fetch
+Auto-pull today's gold and silver rates every morning; rates cascade into all billing calculations. Manual override allowed with audit log.
+India
+Gross / net / stone weight fields
+Separate fields: Gross Weight, Stone Weight, Net Metal Weight. Customer charged metal rate only on net metal — not on embedded stones or enamel.
+Making charge (3 modes)
+Apply as % of metal value, flat per-gram rate, or fixed lump sum. Different rates per item category (machine chain vs handcrafted filigree).
+Wastage / melting charge
+Auto-add pre-configured manufacturing loss % to price. Per-category wastage rates (casting vs handmade).
+In-invoice old gold buy-back (URD)
+Old gold exchange in the same billing screen. Enter weight + purity + day's buy-back rate; ERP nets the value against new purchase total instantly.
+India
+URD purchase with Tunch
+Unregistered Dealer purchase compliance — Tunch (purity) field, generate URD receipt, export to GST portal.
+India
+Multi-mode payment split
+Single invoice split across: Cash, Card (swipe), UPI (PhonePe / GPay / Paytm), Cheque, NEFT/RTGS. Remaining balance auto-routes to Udhari ledger.
+India
+Aadhaar / PAN capture on invoice
+Mandatory fields trigger above ₹2 lakh cash transactions (Income Tax Rule 114B). Webcam photo capture for customer KYC.
+India
+Compliance
+Udhari (credit) ledger
+Historical dues surface on customer selection. New unpaid balance flows into Udhari automatically. SMS reminder on due date.
+India
+WhatsApp + SMS invoice dispatch
+PDF invoice sent to customer mobile instantly on save. WhatsApp Business API integration — no manual sharing. Configurable message template.
+India
+Drag-and-drop invoice builder
+Customise Header / Body / Footer layout, font, colors, logo, and formula fields. Multiple print templates (retail, wholesale, estimate).
+Estimate / quotation generation
+Create non-committed quotes with expiry date. Convert to invoice in one click when customer confirms.
+Barcode / RFID scan at billing
+Scan tag → item details auto-populate (weight, purity, price). Zero manual entry at counter.
+Hardware
+Weighing scale integration
+Direct RS232 / USB / Bluetooth bridge from precision scale to weight field. Eliminates fat-finger errors on micro-gram weights.
+Hardware

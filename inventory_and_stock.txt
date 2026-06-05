@@ -1,0 +1,32 @@
+Item master with HUID
+Item Name, Category, Group, Design, UOM (Gram / Pcs / Carat), Purity, HUID number, product image. Supports both loose and tagged items.
+India
+Compliance
+Serialised barcode generation
+Auto-generate unique barcode per piece with Gross Wt, Net Wt, Purity, Stone Wt, Price. Bulk and single print modes.
+Hardware
+RFID tagging & encoding
+Encode purity, weight, price onto reusable RFID tags. Tags survive ultrasonic cleaning. Works with RFID printer.
+Hardware
+UHF handheld bulk scan audit
+Walk past display cases — scan hundreds of items without line-of-sight in minutes. Daily stock reconciliation instead of annual.
+Hardware
+Better than Manabh
+RFID smart tray (counter)
+Countertop reader cross-checks every item shown to customer. Flags missing pieces before customer leaves.
+Hardware
+Better than Manabh
+Anti-theft exit gate alert
+Uncleared tag near exit → alarm + dashboard notification with exact SKU. Deactivated automatically on POS clearance.
+Hardware
+Better than Manabh
+Physical stock verification
+Scan physical items; system highlights missing, excess, or misplaced stock vs database. Variance report with photos.
+Multi-location / multi-store stock
+Track item location: display case, vault, transit, Karigar workshop, branch store. Real-time across all locations.
+Consignment / memo ledger
+Separate Memo-In and Memo-Out ledgers. Physical custody tracked separately from financial ownership. Auto aging alerts.
+Better than Manabh
+Virtual catalog generator
+Combine available loose stones + metal settings algorithmically to publish thousands of online variants without physical stock.
+Better than Manabh

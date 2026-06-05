@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx skills *)",
+      "Bash(node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api/token-revocation.test.ts --runInBand --forceExit)",
+      "Bash(node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api --runInBand --forceExit)",
+      "Bash(npx tsc *)",
+      "Bash(node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api/karigar-job-cancel.test.ts --runInBand --forceExit)",
+      "Bash(grep -vE \"console.log|at Object|at C:|ExperimentalWarning|trace-warnings|BEFORE DELETE|AFTER DELETE|^\\\\s*$|DB\\\\] Connected\")",
+      "Bash(node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api/accounting.test.ts tests/api/checkout.spec.ts tests/api/pos.test.ts tests/api/karigar.test.ts tests/api/gss.test.ts tests/api/compliance.test.ts --runInBand --forceExit)",
+      "Bash(grep -vE \"console.log|at Object|at C:|ExperimentalWarning|trace-warnings|BEFORE DELETE|AFTER DELETE|Connected to SQLite|^\\\\s*$\")",
+      "Bash(sed -n '228,272p' tests/api/girvi-pavati.test.ts)",
+      "Bash(sed -n '84,95p' tests/api/gst-reports.test.ts)",
+      "Bash(node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api/documents-auth.test.ts tests/api/voucher-audit-lock.test.ts tests/api/legal-print-documents.test.ts tests/api/gst-reports.test.ts tests/api/girvi-pavati.test.ts tests/api/accounts-vouchers.test.ts tests/api/tally.test.ts --runInBand --forceExit)"
+    ]
+  }
+}

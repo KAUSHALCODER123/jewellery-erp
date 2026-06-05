@@ -1,0 +1,244 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1780479646346,
+      "tag": "0000_tough_marten_broadcloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780480308909,
+      "tag": "0001_equal_gunslinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780485230456,
+      "tag": "0002_tranquil_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1780485739340,
+      "tag": "0003_overrated_human_fly",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1780486401553,
+      "tag": "0004_thankful_trish_tilby",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1780487191014,
+      "tag": "0005_serious_wolverine",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1780487795055,
+      "tag": "0006_overrated_namorita",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1780488099217,
+      "tag": "0007_mighty_puff_adder",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1780508784098,
+      "tag": "0008_flaky_the_watchers",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1780511177916,
+      "tag": "0009_married_molecule_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1780511659110,
+      "tag": "0010_third_blazing_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1780513969672,
+      "tag": "0011_white_drax",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1780514205745,
+      "tag": "0012_fluffy_living_tribunal",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1780572306962,
+      "tag": "0013_tricky_harrier",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1780572502278,
+      "tag": "0014_classy_gabe_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1780572955303,
+      "tag": "0015_yielding_scream",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1780573600000,
+      "tag": "0016_balanced_voucher_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1780574300000,
+      "tag": "0017_pos_maturity_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1780575200000,
+      "tag": "0018_print_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1780575900000,
+      "tag": "0019_hardware_anti_theft",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1780576500000,
+      "tag": "0020_urd_stock_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1780577200000,
+      "tag": "0021_gst_bis_huid_compliance",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1780592670321,
+      "tag": "0022_bitter_supernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1780600000000,
+      "tag": "0023_backup_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1780636127213,
+      "tag": "0024_sleepy_fallen_one",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1780800000000,
+      "tag": "0025_urd_recycled_gold",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1780639846847,
+      "tag": "0026_slim_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1780900000000,
+      "tag": "0027_token_blacklist",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1780900100000,
+      "tag": "0028_job_cancellation_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1780900200000,
+      "tag": "0029_customer_master_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1780900300000,
+      "tag": "0030_loyalty_points_rule",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1780900400000,
+      "tag": "0031_gss_scheme_11plus1",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1780900500000,
+      "tag": "0032_item_catalog_sale_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1780900600000,
+      "tag": "0033_item_definitions",
+      "breakpoints": true
+    }
+  ]
+}

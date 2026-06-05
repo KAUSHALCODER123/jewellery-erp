@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #121212;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #121212;
+  color: #e0e0e0;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+/* ── Micro-interaction utilities (shared across UI surfaces) ───────────── */
+@keyframes erp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes erp-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes erp-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes erp-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes erp-toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes erp-slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes erp-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.animate-fade-in { animation: erp-fade-in 0.25s ease-out both; }
+.animate-slide-up { animation: erp-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-scale-in { animation: erp-scale-in 0.2s ease-out both; }
+.animate-pop { animation: erp-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-toast-in { animation: erp-toast-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-slide-in-right { animation: erp-slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Skeleton shimmer for loading states */
+.erp-skeleton {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.08) 25%, rgba(148, 163, 184, 0.18) 37%, rgba(148, 163, 184, 0.08) 63%);
+  background-size: 800px 100%;
+  animation: erp-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-pop,
+  .animate-toast-in,
+  .animate-slide-in-right,
+  .erp-skeleton {
+    animation: none;
+  }
+}

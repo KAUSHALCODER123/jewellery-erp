@@ -1,0 +1,19 @@
+Loan issuance (Pavati)
+Enter collateral jewelry weight + purity, advance principal, set monthly / annual interest. Generates multilingual Pavati receipt (Marathi / Hindi / Gujarati / English).
+India
+Loan-to-Value auto calculation
+ERP derives max permissible loan from pledged weight × live gold rate. Prevents over-leveraging against under-karated assets.
+Interest auto-calculation
+Compound or simple interest, monthly or annual. Outstanding principal + accrued interest computed automatically at repayment.
+Tenure tracking & default alerts
+Automated aging report when loan crosses due date. One-click collateral transfer from pawn ledger to retail/scrap stock on confirmed default.
+India
+Borrower KYC profile
+Aadhaar, PAN, webcam photo stored per borrower. Full history of active, settled, and defaulted loans on selection.
+India
+Compliance
+Partial repayment handling
+Accept partial payments — system allocates to interest first then principal. Balance recalculated and new due date set.
+Girvi integrated into main ERP
+Not a separate product like Manabh — fully embedded. Customer's Girvi history visible on POS customer selection.
+

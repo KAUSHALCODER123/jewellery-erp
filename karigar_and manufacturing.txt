@@ -1,0 +1,24 @@
+Job order to Karigar
+Raise job with item spec, design image, target weight, delivery date. Assign to internal artisan or external contractor.
+India
+Material issue ledger
+Log exact weight + purity of gold / silver issued per job. Creates full accountability trail before metal leaves the vault.
+WIP workstation tracking
+Track job stage: Design → Casting → Filing → Soldering → Stone Setting → Polishing → QC. Alert on overdue stages.
+Metallurgical reconciliation
+On return: Metal Issued = Finished Weight + Recovered Scrap + Acceptable Loss. Variance beyond tolerance flagged as theft or inefficiency.
+Better than Manabh
+Scrap / filing return tracking
+Karigar must return bench sweepings and sprues. System weighs and credits recovered metal. Shortfall deducted from payout.
+Piece-rate Karigar payroll
+Auto-compute contractor payment per completed QC-passed piece. Settle in INR or fine gold equivalent (traditional practice).
+India
+CAD weight vs actual comparison
+Compare theoretical design weight against actual finished weight. Flag design-level inefficiencies before full production run.
+Better than Manabh
+XRF analyzer cloud sync
+Non-destructive purity tester pushes PPM breakdown directly into ERP. Accurate scrap payouts, no human data entry.
+Hardware
+Better than Manabh
+Refinery / assay order tracking
+Route scrap and old gold through fire assay. Track vault-in → refining → bullion return with full chain of custody.
