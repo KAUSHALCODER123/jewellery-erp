@@ -3,10 +3,20 @@ import { Router } from "express";
 import { logAction } from "../audit/logAction.js";
 import { getBearerToken, requireRole, revokeToken, signAuthToken, verifyToken, type AuthenticatedRequest } from "../middlewares/authMiddleware.js";
 import { db } from "../db/client.js";
-import { organizationSettings, users, type User, type UserRole } from "../db/schema.js";
+import { firms, organizationSettings, users, type User, type UserRole } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../utils/auth.js";
 
 export const authRouter = Router();
+
+authRouter.get("/firms", (_request, response) => {
+  const activeFirms = db.select({
+    id: firms.id,
+    key: firms.key,
+    display_name: firms.display_name,
+    gstin: firms.gstin
+  }).from(firms).where(eq(firms.is_active, true)).all();
+  return response.json({ firms: activeFirms });
+});
 
 authRouter.get("/status", (_request, response) => {
   const adminUser = db.query.users.findFirst({
@@ -21,6 +31,8 @@ authRouter.get("/status", (_request, response) => {
 authRouter.post("/login", async (request, response) => {
   const username = normalizeUsername(request.body?.username);
   const password = request.body?.password;
+  const firmKey = typeof request.body?.firm_key === "string" ? request.body.firm_key.trim() : null;
+  const fiscalYear = typeof request.body?.fiscal_year === "string" ? request.body.fiscal_year.trim() : null;
 
   if (!username || typeof password !== "string" || !password) {
     return response.status(400).json({ errors: ["username and password are required."] });
@@ -40,19 +52,58 @@ authRouter.post("/login", async (request, response) => {
     return response.status(401).json({ errors: ["Invalid credentials."] });
   }
 
+  // Resolve firm (default to first active firm if none specified)
+  let resolvedFirm: { id: number; key: string; display_name: string } | null = null;
+  if (firmKey) {
+    resolvedFirm = db.select({ id: firms.id, key: firms.key, display_name: firms.display_name })
+      .from(firms).where(eq(firms.key, firmKey)).get() ?? null;
+  }
+  if (!resolvedFirm) {
+    resolvedFirm = db.select({ id: firms.id, key: firms.key, display_name: firms.display_name })
+      .from(firms).where(eq(firms.is_active, true)).get() ?? null;
+  }
+
   const lastLogin = new Date().toISOString();
   db.update(users)
     .set({ last_login: lastLogin })
     .where(eq(users.id, user.id))
     .run();
 
-  const token = signAuthToken(user);
+  const token = signAuthToken(user, {
+    firm_id: resolvedFirm?.id ?? null,
+    firm_key: resolvedFirm?.key ?? null,
+    firm_name: resolvedFirm?.display_name ?? null,
+    fiscal_year: fiscalYear
+  });
   const publicUser = toAuthUser({ ...user, last_login: lastLogin });
 
   return response.json({
     token,
-    user: publicUser
+    user: {
+      ...publicUser,
+      firm_id: resolvedFirm?.id ?? null,
+      firm_key: resolvedFirm?.key ?? null,
+      firm_name: resolvedFirm?.display_name ?? null,
+      fiscal_year: fiscalYear
+    }
   });
+});
+
+// Re-verify the logged-in user's password to unlock the app (idle / manual lock screen).
+authRouter.post("/verify-password", verifyToken, async (request, response) => {
+  const password = request.body?.password;
+  if (typeof password !== "string" || !password) {
+    return response.status(400).json({ errors: ["password is required."] });
+  }
+
+  const authUser = (request as AuthenticatedRequest).user;
+  const user = db.query.users.findFirst({ where: eq(users.id, authUser.id) }).sync();
+  if (!user || !user.is_active) {
+    return response.status(401).json({ ok: false });
+  }
+
+  const ok = await verifyPassword(password, user.password_hash);
+  return response.status(ok ? 200 : 401).json({ ok });
 });
 
 authRouter.post("/logout", verifyToken, (request, response) => {

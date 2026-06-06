@@ -127,6 +127,13 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
   // New device profile draft
   const [deviceDraft, setDeviceDraft] = useState(initialDevice);
 
+  // Weighing scale serial config
+  const [scalePorts, setScalePorts] = useState<{ path: string; manufacturer: string | null }[]>([]);
+  const [scalePortName, setScalePortName] = useState("");
+  const [scaleBaud, setScaleBaud] = useState("9600");
+  const [scaleSaving, setScaleSaving] = useState(false);
+  const [scalePortsLoading, setScalePortsLoading] = useState(false);
+
   // Global Alert/Message states
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -351,6 +358,51 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
   }
 
   // Save new device configuration profile
+  async function loadScalePorts() {
+    setScalePortsLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/hardware/ports`, { headers: authHeaders });
+      const data = (await response.json().catch(() => null)) as { ports?: { path: string; manufacturer: string | null }[]; errors?: string[] } | null;
+      if (!response.ok) throw new Error(data?.errors?.join(" ") || "Could not list serial ports.");
+      setScalePorts(data?.ports ?? []);
+      if ((data?.ports?.length ?? 0) > 0 && !scalePortName) setScalePortName(data!.ports![0].path);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not list serial ports.");
+    } finally {
+      setScalePortsLoading(false);
+    }
+  }
+
+  async function saveScaleConfig() {
+    setMessage("");
+    setError("");
+    if (!scalePortName.trim()) {
+      setError("Select or enter a serial port for the scale.");
+      return;
+    }
+    const baud = Number(scaleBaud);
+    if (!Number.isInteger(baud) || baud <= 0) {
+      setError("Baud rate must be a positive whole number.");
+      return;
+    }
+    setScaleSaving(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/hardware/scale/config`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ portName: scalePortName.trim(), baudRate: baud })
+      });
+      const data = (await response.json().catch(() => null)) as { errors?: string[] } | null;
+      if (!response.ok) throw new Error(data?.errors?.join(" ") || "Could not save scale configuration.");
+      setMessage(`Weighing scale configured on ${scalePortName.trim()} @ ${baud} baud.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save scale configuration.");
+    } finally {
+      setScaleSaving(false);
+    }
+  }
+
   async function saveDevice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
@@ -1014,7 +1066,41 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
           {/* Tab 5: Device Profiles Setup */}
           {activeTab === "devices" && (
             <div className="grid grid-cols-[380px_1fr] gap-6">
-              
+
+              {/* Weighing scale serial configuration */}
+              <div className="col-span-2 bg-slate-900 border border-slate-800 rounded-lg p-5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-semibold uppercase text-white">Weighing Scale (Serial) Configuration</h2>
+                  <button type="button" onClick={() => void loadScalePorts()} disabled={scalePortsLoading} className="h-7 border border-slate-600 px-2.5 text-[11px] font-semibold uppercase text-slate-200 hover:border-emerald-400 hover:text-emerald-300 rounded disabled:text-slate-600">
+                    {scalePortsLoading ? "Scanning…" : "Refresh Ports"}
+                  </button>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label className="block text-[9px] uppercase text-slate-400">
+                    Serial Port (COM)
+                    {scalePorts.length > 0 ? (
+                      <select value={scalePortName} onChange={(e) => setScalePortName(e.target.value)} className={`${controlClassName} mt-1`}>
+                        {scalePorts.map((p) => (
+                          <option key={p.path} value={p.path}>{p.path}{p.manufacturer ? ` — ${p.manufacturer}` : ""}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input value={scalePortName} onChange={(e) => setScalePortName(e.target.value)} placeholder="e.g. COM3 or /dev/ttyUSB0" className={`${controlClassName} mt-1`} />
+                    )}
+                  </label>
+                  <label className="block text-[9px] uppercase text-slate-400">
+                    Baud Rate
+                    <input value={scaleBaud} onChange={(e) => setScaleBaud(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" className={`${controlClassName} mt-1`} />
+                  </label>
+                  <div className="flex items-end">
+                    <button type="button" onClick={() => void saveScaleConfig()} disabled={scaleSaving} className="h-9 w-full bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
+                      {scaleSaving ? "Saving…" : "Save & Connect Scale"}
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] text-slate-500">Click Refresh Ports to detect connected serial devices. Admin only.</p>
+              </div>
+
               {/* Form profile */}
               <form onSubmit={saveDevice} className="bg-slate-900 border border-slate-800 rounded-lg p-5 space-y-3 h-fit">
                 <h2 className="text-xs font-semibold uppercase text-white mb-2">Configure Device Profile</h2>

@@ -3,7 +3,7 @@ import { Router } from "express";
 import { logAction } from "../audit/logAction.js";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
-import { organizationSettings, printTemplates } from "../db/schema.js";
+import { firms, organizationSettings, printTemplates } from "../db/schema.js";
 import { decimalStringToInteger, paiseToRupees } from "../utils/decimal.js";
 import { fetchLiveMetalRates } from "../utils/marketRateFetcher.js";
 
@@ -11,6 +11,8 @@ export const settingsRouter = Router();
 
 const DOCUMENT_TYPES = new Set(["INVOICE", "RECEIPT", "LABEL"]);
 const PAGE_SIZES = new Set(["A4", "A5", "THERMAL_80", "LABEL_50X25", "LABEL_65X35"]);
+const LOYALTY_EARN_MODES = new Set(["PER_HUNDRED_RUPEES", "PER_GRAM_GOLD"]);
+const PRINT_LANGUAGES = new Set(["english", "marathi", "hindi", "gujarati"]);
 
 settingsRouter.get("/rates", requireAuth, (_request, response) => {
   const settings = db.query.organizationSettings.findFirst().sync();
@@ -113,6 +115,55 @@ settingsRouter.post("/rates/sync", requireAuth, requireAdmin, async (request, re
   }
 });
 
+settingsRouter.get("/loyalty", requireAuth, (_request, response) => {
+  const settings = db.query.organizationSettings.findFirst().sync();
+
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  return response.json({ loyalty: formatLoyaltySettings(settings) });
+});
+
+settingsRouter.put("/loyalty", requireAuth, requireAdmin, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
+  const validation = validateLoyaltyPayload(request.body);
+
+  if (!validation.ok) {
+    return response.status(400).json({ errors: validation.errors });
+  }
+
+  const settings = db.query.organizationSettings.findFirst().sync();
+
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  const oldSettings = formatLoyaltySettings(settings);
+  db.update(organizationSettings)
+    .set({
+      loyalty_earn_mode: validation.loyalty.earnMode,
+      loyalty_points_per_hundred: validation.loyalty.pointsPerHundred,
+      loyalty_points_per_gram_gold: validation.loyalty.pointsPerGramGold,
+      updated_at: sql`CURRENT_TIMESTAMP`
+    })
+    .where(eq(organizationSettings.id, settings.id))
+    .run();
+
+  const refreshed = db.query.organizationSettings.findFirst({
+    where: eq(organizationSettings.id, settings.id)
+  }).sync();
+  const nextSettings = formatLoyaltySettings(refreshed ?? {
+    ...settings,
+    loyalty_earn_mode: validation.loyalty.earnMode,
+    loyalty_points_per_hundred: validation.loyalty.pointsPerHundred,
+    loyalty_points_per_gram_gold: validation.loyalty.pointsPerGramGold
+  });
+
+  logAction(authUser.id, "UPDATE_LOYALTY_SETTINGS", "organization_settings", settings.id, oldSettings, nextSettings);
+  return response.json({ loyalty: nextSettings });
+});
+
 type RatesValidation =
   | {
       ok: true;
@@ -124,6 +175,46 @@ type RatesValidation =
       };
     }
   | { ok: false; errors: string[] };
+
+type LoyaltyValidation =
+  | {
+      ok: true;
+      loyalty: {
+        earnMode: "PER_HUNDRED_RUPEES" | "PER_GRAM_GOLD";
+        pointsPerHundred: number;
+        pointsPerGramGold: number;
+      };
+    }
+  | { ok: false; errors: string[] };
+
+function validateLoyaltyPayload(body: unknown): LoyaltyValidation {
+  const errors: string[] = [];
+
+  if (!isRecord(body)) {
+    return { ok: false, errors: ["Request body must be a JSON object."] };
+  }
+
+  const earnMode = typeof body.loyalty_earn_mode === "string" ? body.loyalty_earn_mode.toUpperCase() : "";
+  if (!LOYALTY_EARN_MODES.has(earnMode)) {
+    errors.push("loyalty_earn_mode must be PER_HUNDRED_RUPEES or PER_GRAM_GOLD.");
+  }
+
+  const pointsPerHundred = parseNonNegativeInteger(body.loyalty_points_per_hundred, "loyalty_points_per_hundred", errors);
+  const pointsPerGramGold = parseNonNegativeInteger(body.loyalty_points_per_gram_gold, "loyalty_points_per_gram_gold", errors);
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+
+  return {
+    ok: true,
+    loyalty: {
+      earnMode: earnMode as "PER_HUNDRED_RUPEES" | "PER_GRAM_GOLD",
+      pointsPerHundred,
+      pointsPerGramGold
+    }
+  };
+}
 
 function validateRatesPayload(body: unknown): RatesValidation {
   const errors: string[] = [];
@@ -177,9 +268,59 @@ function formatRates(settings: typeof organizationSettings.$inferSelect) {
   };
 }
 
+function formatLoyaltySettings(settings: typeof organizationSettings.$inferSelect) {
+  return {
+    loyalty_earn_mode: settings.loyalty_earn_mode,
+    loyalty_points_per_hundred: settings.loyalty_points_per_hundred,
+    loyalty_points_per_gram_gold: settings.loyalty_points_per_gram_gold,
+    updated_at: settings.updated_at
+  };
+}
+
+function parseNonNegativeInteger(value: unknown, field: string, errors: string[]) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    errors.push(`${field} must be a non-negative integer.`);
+    return 0;
+  }
+
+  return parsed;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+settingsRouter.get("/print-language", requireAuth, (_request, response) => {
+  const settings = db.query.organizationSettings.findFirst().sync();
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+  return response.json({ print_language: settings.print_language ?? "english" });
+});
+
+settingsRouter.put("/print-language", requireAuth, requireAdmin, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
+  const lang = request.body?.print_language;
+
+  if (typeof lang !== "string" || !PRINT_LANGUAGES.has(lang)) {
+    return response.status(400).json({ errors: ["print_language must be english, marathi, hindi, or gujarati."] });
+  }
+
+  const settings = db.query.organizationSettings.findFirst().sync();
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  const oldLang = settings.print_language ?? "english";
+  db.update(organizationSettings)
+    .set({ print_language: lang, updated_at: sql`CURRENT_TIMESTAMP` })
+    .where(eq(organizationSettings.id, settings.id))
+    .run();
+
+  logAction(authUser.id, "UPDATE_PRINT_LANGUAGE", "organization_settings", settings.id, { print_language: oldLang }, { print_language: lang });
+  return response.json({ print_language: lang });
+});
 
 settingsRouter.get("/ecommerce", requireAuth, requireAdmin, (_request, response) => {
   const settings = db.query.organizationSettings.findFirst().sync();
@@ -273,6 +414,176 @@ settingsRouter.put("/tally", requireAuth, requireAdmin, (request, response) => {
     tally_gateway_url: refreshed?.tally_gateway_url ?? "",
     tally_company_name: refreshed?.tally_company_name ?? ""
   });
+});
+
+// --- Firms / Company Entities (multi-firm) ---
+
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+function formatFirm(firm: typeof firms.$inferSelect) {
+  return {
+    id: firm.id,
+    key: firm.key,
+    display_name: firm.display_name,
+    gstin: firm.gstin,
+    address: firm.address,
+    contact_number: firm.contact_number,
+    is_active: firm.is_active,
+    created_at: firm.created_at
+  };
+}
+
+function slugifyFirmKey(displayName: string) {
+  const base = displayName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return base || "firm";
+}
+
+function uniqueFirmKey(displayName: string, excludeId?: number) {
+  const base = slugifyFirmKey(displayName);
+  let candidate = base;
+  let suffix = 1;
+  while (true) {
+    const existing = db.select({ id: firms.id }).from(firms).where(eq(firms.key, candidate)).get();
+    if (!existing || existing.id === excludeId) {
+      return candidate;
+    }
+    suffix += 1;
+    candidate = `${base}-${suffix}`;
+  }
+}
+
+type FirmPayload = {
+  display_name: string;
+  gstin: string | null;
+  address: string | null;
+  contact_number: string | null;
+  is_active: boolean;
+};
+
+function validateFirmPayload(body: unknown): { ok: true; firm: FirmPayload } | { ok: false; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!isRecord(body)) {
+    return { ok: false, errors: ["Request body must be a JSON object."] };
+  }
+
+  const displayName = typeof body.display_name === "string" ? body.display_name.trim() : "";
+  if (!displayName) {
+    errors.push("display_name is required.");
+  }
+
+  const gstinRaw = typeof body.gstin === "string" ? body.gstin.trim().toUpperCase() : "";
+  if (gstinRaw && !GSTIN_PATTERN.test(gstinRaw)) {
+    errors.push("gstin must be a valid 15-character GSTIN.");
+  }
+
+  const address = typeof body.address === "string" ? body.address.trim() : "";
+  const contactNumber = typeof body.contact_number === "string" ? body.contact_number.trim() : "";
+  const isActive = body.is_active === undefined ? true : Boolean(body.is_active);
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+
+  return {
+    ok: true,
+    firm: {
+      display_name: displayName,
+      gstin: gstinRaw || null,
+      address: address || null,
+      contact_number: contactNumber || null,
+      is_active: isActive
+    }
+  };
+}
+
+settingsRouter.get("/firms", requireAuth, (_request, response) => {
+  const rows = db.select().from(firms).all();
+  return response.json({ firms: rows.map(formatFirm) });
+});
+
+settingsRouter.post("/firms", requireAuth, requireAdmin, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
+  const validation = validateFirmPayload(request.body);
+
+  if (!validation.ok) {
+    return response.status(400).json({ errors: validation.errors });
+  }
+
+  const key = uniqueFirmKey(validation.firm.display_name);
+  const created = db.insert(firms).values({
+    key,
+    display_name: validation.firm.display_name,
+    gstin: validation.firm.gstin,
+    address: validation.firm.address,
+    contact_number: validation.firm.contact_number,
+    is_active: validation.firm.is_active
+  }).returning().get();
+
+  logAction(authUser.id, "CREATE_FIRM", "firms", created.id, null, formatFirm(created));
+  return response.status(201).json({ firm: formatFirm(created) });
+});
+
+settingsRouter.put("/firms/:id", requireAuth, requireAdmin, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
+  const firmId = Number(request.params.id);
+
+  if (!Number.isInteger(firmId) || firmId <= 0) {
+    return response.status(400).json({ errors: ["Firm id must be a positive integer."] });
+  }
+
+  const existing = db.select().from(firms).where(eq(firms.id, firmId)).get();
+  if (!existing) {
+    return response.status(404).json({ errors: ["Firm not found."] });
+  }
+
+  const validation = validateFirmPayload(request.body);
+  if (!validation.ok) {
+    return response.status(400).json({ errors: validation.errors });
+  }
+
+  // Regenerate the key only when the display name changes, keeping it unique.
+  const key = validation.firm.display_name === existing.display_name
+    ? existing.key
+    : uniqueFirmKey(validation.firm.display_name, firmId);
+
+  const oldFirm = formatFirm(existing);
+  const updated = db.update(firms).set({
+    key,
+    display_name: validation.firm.display_name,
+    gstin: validation.firm.gstin,
+    address: validation.firm.address,
+    contact_number: validation.firm.contact_number,
+    is_active: validation.firm.is_active
+  }).where(eq(firms.id, firmId)).returning().get();
+
+  logAction(authUser.id, "UPDATE_FIRM", "firms", firmId, oldFirm, formatFirm(updated));
+  return response.json({ firm: formatFirm(updated) });
+});
+
+settingsRouter.delete("/firms/:id", requireAuth, requireAdmin, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
+  const firmId = Number(request.params.id);
+
+  if (!Number.isInteger(firmId) || firmId <= 0) {
+    return response.status(400).json({ errors: ["Firm id must be a positive integer."] });
+  }
+
+  const existing = db.select().from(firms).where(eq(firms.id, firmId)).get();
+  if (!existing) {
+    return response.status(404).json({ errors: ["Firm not found."] });
+  }
+
+  // Refuse to deactivate the last active firm — login needs at least one to resolve against.
+  const activeCount = db.select({ id: firms.id }).from(firms).where(eq(firms.is_active, true)).all().length;
+  if (existing.is_active && activeCount <= 1) {
+    return response.status(409).json({ errors: ["Cannot deactivate the only active firm. Create another firm first."] });
+  }
+
+  // Soft delete: deactivate so historical invoices keep their firm_id reference.
+  const updated = db.update(firms).set({ is_active: false }).where(eq(firms.id, firmId)).returning().get();
+  logAction(authUser.id, "DEACTIVATE_FIRM", "firms", firmId, formatFirm(existing), formatFirm(updated));
+  return response.json({ firm: formatFirm(updated) });
 });
 
 settingsRouter.get("/print-templates/tokens", requireAuth, (_request, response) => {

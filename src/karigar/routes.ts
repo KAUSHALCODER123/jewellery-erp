@@ -129,6 +129,11 @@ karigarRouter.get("/jobs", requireAuth, requireAdmin, (request, response) => {
   });
 });
 
+// Suggest the next sequential job/tracking slip number (JOB-####).
+karigarRouter.get("/next-job-number", requireAuth, requireAdmin, (_request, response) => {
+  return response.json({ order_number: nextJobNumber() });
+});
+
 karigarRouter.post("/jobs", requireAuth, requireAdmin, (request, response) => {
   const validation = validateJobPayload(request.body);
 
@@ -148,6 +153,7 @@ karigarRouter.post("/jobs", requireAuth, requireAdmin, (request, response) => {
     .insert(jobOrders)
     .values({
       order_number: validation.job.orderNumber,
+      job_name: validation.job.jobName,
       karigar_id: validation.job.karigarId,
       customer_id: validation.job.customerId,
       design_image_path: validation.job.designImagePath,
@@ -266,6 +272,7 @@ karigarRouter.post("/receive-job", requireAuth, requireAdmin, (request, response
 
   const issues = db.select().from(materialIssues).where(eq(materialIssues.job_id, job.id)).all();
   const totalIssuedFineMg = issues.reduce((total, issue) => total + issue.fine_gold_mg, 0);
+  const totalIssuedGrossMg = issues.reduce((total, issue) => total + issue.gross_weight_mg, 0);
 
   if (totalIssuedFineMg <= 0) {
     return response.status(409).json({ errors: ["No issued fine-gold balance exists for this job."] });
@@ -275,8 +282,11 @@ karigarRouter.post("/receive-job", requireAuth, requireAdmin, (request, response
   const scrapFineGoldMg = calculateFineGoldMg(validation.receipt.scrapReturnedMg, validation.receipt.scrapPurityTunch);
   const returnedFineGoldMg = finishedFineGoldMg + scrapFineGoldMg;
   const actualLossMg = Math.max(totalIssuedFineMg - returnedFineGoldMg, 0);
+  // PER_GRAM allowance: mg of loss per gram of issued gross metal. PERCENTAGE: basis points of issued fine gold.
   const acceptableLossMg = validation.receipt.acceptableLossMg
-    ?? calculateAcceptableLossMg(totalIssuedFineMg, validation.receipt.acceptableWastageBasisPoints);
+    ?? (validation.receipt.wastageMode === "PER_GRAM"
+      ? Math.floor((validation.receipt.wastageValue * totalIssuedGrossMg) / 1000)
+      : calculateAcceptableLossMg(totalIssuedFineMg, validation.receipt.wastageValue));
   const excessLossMg = Math.max(0, actualLossMg - acceptableLossMg);
   const isAnomaly = excessLossMg > 0;
   const fineGoldDebitedMg = Math.min(totalIssuedFineMg, returnedFineGoldMg + acceptableLossMg + excessLossMg);
@@ -292,6 +302,8 @@ karigarRouter.post("/receive-job", requireAuth, requireAdmin, (request, response
         final_net_weight_mg: validation.receipt.finalNetWeightMg,
         scrap_returned_mg: validation.receipt.scrapReturnedMg,
         scrap_purity_tunch: validation.receipt.scrapPurityTunch,
+        wastage_mode: validation.receipt.wastageMode,
+        wastage_value: validation.receipt.wastageValue,
         acceptable_loss_mg: acceptableLossMg,
         actual_loss_mg: actualLossMg,
         excess_loss_mg: excessLossMg,
@@ -685,7 +697,8 @@ type ReceiveJobValidation =
         scrapReturnedMg: number;
         scrapPurityTunch: number;
         acceptableLossMg: number | null;
-        acceptableWastageBasisPoints: number;
+        wastageMode: "PERCENTAGE" | "PER_GRAM";
+        wastageValue: number;
         laborChargePaise: number;
       };
     }
@@ -696,6 +709,7 @@ type JobValidation =
       ok: true;
       job: {
         orderNumber: string;
+        jobName: string | null;
         karigarId: number;
         customerId: number | null;
         designImagePath: string | null;
@@ -712,7 +726,11 @@ function validateJobPayload(body: unknown): JobValidation {
     return { ok: false, errors: ["Request body must be a JSON object."] };
   }
 
-  const orderNumber = typeof body.order_number === "string" ? body.order_number.trim().toUpperCase() : "";
+  // Tracking slip auto-generates sequentially (JOB-####) when not supplied.
+  const orderNumber = typeof body.order_number === "string" && body.order_number.trim()
+    ? body.order_number.trim().toUpperCase()
+    : nextJobNumber();
+  const jobName = typeof body.job_name === "string" && body.job_name.trim() ? body.job_name.trim() : null;
   const karigarId = body.karigar_id;
   const customerId = body.customer_id === undefined || body.customer_id === null ? null : body.customer_id;
   const designImagePath = typeof body.design_image_path === "string" && body.design_image_path.trim()
@@ -749,6 +767,7 @@ function validateJobPayload(body: unknown): JobValidation {
     ok: true,
     job: {
       orderNumber,
+      jobName,
       karigarId: karigarId as number,
       customerId: customerId as number | null,
       designImagePath,
@@ -756,6 +775,18 @@ function validateJobPayload(body: unknown): JobValidation {
       targetWeightMg: targetWeightMg as number
     }
   };
+}
+
+function nextJobNumber(): string {
+  const rows = db.select({ orderNumber: jobOrders.order_number }).from(jobOrders).all();
+  let max = 0;
+  for (const row of rows) {
+    const match = /^JOB-(\d+)$/.exec(row.orderNumber ?? "");
+    if (match) {
+      max = Math.max(max, Number(match[1]));
+    }
+  }
+  return `JOB-${String(max + 1).padStart(4, "0")}`;
 }
 
 function validateIssueMetalPayload(body: unknown): IssueMetalValidation {
@@ -814,9 +845,30 @@ function validateReceiveJobPayload(body: unknown): ReceiveJobValidation {
     ? 10000
     : parseTunchBasisPoints(body.scrap_purity_tunch);
   const acceptableLossMg = body.acceptable_loss_mg === undefined || body.acceptable_loss_mg === null ? null : body.acceptable_loss_mg;
-  const acceptableWastageBasisPoints = body.acceptable_wastage_percentage === undefined || body.acceptable_wastage_percentage === null
-    ? DEFAULT_ACCEPTABLE_WASTAGE_BASIS_POINTS
-    : parseTunchBasisPoints(body.acceptable_wastage_percentage);
+  // Wastage allowance: PERCENTAGE (value held as basis points) or PER_GRAM (value held as mg of loss per gram).
+  // Falls back to the legacy acceptable_wastage_percentage field when no explicit mode is supplied.
+  const wastageModeRaw = typeof body.wastage_mode === "string" ? body.wastage_mode.trim().toUpperCase() : "";
+  let wastageMode: "PERCENTAGE" | "PER_GRAM" = "PERCENTAGE";
+  let wastageValue: number | null;
+  if (wastageModeRaw === "PER_GRAM") {
+    wastageMode = "PER_GRAM";
+    wastageValue = parseGramsToMg(body.wastage_value);
+    if (wastageValue === null || wastageValue < 0) {
+      errors.push("wastage_value must be a non-negative gram amount (loss per gram) for PER_GRAM mode.");
+    }
+  } else if (wastageModeRaw === "PERCENTAGE") {
+    wastageValue = parseTunchBasisPoints(body.wastage_value);
+    if (wastageValue === null || wastageValue < 0 || wastageValue > 10000) {
+      errors.push("wastage_value must be a decimal percentage between 0 and 100 for PERCENTAGE mode.");
+    }
+  } else {
+    wastageValue = body.acceptable_wastage_percentage === undefined || body.acceptable_wastage_percentage === null
+      ? DEFAULT_ACCEPTABLE_WASTAGE_BASIS_POINTS
+      : parseTunchBasisPoints(body.acceptable_wastage_percentage);
+    if (wastageValue === null || wastageValue < 0 || wastageValue > 10000) {
+      errors.push("acceptable_wastage_percentage must be a decimal percentage between 0 and 100.");
+    }
+  }
   const laborChargePaise = body.labor_charge_paise;
   const receiveDate = typeof body.receive_date === "string" && isDate(body.receive_date) ? body.receive_date : getToday();
 
@@ -848,10 +900,6 @@ function validateReceiveJobPayload(body: unknown): ReceiveJobValidation {
     errors.push("acceptable_loss_mg must be a non-negative integer when provided.");
   }
 
-  if (acceptableWastageBasisPoints === null || acceptableWastageBasisPoints < 0 || acceptableWastageBasisPoints > 10000) {
-    errors.push("acceptable_wastage_percentage must be a decimal percentage between 0 and 100.");
-  }
-
   if (!Number.isInteger(laborChargePaise) || (laborChargePaise as number) < 0) {
     errors.push("labor_charge_paise must be a non-negative integer.");
   }
@@ -870,7 +918,8 @@ function validateReceiveJobPayload(body: unknown): ReceiveJobValidation {
       scrapReturnedMg: scrapReturnedMg as number,
       scrapPurityTunch: scrapPurityTunch as number,
       acceptableLossMg: acceptableLossMg as number | null,
-      acceptableWastageBasisPoints: acceptableWastageBasisPoints as number,
+      wastageMode,
+      wastageValue: (wastageValue ?? 0) as number,
       laborChargePaise: laborChargePaise as number
     }
   };
@@ -896,6 +945,21 @@ function parseTunchBasisPoints(value: unknown) {
   }
 
   return Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0") || "0");
+}
+
+// Parse a decimal gram amount (e.g. "0.200") into integer milligrams (200).
+function parseGramsToMg(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+
+  const match = String(value).trim().match(/^(\d+)(?:\.(\d{1,3}))?$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[1]) * 1000 + Number((match[2] ?? "").padEnd(3, "0") || "0");
 }
 
 function formatBasisPoints(value: number) {

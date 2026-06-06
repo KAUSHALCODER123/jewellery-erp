@@ -8,6 +8,10 @@ export type AuthUser = {
   username: string;
   full_name: string;
   role: AuthRole;
+  firm_id?: number | null;
+  firm_key?: string | null;
+  firm_name?: string | null;
+  fiscal_year?: string | null;
 };
 
 export type AuthSession = {
@@ -18,6 +22,8 @@ export type AuthSession = {
 type LoginCredentials = {
   username: string;
   password: string;
+  firm_key?: string | null;
+  fiscal_year?: string | null;
 };
 
 type AuthContextValue = {
@@ -26,7 +32,7 @@ type AuthContextValue = {
   session: AuthSession | null;
   isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<AuthSession>;
-  logout: () => void;
+  logout: () => Promise<void>;
   setSession: (session: AuthSession | null) => void;
   authFetch: typeof fetch;
 };
@@ -70,9 +76,21 @@ export function AuthProvider({ children, apiBaseUrl = "" }: { children: ReactNod
     return result;
   }, [apiBaseUrl, setSession]);
 
-  const logout = useCallback(() => {
-    setSession(null);
-  }, [setSession]);
+  const logout = useCallback(async () => {
+    // Best-effort server-side revoke so the token can't be reused; clear local session regardless.
+    try {
+      if (session?.token) {
+        await fetch(`${apiBaseUrl}/api/auth/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.token}` }
+        });
+      }
+    } catch {
+      // Offline / network error — still clear the local session below.
+    } finally {
+      setSession(null);
+    }
+  }, [apiBaseUrl, session?.token, setSession]);
 
   const authFetch = useCallback<typeof fetch>((input, init = {}) => {
     const headers = new Headers(init.headers);
@@ -137,7 +155,11 @@ function getStoredSession(): AuthSession | null {
     id: decoded.userId,
     username: decoded.username,
     full_name: decoded.username,
-    role: decoded.role
+    role: decoded.role,
+    firm_id: decoded.firm_id ?? null,
+    firm_key: decoded.firm_key ?? null,
+    firm_name: decoded.firm_name ?? null,
+    fiscal_year: decoded.fiscal_year ?? null
   };
 
   return { token, user };
@@ -156,7 +178,11 @@ function parseStoredUser(value: string | null) {
         id: parsed.id,
         username: parsed.username,
         full_name: typeof parsed.full_name === "string" ? parsed.full_name : parsed.username,
-        role: parsed.role
+        role: parsed.role,
+        firm_id: typeof parsed.firm_id === "number" ? parsed.firm_id : null,
+        firm_key: typeof parsed.firm_key === "string" ? parsed.firm_key : null,
+        firm_name: typeof parsed.firm_name === "string" ? parsed.firm_name : null,
+        fiscal_year: typeof parsed.fiscal_year === "string" ? parsed.fiscal_year : null
       };
     }
   } catch {
@@ -175,14 +201,18 @@ function decodeJwtPayload(token: string) {
 
   try {
     const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-    const decoded = JSON.parse(json) as Partial<AuthUser> & { userId?: number; exp?: number };
+    const decoded = JSON.parse(json) as Partial<AuthUser> & { userId?: number; exp?: number; firm_id?: number | null; firm_key?: string | null; firm_name?: string | null; fiscal_year?: string | null };
 
     if (typeof decoded.userId === "number" && typeof decoded.username === "string" && isAuthRole(decoded.role)) {
       return {
         userId: decoded.userId,
         username: decoded.username,
         role: decoded.role,
-        exp: decoded.exp
+        exp: decoded.exp,
+        firm_id: decoded.firm_id ?? null,
+        firm_key: decoded.firm_key ?? null,
+        firm_name: decoded.firm_name ?? null,
+        fiscal_year: decoded.fiscal_year ?? null
       };
     }
   } catch {

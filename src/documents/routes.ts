@@ -167,7 +167,8 @@ documentRouter.get("/label/item/:id/:templateId", async (request, response) => {
       shop_name: organization.shop_name,
       address: organization.address,
       gstin: organization.gstin,
-      contact_number: organization.contact_number
+      contact_number: organization.contact_number,
+      print_language: organization.print_language ?? null
     },
     template
   );
@@ -253,6 +254,7 @@ function loadInvoiceDocumentData(invoiceId: number) {
           phone: invoiceRow.customer.phone
         }
       : null,
+    walk_in_name: invoiceRow.invoice.walk_in_name ?? null,
     hsn_code: invoiceRow.invoice.hsn_code,
     total_amount_paise: invoiceRow.invoice.total_amount_paise,
     gst_percentage: invoiceRow.invoice.gst_percentage,
@@ -338,7 +340,10 @@ function loadPrintTemplate(templateId: number): PrintTemplateData | null {
         headerLines: Array.isArray(parsed.headerLines) ? parsed.headerLines.filter((line): line is string => typeof line === "string") : [],
         footerText: typeof parsed.footerText === "string" ? parsed.footerText : "",
         fields: Array.isArray(parsed.fields) ? parsed.fields.filter((field): field is string => typeof field === "string") : [],
-        columns: Array.isArray(parsed.columns) ? parsed.columns.filter((column): column is string => typeof column === "string") : []
+        columns: Array.isArray(parsed.columns) ? parsed.columns.filter((column): column is string => typeof column === "string") : [],
+        accentColor: typeof parsed.accentColor === "string" && /^#[0-9a-fA-F]{6}$/.test(parsed.accentColor) ? parsed.accentColor : undefined,
+        headerTextColor: typeof parsed.headerTextColor === "string" && /^#[0-9a-fA-F]{6}$/.test(parsed.headerTextColor) ? parsed.headerTextColor : undefined,
+        fontSizeBase: parsed.fontSizeBase === "small" || parsed.fontSizeBase === "large" ? parsed.fontSizeBase : parsed.fontSizeBase === "medium" ? "medium" : undefined
       }
     };
   } catch {

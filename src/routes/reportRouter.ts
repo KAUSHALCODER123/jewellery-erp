@@ -14,6 +14,7 @@ import {
   gssAccounts,
   gssTemplates,
   journalEntries,
+  expenses,
   purchaseInvoices,
   urdPurchases,
   urdVouchers,
@@ -89,15 +90,66 @@ reportRouter.get("/daybook-summary", (request, response) => {
       .where(eq(ledgers.account_type, "BANK"))
   );
 
+  // Day's money movement split by till type, from journal postings on CASH vs BANK ledgers.
+  // DEBIT = money in (receipts), CREDIT = money out (payments). UPI/Card/Cheque all post to BANK.
+  const tillFlow = (accountType: "CASH" | "BANK", direction: "DEBIT" | "CREDIT") =>
+    scalar(
+      db.select({ total: sql<number>`COALESCE(SUM(${journalEntries.amount_paise}), 0)` })
+        .from(journalEntries)
+        .innerJoin(ledgers, eq(journalEntries.ledger_id, ledgers.id))
+        .where(sql`${ledgers.account_type} = ${accountType} AND ${journalEntries.transaction_type} = ${direction} AND ${journalEntries.created_at} >= ${start} AND ${journalEntries.created_at} <= ${end}`)
+    );
+
+  const cashReceivedPaise = tillFlow("CASH", "DEBIT");
+  const cashPaidPaise = tillFlow("CASH", "CREDIT");
+  const bankReceivedPaise = tillFlow("BANK", "DEBIT");
+  const bankPaidPaise = tillFlow("BANK", "CREDIT");
+
+  // Opening cash = net CASH postings before the day starts; closing = opening + in - out.
+  const cashNetBefore = (direction: "DEBIT" | "CREDIT") =>
+    scalar(
+      db.select({ total: sql<number>`COALESCE(SUM(${journalEntries.amount_paise}), 0)` })
+        .from(journalEntries)
+        .innerJoin(ledgers, eq(journalEntries.ledger_id, ledgers.id))
+        .where(sql`${ledgers.account_type} = 'CASH' AND ${journalEntries.transaction_type} = ${direction} AND ${journalEntries.created_at} < ${start}`)
+    );
+  const cashOpeningPaise = cashNetBefore("DEBIT") - cashNetBefore("CREDIT");
+  const cashClosingPaise = cashOpeningPaise + cashReceivedPaise - cashPaidPaise;
+
+  const totalExpensesPaise = scalar(
+    db.select({ total: sql<number>`COALESCE(SUM(${expenses.amount_paise}), 0)` })
+      .from(expenses)
+      .where(eq(expenses.expense_date, date))
+  );
+  const cashExpensesPaise = scalar(
+    db.select({ total: sql<number>`COALESCE(SUM(${expenses.amount_paise}), 0)` })
+      .from(expenses)
+      .where(sql`${expenses.expense_date} = ${date} AND ${expenses.payment_mode} = 'CASH'`)
+  );
+
   return response.json({
     date,
     total_sales_paise: totalSalesPaise,
     total_purchase_paise: totalPurchasePaise,
     total_urd_purchase_paise: urdPosPaise + urdVoucherPaise,
+    total_expenses_paise: totalExpensesPaise,
     karigar_issued_fine_mg: karigarIssuedFineMg,
     karigar_received_fine_mg: karigarReceivedFineMg,
     cash_in_hand_paise: cashInHandPaise,
-    bank_balance_paise: bankBalancePaise
+    bank_balance_paise: bankBalancePaise,
+    payment_modes: {
+      cash_received_paise: cashReceivedPaise,
+      cash_paid_paise: cashPaidPaise,
+      bank_received_paise: bankReceivedPaise,
+      bank_paid_paise: bankPaidPaise
+    },
+    cash_reconciliation: {
+      opening_cash_paise: cashOpeningPaise,
+      cash_received_paise: cashReceivedPaise,
+      cash_paid_paise: cashPaidPaise,
+      cash_expenses_paise: cashExpensesPaise,
+      closing_cash_paise: cashClosingPaise
+    }
   });
 });
 

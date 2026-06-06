@@ -2,7 +2,7 @@ import { and, eq, gte, lte, or, sql } from "drizzle-orm";
 import { Router } from "express";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
-import { bisSubmissionItems, bisSubmissions, gstAuditPeriodLocks, huidLifecycleEvents, invoiceLines, invoices, items, urdPurchases, urdVouchers } from "../db/schema.js";
+import { bisSubmissionItems, bisSubmissions, customers, gstAuditPeriodLocks, huidLifecycleEvents, invoiceLines, invoices, items, urdPurchases, urdVouchers } from "../db/schema.js";
 import { paiseToRupees } from "../utils/decimal.js";
 import { findActiveGstLockForDate } from "./auditLocks.js";
 
@@ -18,6 +18,20 @@ complianceRouter.get("/gst-export/gstr1", requireAuth, requireAdmin, (request, r
   }
 
   return response.json(buildHsnRows("SALE", dateRange, "Jewellery"));
+});
+
+// GSTR-1 split into B2B (registered customers with GSTIN, invoice-level) and B2C (retail, rate-wise summary).
+complianceRouter.get("/gst-export/gstr1-b2b-b2c", requireAuth, requireAdmin, (request, response) => {
+  const dateRange = validateDateRange(request.query.from, request.query.to);
+
+  if (!dateRange.ok) {
+    return response.status(400).json({ errors: dateRange.errors });
+  }
+
+  return response.json({
+    date_range: { from: dateRange.from, to: dateRange.to },
+    ...buildB2bB2cRows(dateRange)
+  });
 });
 
 complianceRouter.get("/gst-export/gstr2", requireAuth, requireAdmin, (request, response) => {
@@ -250,6 +264,91 @@ function buildHsnRows(invoiceType: InvoiceType, dateRange: DateRange, descriptio
       sgst_paise: entry.sgst_paise,
       cess_paise: entry.cess_paise
     }));
+}
+
+function buildB2bB2cRows(dateRange: DateRange) {
+  const filters = [
+    or(eq(invoices.invoice_type, "SALE"), sql`${invoices.invoice_type} IS NULL`),
+    dateRange.from ? gte(invoices.created_at, `${dateRange.from} 00:00:00`) : undefined,
+    dateRange.to ? lte(invoices.created_at, `${dateRange.to} 23:59:59`) : undefined
+  ].filter(isDefined);
+
+  const rows = db
+    .select({ invoice: invoices, line: invoiceLines, customer_gstin: customers.gstin, customer_name: customers.name })
+    .from(invoiceLines)
+    .innerJoin(invoices, sql`${invoiceLines.invoice_id} = ${invoices.id}`)
+    .leftJoin(customers, sql`${invoices.customer_id} = ${customers.id}`)
+    .where(filters.length > 0 ? and(...filters) : undefined)
+    .all();
+
+  type Acc = GstSummary & { invoice_number?: string; gstin?: string; customer_name?: string; supply_type: string; rate: number; total_paise: number };
+  const newAcc = (supply_type: string, rate: number): Acc => ({
+    taxable_value_paise: 0, gst_paise: 0, cgst_paise: 0, sgst_paise: 0, igst_paise: 0, cess_paise: 0, supply_type, rate, total_paise: 0
+  });
+  const addTaxes = (acc: Acc, taxes: GstSummary) => {
+    acc.taxable_value_paise += taxes.taxable_value_paise;
+    acc.gst_paise += taxes.gst_paise;
+    acc.cgst_paise += taxes.cgst_paise;
+    acc.sgst_paise += taxes.sgst_paise;
+    acc.igst_paise += taxes.igst_paise;
+    acc.cess_paise += taxes.cess_paise;
+    acc.total_paise = acc.taxable_value_paise + acc.gst_paise;
+  };
+
+  // B2B grouped per invoice (registered customer); B2C summarized per rate+supply type (retail).
+  const b2bMap = new Map<number, Acc>();
+  const b2cMap = new Map<string, Acc>();
+  for (const row of rows) {
+    const taxes = lineTaxes(row.line, row.invoice);
+    const gstin = row.customer_gstin?.trim();
+    const rate = Number(row.invoice.gst_percentage ?? 0);
+    const supplyType = row.invoice.gst_supply_type || "INTRA_STATE";
+
+    if (gstin) {
+      const acc = b2bMap.get(row.invoice.id) ?? newAcc(supplyType, rate);
+      acc.invoice_number = row.invoice.invoice_number;
+      acc.gstin = gstin;
+      acc.customer_name = row.customer_name ?? undefined;
+      addTaxes(acc, taxes);
+      b2bMap.set(row.invoice.id, acc);
+    } else {
+      const key = `${rate}|${supplyType}`;
+      const acc = b2cMap.get(key) ?? newAcc(supplyType, rate);
+      addTaxes(acc, taxes);
+      b2cMap.set(key, acc);
+    }
+  }
+
+  const present = (acc: Acc) => ({
+    invoice_number: acc.invoice_number,
+    gstin: acc.gstin,
+    customer_name: acc.customer_name,
+    supply_type: acc.supply_type,
+    rate: acc.rate,
+    taxable_value_rupees: paiseToRupees(acc.taxable_value_paise),
+    cgst_rupees: paiseToRupees(acc.cgst_paise),
+    sgst_rupees: paiseToRupees(acc.sgst_paise),
+    igst_rupees: paiseToRupees(acc.igst_paise),
+    total_rupees: paiseToRupees(acc.total_paise),
+    taxable_value_paise: acc.taxable_value_paise,
+    gst_paise: acc.gst_paise,
+    total_paise: acc.total_paise
+  });
+
+  const b2b = [...b2bMap.values()].map(present);
+  const b2c = [...b2cMap.values()].sort((l, r) => l.rate - r.rate).map(present);
+  const sumPaise = (list: Acc[]) => list.reduce((t, a) => t + a.total_paise, 0);
+
+  return {
+    b2b,
+    b2c,
+    totals: {
+      b2b_invoice_count: b2b.length,
+      b2c_summary_count: b2c.length,
+      b2b_total_rupees: paiseToRupees(sumPaise([...b2bMap.values()])),
+      b2c_total_rupees: paiseToRupees(sumPaise([...b2cMap.values()]))
+    }
+  };
 }
 
 function summarizeGst(invoiceType: InvoiceType, dateRange: DateRange): GstSummary {

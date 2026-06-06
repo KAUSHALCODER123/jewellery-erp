@@ -66,6 +66,76 @@ describe("POS maturity documents", () => {
     expect(names).toContain("Vendor Mumbai Bullion Syndicate");
   });
 
+  it("ingests purchase lines into live barcoded stock (one item per piece)", async () => {
+    const response = await request(app)
+      .post("/api/pos/purchases")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        supplier_name: "Chain House Wholesale",
+        purchase_date: "2026-06-04",
+        payment_mode: "CREDIT",
+        gross_total_paise: 9000000,
+        gst_amount_paise: 0,
+        total_amount_paise: 9000000,
+        lines: [
+          sampleCommercialLine({
+            description: "Gold Chains",
+            category: "Gold Chains",
+            quantity: 3,
+            gross_weight_mg: 30000,
+            net_weight_mg: 30000,
+            making_charge_paise: 0,
+            line_total_paise: 9000000
+          })
+        ]
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.stock_items).toHaveLength(3);
+    expect(response.body.stock_items.every((item: { status: string }) => item.status === "IN_STOCK")).toBe(true);
+    // Per-piece weights sum back to the line total (remainder absorbed by the last piece).
+    expect(response.body.stock_items.reduce((sum: number, item: { net_weight_mg: number }) => sum + item.net_weight_mg, 0)).toBe(30000);
+
+    // Persisted as barcoded inventory, so the stock-verification scanner can find them.
+    const persisted = db.select().from(items).where(eq(items.category, "Gold Chains")).all();
+    expect(persisted).toHaveLength(3);
+    expect(persisted.every((item) => item.barcode.startsWith("GOL"))).toBe(true);
+  });
+
+  it("ingests a LOT line as a single weight-wise item holding the full weight", async () => {
+    const response = await request(app)
+      .post("/api/pos/purchases")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        supplier_name: "Bar Vault Wholesale",
+        purchase_date: "2026-06-04",
+        payment_mode: "CREDIT",
+        gross_total_paise: 9000000,
+        gst_amount_paise: 0,
+        total_amount_paise: 9000000,
+        lines: [
+          sampleCommercialLine({
+            description: "Gold Kasar Lot",
+            category: "Bar Lot",
+            stock_mode: "LOT",
+            quantity: 10,
+            gross_weight_mg: 30000,
+            net_weight_mg: 30000,
+            making_charge_paise: 0,
+            line_total_paise: 9000000
+          })
+        ]
+      });
+
+    expect(response.status).toBe(201);
+    // LOT ignores quantity for stock: one item carrying the full 30g.
+    expect(response.body.stock_items).toHaveLength(1);
+    expect(response.body.stock_items[0].net_weight_mg).toBe(30000);
+
+    const persisted = db.select().from(items).where(eq(items.category, "Bar Lot")).all();
+    expect(persisted).toHaveLength(1);
+  });
+
   it("creates sales return and moves returned item back to stock", async () => {
     db.update(items).set({ status: "SOLD" }).where(eq(items.id, 1)).run();
 

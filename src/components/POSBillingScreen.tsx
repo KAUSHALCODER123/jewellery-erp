@@ -19,6 +19,7 @@ type Customer = {
   area?: string | null;
   pan_number?: string | null;
   aadhaar_number?: string | null;
+  loyalty_enrolled?: boolean;
 };
 
 type InventoryItem = {
@@ -139,8 +140,10 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const [customerUdhariPaise, setCustomerUdhariPaise] = useState(0);
   const [loyaltyRedeemPoints, setLoyaltyRedeemPoints] = useState("");
   const [customerLoyaltyPoints, setCustomerLoyaltyPoints] = useState(0);
+  const [customerLoyaltyEnrolled, setCustomerLoyaltyEnrolled] = useState(false);
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerListOpen, setCustomerListOpen] = useState(false);
+  const [walkInName, setWalkInName] = useState("");
   const [showCreditConfirm, setShowCreditConfirm] = useState(false);
   const [printContext, setPrintContext] = useState<{ phone: string | null; invoiceNumber: string } | null>(null);
 
@@ -152,11 +155,27 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
       setCustomerId(String(customer.id));
       setCustomerQuery(customer.name);
     }
+    setWalkInName("");
+    setCustomerListOpen(false);
+  }
+
+  function confirmWalkIn(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setWalkInName(trimmed);
+    setCustomerId("");
+    setCustomerQuery(trimmed);
     setCustomerListOpen(false);
   }
 
   function handleCustomerSaved(saved: SavedCustomer) {
-    const next: Customer = { id: saved.id, name: saved.name, phone: saved.phone, area: typeof saved.area === "string" ? saved.area : null };
+    const next: Customer = {
+      id: saved.id,
+      name: saved.name,
+      phone: saved.phone,
+      area: typeof saved.area === "string" ? saved.area : null,
+      loyalty_enrolled: Boolean(saved.loyalty_enrolled)
+    };
     setCustomers((current) => [next, ...current.filter((c) => c.id !== saved.id)]);
     setCustomerId(String(saved.id));
     setCustomerQuery(saved.name);
@@ -213,6 +232,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
       setCustomerUdhariPaise(0);
       setOldDuesRupees("");
       setCustomerLoyaltyPoints(0);
+      setCustomerLoyaltyEnrolled(false);
       setLoyaltyRedeemPoints("");
       return;
     }
@@ -220,14 +240,16 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
     (async () => {
       try {
         const res = await fetch(`${apiBaseUrl}/api/crm/customers/${customerId}/360`, { headers: authHeaders });
-        const data = (await res.json().catch(() => null)) as { udhari_balance_paise?: number; customer?: { loyalty_points_balance?: number } } | null;
+        const data = (await res.json().catch(() => null)) as { udhari_balance_paise?: number; customer?: { loyalty_enrolled?: boolean; loyalty_points_balance?: number } } | null;
         if (!cancelled && res.ok && data) {
           setCustomerUdhariPaise(Number(data.udhari_balance_paise) || 0);
+          setCustomerLoyaltyEnrolled(Boolean(data.customer?.loyalty_enrolled));
           setCustomerLoyaltyPoints(Number(data.customer?.loyalty_points_balance) || 0);
         }
       } catch {
         if (!cancelled) {
           setCustomerUdhariPaise(0);
+          setCustomerLoyaltyEnrolled(false);
           setCustomerLoyaltyPoints(0);
         }
       }
@@ -360,6 +382,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
     try {
       const payload = buildCheckoutPayload({
         customerId,
+        walkInName,
         panNumber,
         aadhaarNumber,
         documentImagePath,
@@ -393,7 +416,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
       const invoiceId = result?.invoice_id ?? result?.invoice?.id ?? null;
       const phone = customers.find((c) => String(c.id) === customerId)?.phone ?? null;
 
-      setMessage(customerId ? "Invoice saved. WhatsApp/SMS notification sent to customer." : "Invoice saved.");
+      setMessage(customerId ? "Invoice saved. Digital receipt is ready to send." : "Invoice saved.");
       setPrintContext({ phone, invoiceNumber: result?.invoice?.invoice_number ?? "" });
       setPrintInvoiceId(invoiceId);
       setCart([]);
@@ -408,10 +431,72 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
       setCustomerUdhariPaise(0);
       setLoyaltyRedeemPoints("");
       setCustomerLoyaltyPoints(0);
+      setCustomerLoyaltyEnrolled(false);
       setCustomerId("");
       setCustomerQuery("");
+      setWalkInName("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Checkout failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function saveAsQuotation() {
+    setError("");
+    setMessage("");
+
+    if (cart.length === 0) {
+      setError("Add at least one item to the cart before saving a quotation.");
+      return;
+    }
+
+    const quotationLines = cart.map((line) => ({
+      item_id: line.id,
+      description: `${line.category}${line.barcode ? ` (${line.barcode})` : ""}`,
+      metal_type: line.metal_type,
+      purity_karat: line.purity_karat,
+      quantity: 1,
+      gross_weight_mg: line.gross_weight_mg,
+      stone_weight_mg: Math.max(line.gross_weight_mg - line.net_weight_mg, 0),
+      net_weight_mg: line.net_weight_mg,
+      metal_rate_paise_per_gram: rupeesToPaise(line.metalRateRupees),
+      making_charge_paise: calculateMakingChargePaise(line),
+      gst_paise: 0,
+      line_total_paise: calculateCartLineTotalPaise(line)
+    }));
+
+    const grossTotalPaise = quotationLines.reduce((total, line) => total + line.line_total_paise, 0);
+    const discountPaise = rupeesToPaise(discountRupees);
+    const totalAmountPaise = Math.max(grossTotalPaise - discountPaise, 0);
+
+    const payload = {
+      customer_id: customerId ? Number(customerId) : null,
+      document_date: new Date().toISOString().slice(0, 10),
+      salesman_name: invoiceMeta.salesmanName.trim() || null,
+      lines: quotationLines,
+      gross_total_paise: grossTotalPaise,
+      discount_paise: discountPaise,
+      gst_amount_paise: 0,
+      total_amount_paise: totalAmountPaise
+    };
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/pos/quotations`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = (await response.json().catch(() => null)) as { quotation?: { quotation_number?: string }; errors?: string[] } | null;
+
+      if (!response.ok) {
+        throw new Error(result?.errors?.join(" ") || "Could not save quotation.");
+      }
+
+      setMessage(`Quotation saved${result?.quotation?.quotation_number ? ` (${result.quotation.quotation_number})` : ""}. No stock was reduced.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save quotation.");
     } finally {
       setSubmitting(false);
     }
@@ -438,16 +523,27 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
               <div className="flex gap-1">
                 <input
                   value={customerQuery}
-                  onChange={(event) => { setCustomerQuery(event.target.value); setCustomerId(""); setCustomerListOpen(true); }}
+                  onChange={(event) => {
+                    setCustomerQuery(event.target.value);
+                    setCustomerId("");
+                    setWalkInName("");
+                    setCustomerListOpen(true);
+                  }}
                   onFocus={() => setCustomerListOpen(true)}
                   onBlur={() => window.setTimeout(() => setCustomerListOpen(false), 150)}
-                  placeholder="Search name or phone…"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && customerQuery.trim() && !customerId) {
+                      event.preventDefault();
+                      confirmWalkIn(customerQuery);
+                    }
+                  }}
+                  placeholder="Search name or phone… (Enter = walk-in)"
                   className={controlClassName}
                 />
                 <button
                   type="button"
                   onClick={() => setShowCustomerModal(true)}
-                  title="Add new customer"
+                  title="Add new customer (full KYC)"
                   className="grid shrink-0 place-items-center rounded-sm border border-amber-600 bg-amber-600/20 px-2 text-amber-300 transition hover:bg-amber-600/40 active:scale-90"
                 >
                   <Plus className="h-4 w-4" />
@@ -455,11 +551,25 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
               </div>
               {customerListOpen && (
                 <ul className="animate-fade-in absolute z-30 mt-1 max-h-52 w-full overflow-auto rounded-sm border border-slate-700 bg-slate-900 shadow-lg shadow-black/40">
-                  <li>
-                    <button type="button" onMouseDown={(e) => { e.preventDefault(); selectCustomer(null); }} className="block w-full px-2 py-1.5 text-left text-xs text-slate-400 transition hover:bg-slate-800">
-                      Walk-in Customer
-                    </button>
-                  </li>
+                  {/* Walk-in quick-confirm option — only shown when user has typed something */}
+                  {customerQuery.trim() && !customerId ? (
+                    <li>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); confirmWalkIn(customerQuery); }}
+                        className="flex w-full items-center gap-2 border-b border-slate-700 bg-emerald-950/30 px-2 py-2 text-left text-xs text-emerald-300 transition hover:bg-emerald-950/60"
+                      >
+                        <span className="rounded bg-emerald-700/40 px-1 py-0.5 text-[10px] font-bold uppercase tracking-wide">Walk-in</span>
+                        <span>Use &ldquo;{customerQuery.trim()}&rdquo; for this bill</span>
+                      </button>
+                    </li>
+                  ) : (
+                    <li>
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); selectCustomer(null); }} className="block w-full px-2 py-1.5 text-left text-xs text-slate-400 transition hover:bg-slate-800">
+                        Anonymous walk-in (no name)
+                      </button>
+                    </li>
+                  )}
                   {filteredCustomers.map((customer) => (
                     <li key={customer.id}>
                       <button type="button" onMouseDown={(e) => { e.preventDefault(); selectCustomer(customer); }} className="block w-full px-2 py-1.5 text-left text-xs transition hover:bg-slate-800">
@@ -468,10 +578,29 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                       </button>
                     </li>
                   ))}
-                  {filteredCustomers.length === 0 && <li className="px-2 py-1.5 text-xs text-slate-500">No matches</li>}
+                  {filteredCustomers.length === 0 && customerQuery.trim() && (
+                    <li className="px-2 py-1.5 text-[11px] text-slate-500">
+                      No existing match — press Enter or click above to bill as walk-in.
+                    </li>
+                  )}
                 </ul>
               )}
             </div>
+            {/* Walk-in name badge */}
+            {walkInName && !customerId && (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="rounded bg-emerald-700/30 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+                  Walk-in: {walkInName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setWalkInName(""); setCustomerQuery(""); }}
+                  className="text-[11px] text-slate-500 hover:text-red-400"
+                >
+                  ✕ clear
+                </button>
+              </div>
+            )}
             {selectedCustomer && (
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
                 <span className="font-mono">📱 {selectedCustomer.phone}</span>
@@ -496,7 +625,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
             </div>
           )}
 
-          {customerId && customerLoyaltyPoints > 0 && (
+          {customerId && customerLoyaltyEnrolled && customerLoyaltyPoints > 0 && (
             <div className="grid gap-1 rounded-sm border border-emerald-700/60 bg-emerald-950/20 p-2">
               <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-300">
                 Loyalty Points: {customerLoyaltyPoints} (₹1 each)
@@ -504,11 +633,20 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
               <Field label="Redeem points">
                 <input
                   value={loyaltyRedeemPoints}
-                  onChange={(event) => setLoyaltyRedeemPoints(event.target.value.replace(/[^\d]/g, ""))}
+                  onChange={(event) => {
+                    const next = Math.min(Number(event.target.value.replace(/[^\d]/g, "")) || 0, customerLoyaltyPoints);
+                    setLoyaltyRedeemPoints(next > 0 ? String(next) : "");
+                  }}
                   placeholder="0"
                   className={controlClassName}
                 />
               </Field>
+            </div>
+          )}
+
+          {customerId && !customerLoyaltyEnrolled && (
+            <div className="rounded-sm border border-slate-800 bg-slate-950/40 p-2 text-[11px] text-slate-500">
+              Loyalty earning is off for this customer.
             </div>
           )}
 
@@ -534,7 +672,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           )}
 
           <div className="grid gap-2 border-t border-slate-800 pt-3 text-xs">
-            <StatusLine label="Selected" value={customerId ? "Customer" : "Walk-in"} />
+            <StatusLine label="Selected" value={customerId ? "Customer" : walkInName ? walkInName : "Anonymous"} />
             <StatusLine label="Cart Items" value={String(cart.length)} />
             <StatusLine label="Cash Compliance" value={kycRequired ? "Required" : "Clear"} />
           </div>
@@ -723,6 +861,15 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         >
           {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : "Checkout"}
         </button>
+        <button
+          type="button"
+          onClick={() => void saveAsQuotation()}
+          disabled={cart.length === 0 || submitting}
+          title="Save the current cart as a quotation without billing or reducing stock"
+          className="mt-2 flex h-9 items-center justify-center gap-2 rounded-md border border-slate-600 text-xs font-semibold uppercase text-slate-200 transition hover:border-emerald-400 hover:text-emerald-300 disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-600"
+        >
+          Save as Quotation
+        </button>
       </aside>
 
       {printInvoiceId && (
@@ -868,6 +1015,7 @@ function PrintModal({
             <CheckCircle2 className="h-4 w-4 animate-pop text-emerald-400" /> Invoice Saved
           </h2>
           <p className="mt-1 text-xs text-slate-400">Invoice #{invoiceId} saved successfully.</p>
+          {customerPhone && <p className="mt-1 text-xs font-semibold text-emerald-300">Send digital receipt to customer?</p>}
         </div>
         <div className="grid grid-cols-3 gap-2">
           <button
@@ -987,6 +1135,7 @@ function paisePerGramToLinePaise(ratePaisePerGram: number, weightMg: number) {
 
 function buildCheckoutPayload({
   customerId,
+  walkInName,
   panNumber,
   aadhaarNumber,
   documentImagePath,
@@ -1003,6 +1152,7 @@ function buildCheckoutPayload({
   totals
 }: {
   customerId: string;
+  walkInName: string;
   panNumber: string;
   aadhaarNumber: string;
   documentImagePath: string | null;
@@ -1020,6 +1170,7 @@ function buildCheckoutPayload({
 }) {
   return {
     customer_id: customerId ? Number(customerId) : null,
+    walk_in_name: walkInName.trim() || null,
     pan_number: panNumber.trim() || null,
     aadhaar_number: aadhaarNumber.trim() || null,
     document_image_path: documentImagePath,

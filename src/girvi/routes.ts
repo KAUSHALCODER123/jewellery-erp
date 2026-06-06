@@ -142,13 +142,18 @@ girviRouter.post("/issue", requireAdmin, (request, response) => {
       .get();
 
     for (const collateral of validation.issue.collateral) {
+      const { ratePaisePerGram, overridden } = resolveCollateralRatePaisePerGram(collateral, settings);
       tx.insert(girviCollateral)
         .values({
           loan_id: loan.id,
           item_description: collateral.itemDescription,
           metal_type: collateral.metalType,
           purity_karat: collateral.purityKarat,
+          gross_weight_mg: collateral.grossWeightMg,
+          stone_deduction_mg: collateral.stoneDeductionMg,
           weight_mg: collateral.weightMg,
+          valuation_rate_paise_per_gram: ratePaisePerGram,
+          rate_overridden: overridden,
           image_path: collateral.imagePath
         })
         .run();
@@ -547,12 +552,26 @@ function calculateMaxLoanPaise(collateral: CollateralPayload[], settings: typeof
   return Math.floor((totalCollateralValuePaise * MAX_LTV_PERCENTAGE) / 100);
 }
 
-function calculateCollateralValuePaise(item: CollateralPayload, settings: typeof organizationSettings.$inferSelect) {
+// Resolve the per-gram rate used to value a collateral item: an authorized admin override when
+// supplied, otherwise the organisation's stored rate for that metal/purity. The override is what
+// the jeweler observes as today's spot rate when the stored rate has drifted.
+function resolveCollateralRatePaisePerGram(item: CollateralPayload, settings: typeof organizationSettings.$inferSelect) {
+  if (item.rateOverridePaisePerGram !== null && item.rateOverridePaisePerGram > 0) {
+    return { ratePaisePerGram: item.rateOverridePaisePerGram, overridden: true };
+  }
+
   const metalType = item.metalType.toUpperCase();
   const ratePaisePerGram = metalType === "SILVER"
     ? settings.silver_rate_per_gram
     : getGoldRatePaisePerGram(item.purityKarat, settings);
 
+  return { ratePaisePerGram, overridden: false };
+}
+
+function calculateCollateralValuePaise(item: CollateralPayload, settings: typeof organizationSettings.$inferSelect) {
+  const { ratePaisePerGram } = resolveCollateralRatePaisePerGram(item, settings);
+
+  // Value on NET metal weight (gross minus stone deduction) so stone-set pieces are not overvalued.
   return Math.floor((ratePaisePerGram * item.weightMg) / 1000);
 }
 
@@ -752,21 +771,53 @@ type CollateralPayload = {
   itemDescription: string;
   metalType: string;
   purityKarat: number;
+  grossWeightMg: number;
+  stoneDeductionMg: number;
   weightMg: number;
+  rateOverridePaisePerGram: number | null;
   imagePath: string | null;
 };
 
 function validateCollateral(item: unknown, index: number, errors: string[]): CollateralPayload {
   if (!isRecord(item)) {
     errors.push(`collateral[${index}] must be an object.`);
-    return { itemDescription: "", metalType: "", purityKarat: 0, weightMg: 0, imagePath: null };
+    return {
+      itemDescription: "",
+      metalType: "",
+      purityKarat: 0,
+      grossWeightMg: 0,
+      stoneDeductionMg: 0,
+      weightMg: 0,
+      rateOverridePaisePerGram: null,
+      imagePath: null
+    };
   }
+
+  // Prefer the explicit gross weight; fall back to the legacy single weight_mg field as the gross.
+  const grossWeightMg = item.gross_weight_mg !== undefined && item.gross_weight_mg !== null
+    ? requiredPositiveInteger(item.gross_weight_mg, `collateral[${index}].gross_weight_mg`, errors)
+    : requiredPositiveInteger(item.weight_mg, `collateral[${index}].weight_mg`, errors);
+  const stoneDeductionMg = item.stone_deduction_mg !== undefined && item.stone_deduction_mg !== null
+    ? requiredNonNegativeInteger(item.stone_deduction_mg, `collateral[${index}].stone_deduction_mg`, errors)
+    : 0;
+  const weightMg = grossWeightMg - stoneDeductionMg;
+
+  if (weightMg <= 0) {
+    errors.push(`collateral[${index}] net weight (gross minus stone deduction) must be greater than zero.`);
+  }
+
+  const rateOverridePaisePerGram = item.rate_override_paise_per_gram !== undefined && item.rate_override_paise_per_gram !== null
+    ? requiredPositiveInteger(item.rate_override_paise_per_gram, `collateral[${index}].rate_override_paise_per_gram`, errors)
+    : null;
 
   return {
     itemDescription: requiredText(item.item_description, `collateral[${index}].item_description`, errors),
     metalType: requiredText(item.metal_type, `collateral[${index}].metal_type`, errors),
     purityKarat: requiredInteger(item.purity_karat, `collateral[${index}].purity_karat`, errors),
-    weightMg: requiredPositiveInteger(item.weight_mg, `collateral[${index}].weight_mg`, errors),
+    grossWeightMg,
+    stoneDeductionMg,
+    weightMg: weightMg > 0 ? weightMg : 0,
+    rateOverridePaisePerGram,
     imagePath: optionalText(item.image_path)
   };
 }
@@ -798,6 +849,16 @@ function requiredPositiveInteger(value: unknown, field: string, errors: string[]
 
   if (parsed <= 0) {
     errors.push(`${field} must be greater than zero.`);
+  }
+
+  return parsed;
+}
+
+function requiredNonNegativeInteger(value: unknown, field: string, errors: string[]) {
+  const parsed = requiredInteger(value, field, errors);
+
+  if (parsed < 0) {
+    errors.push(`${field} must be zero or greater.`);
   }
 
   return parsed;

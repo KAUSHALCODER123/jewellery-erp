@@ -1,12 +1,41 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { withDocumentToken } from "../utils/documentAuth.js";
 
 type AccountsDayBookModuleProps = {
   apiBaseUrl?: string;
 };
 
-type ActiveTab = "daybook" | "udhari" | "vouchers" | "ledger_reports";
+type ActiveTab = "daybook" | "udhari" | "vouchers" | "ledger_reports" | "financials";
+
+type FinancialsResponse = {
+  from: string;
+  to: string;
+  pnl: {
+    income_lines: { name: string; paise: number }[];
+    expense_lines: { name: string; paise: number }[];
+    income_paise: number;
+    expense_paise: number;
+    net_profit_paise: number;
+  };
+  balance_sheet: {
+    assets: { name: string; paise: number }[];
+    liabilities: { name: string; paise: number }[];
+    total_assets_paise: number;
+    total_liabilities_paise: number;
+    retained_earnings_paise: number;
+    opening_capital_paise: number;
+    equity_paise: number;
+    balanced_difference_paise: number;
+  };
+  trial_balance: {
+    rows: { name: string; account_type: string; debit_paise: number; credit_paise: number }[];
+    total_debit_paise: number;
+    total_credit_paise: number;
+    balanced: boolean;
+  };
+};
 
 type DaybookEntry = {
   id: number;
@@ -89,6 +118,13 @@ type LedgerReportResponse = {
   closing_balance_paise: number;
   closing_balance_rupees: string;
   entries: LedgerReportEntry[];
+  statement_share?: {
+    customer_id: number;
+    customer_name: string;
+    phone: string;
+    message_body: string;
+    whatsapp_link: string;
+  } | null;
 };
 
 const initialDaybook: DaybookResponse = {
@@ -119,13 +155,24 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
   const [ledgers, setLedgers] = useState<LedgerOption[]>([]);
   const [voucher, setVoucher] = useState<VoucherForm>(initialVoucher());
   const [message, setMessage] = useState("");
+  const [lastVoucherPdfId, setLastVoucherPdfId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   // Ledger Report States
   const [reportLedgerId, setReportLedgerId] = useState("");
-  const [reportFromDate, setReportFromDate] = useState(getMonthStart());
+  const [reportFromDate, setReportFromDate] = useState(getFinancialYearStart());
   const [reportToDate, setReportToDate] = useState(getToday());
   const [reportData, setReportData] = useState<LedgerReportResponse | null>(null);
+  // Customer quick-search inside the Ledger Statements tab
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerSuggestions, setCustomerSuggestions] = useState<{ customer_id: number; customer_name: string; phone: string; ledger_id: number | null; balance_rupees: string }[]>([]);
+  const [customerDropOpen, setCustomerDropOpen] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // Financials (P&L / Balance Sheet / Trial Balance)
+  const [finFromDate, setFinFromDate] = useState(getFinancialYearStart());
+  const [finToDate, setFinToDate] = useState(getToday());
+  const [financials, setFinancials] = useState<FinancialsResponse | null>(null);
 
   const authHeaders = useMemo(
     () => ({
@@ -159,6 +206,25 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
       void loadLedgerReport(reportLedgerId, reportFromDate, reportToDate);
     }
   }, [activeTab, reportLedgerId, reportFromDate, reportToDate]);
+
+  useEffect(() => {
+    if (activeTab === "financials") {
+      void loadFinancials(finFromDate, finToDate);
+    }
+  }, [activeTab, finFromDate, finToDate]);
+
+  // Debounced customer search for the Ledger tab quick-select
+  useEffect(() => {
+    if (!customerQuery.trim()) { setCustomerSuggestions([]); return; }
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/accounts/receipts/customers?search=${encodeURIComponent(customerQuery)}`, { headers: authHeaders });
+        const result = (await res.json().catch(() => null)) as { customers?: typeof customerSuggestions } | null;
+        setCustomerSuggestions(res.ok && result?.customers ? result.customers : []);
+      } catch { setCustomerSuggestions([]); }
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [customerQuery, apiBaseUrl, authHeaders]);
 
   const totalUdhariPaise = useMemo(
     () => udhari.reduce((total, row) => total + row.balance_paise, 0),
@@ -229,6 +295,53 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
     }
   }
 
+  async function loadFinancials(fromDate: string, toDate: string) {
+    setError("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/accounts/financials?from=${fromDate}&to=${toDate}`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as FinancialsResponse | { errors?: string[] } | null;
+      if (!response.ok || !result || "errors" in result) {
+        throw new Error(getErrorMessage(result, "Could not load financials."));
+      }
+      setFinancials(result as FinancialsResponse);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not load financials.");
+      setFinancials(null);
+    }
+  }
+
+  function viewCustomerStatement(ledgerId: number) {
+    setReportLedgerId(String(ledgerId));
+    setActiveTab("ledger_reports");
+    void loadLedgerOptions();
+  }
+
+  async function downloadStatementPDF() {
+    if (!reportLedgerId) return;
+    setDownloadingPdf(true);
+    setError("");
+    try {
+      const url = `${apiBaseUrl}/api/accounts/ledger-report/pdf?ledger_id=${reportLedgerId}&from_date=${reportFromDate}&to_date=${reportToDate}`;
+      const res = await fetch(url, { headers: authHeaders });
+      if (!res.ok) throw new Error("Could not generate PDF.");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      const cd = res.headers.get("Content-Disposition") ?? "";
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download = match?.[1] ?? "statement.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not download PDF.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
+
   async function saveVoucher(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -274,13 +387,14 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
           created_at: voucher.voucherDate
         })
       });
-      const result = (await response.json().catch(() => null)) as { errors?: string[] } | null;
+      const result = (await response.json().catch(() => null)) as { voucher?: { id?: number }; errors?: string[] } | null;
 
       if (!response.ok) {
         throw new Error(result?.errors?.join(" ") || "Could not save voucher.");
       }
 
       setMessage("Voucher saved successfully.");
+      setLastVoucherPdfId(typeof result?.voucher?.id === "number" ? result.voucher.id : null);
       setVoucher(initialVoucher());
       void loadDaybook(selectedDate);
     } catch (caught) {
@@ -288,16 +402,28 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
     }
   }
 
-  function sendReminder(row: UdhariRow) {
-    const payload = {
-      channel: "SMS_WHATSAPP_MOCK",
-      customer_id: row.customer_id,
-      phone: maskPhone(row.phone),
-      message_template: "UDHARI_BALANCE_REMINDER",
-      balance_paise: row.balance_paise
-    };
-
-    setMessage(`Reminder queued: ${JSON.stringify(payload)}`);
+  async function sendReminder(row: UdhariRow) {
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/accounts/udhari/${row.ledger_id}/remind`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" }
+      });
+      const result = (await response.json().catch(() => null)) as { status?: string; whatsapp_link?: string; errors?: string[] } | null;
+      if (!response.ok) {
+        throw new Error(result?.errors?.join(" ") || "Could not send reminder.");
+      }
+      // Open WhatsApp with the prefilled dues message so it actually sends.
+      if (result?.whatsapp_link) {
+        window.open(result.whatsapp_link, "_blank", "noopener");
+      }
+      setMessage(result?.status === "SENT"
+        ? `Dues reminder ready for ${row.customer_name ?? "customer"} (${maskPhone(row.phone)}) — WhatsApp opened.`
+        : `Reminder logged but phone invalid (status: ${result?.status ?? "FAILED"}).`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not send reminder.");
+    }
   }
 
   function exportToCSV() {
@@ -337,6 +463,30 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
     document.body.removeChild(link);
   }
 
+  async function exportTally() {
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/accounts/export/tally`, { headers: authHeaders });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error((data && data.errors?.join(" ")) || "Tally export failed.");
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `tally-export-${getToday()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setMessage("Tally voucher export downloaded.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Tally export failed.");
+    }
+  }
+
   return (
     <section className="grid h-screen grid-rows-[auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
@@ -344,18 +494,38 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
           <h1 className="text-sm font-semibold uppercase text-white">Accounts & Bookkeeping</h1>
           <p className="text-xs text-slate-400">Cash, bank, debtors, double-entry vouchers, ledger statements</p>
         </div>
-        <nav className="flex border border-slate-700 text-xs">
-          <TabButton active={activeTab === "daybook"} onClick={() => setActiveTab("daybook")}>Daily Day Book</TabButton>
-          <TabButton active={activeTab === "udhari"} onClick={() => setActiveTab("udhari")}>Udhari (Debtors) Ledger</TabButton>
-          <TabButton active={activeTab === "vouchers"} onClick={() => setActiveTab("vouchers")}>Manual Vouchers</TabButton>
-          <TabButton active={activeTab === "ledger_reports"} onClick={() => setActiveTab("ledger_reports")}>Ledger Statements</TabButton>
-        </nav>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void exportTally()}
+            title="Download accounting vouchers as Tally JSON"
+            className="h-7 border border-slate-600 px-2.5 text-[11px] font-semibold uppercase text-slate-200 hover:border-emerald-400 hover:text-emerald-300 rounded"
+          >
+            Export Tally
+          </button>
+          <nav className="flex border border-slate-700 text-xs">
+            <TabButton active={activeTab === "daybook"} onClick={() => setActiveTab("daybook")}>Daily Day Book</TabButton>
+            <TabButton active={activeTab === "udhari"} onClick={() => setActiveTab("udhari")}>Udhari (Debtors) Ledger</TabButton>
+            <TabButton active={activeTab === "vouchers"} onClick={() => setActiveTab("vouchers")}>Manual Vouchers</TabButton>
+            <TabButton active={activeTab === "ledger_reports"} onClick={() => setActiveTab("ledger_reports")}>Ledger Statements</TabButton>
+            <TabButton active={activeTab === "financials"} onClick={() => setActiveTab("financials")}>Financials (P&amp;L / Balance Sheet)</TabButton>
+          </nav>
+        </div>
       </header>
 
       <main className="min-h-0 overflow-hidden">
         {(message || error) && (
-          <div className={`border-b border-slate-800 px-3 py-1 text-xs ${error ? "bg-red-950/40 text-red-200" : "bg-emerald-950/40 text-emerald-200"}`}>
-            {error || message}
+          <div className={`flex items-center gap-3 border-b border-slate-800 px-3 py-1 text-xs ${error ? "bg-red-950/40 text-red-200" : "bg-emerald-950/40 text-emerald-200"}`}>
+            <span>{error || message}</span>
+            {!error && lastVoucherPdfId !== null && (
+              <button
+                type="button"
+                onClick={() => window.open(withDocumentToken(`${apiBaseUrl}/api/documents/voucher/${lastVoucherPdfId}`), "_blank", "noopener,noreferrer")}
+                className="rounded border border-blue-400 px-2 py-0.5 text-[11px] font-bold uppercase text-blue-200 hover:bg-blue-950/40"
+              >
+                Print Voucher
+              </button>
+            )}
           </div>
         )}
 
@@ -372,6 +542,7 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
             rows={udhari}
             totalOutstandingPaise={totalUdhariPaise}
             onSendReminder={sendReminder}
+            onViewStatement={(row) => { if (row.ledger_id) viewCustomerStatement(row.ledger_id); }}
           />
         )}
 
@@ -387,14 +558,45 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
         {activeTab === "ledger_reports" && (
           <LedgerReportView
             reportLedgerId={reportLedgerId}
-            setReportLedgerId={setReportLedgerId}
+            setReportLedgerId={(id) => { setReportLedgerId(id); setCustomerQuery(""); }}
             reportFromDate={reportFromDate}
             setReportFromDate={setReportFromDate}
             reportToDate={reportToDate}
             setReportToDate={setReportToDate}
             reportData={reportData}
             ledgers={ledgers}
+            customerQuery={customerQuery}
+            setCustomerQuery={setCustomerQuery}
+            customerSuggestions={customerSuggestions}
+            customerDropOpen={customerDropOpen}
+            setCustomerDropOpen={setCustomerDropOpen}
+            onSelectCustomer={(suggestion) => {
+              if (suggestion.ledger_id) {
+                setReportLedgerId(String(suggestion.ledger_id));
+                setCustomerQuery(suggestion.customer_name);
+                setCustomerDropOpen(false);
+              }
+            }}
             onExportCSV={exportToCSV}
+            onPrint={() => window.print()}
+            onDownloadPDF={downloadStatementPDF}
+            downloadingPdf={downloadingPdf}
+            onSendStatement={() => {
+              if (reportData?.statement_share?.whatsapp_link) {
+                window.open(reportData.statement_share.whatsapp_link, "_blank", "noopener");
+                setMessage(`Statement ready for ${reportData.statement_share.customer_name} (${maskPhone(reportData.statement_share.phone)}) — WhatsApp opened.`);
+              }
+            }}
+          />
+        )}
+
+        {activeTab === "financials" && (
+          <FinancialsView
+            fromDate={finFromDate}
+            setFromDate={setFinFromDate}
+            toDate={finToDate}
+            setToDate={setFinToDate}
+            data={financials}
             onPrint={() => window.print()}
           />
         )}
@@ -454,24 +656,26 @@ function DaybookView({
 function UdhariView({
   rows,
   totalOutstandingPaise,
-  onSendReminder
+  onSendReminder,
+  onViewStatement
 }: {
   rows: UdhariRow[];
   totalOutstandingPaise: number;
   onSendReminder: (row: UdhariRow) => void;
+  onViewStatement: (row: UdhariRow) => void;
 }) {
   return (
     <div className="grid h-full grid-rows-[auto_1fr]">
       <div className="grid grid-cols-3 border-b border-slate-800">
         <MetricBox label="Total Outstanding Credit" value={formatPaise(totalOutstandingPaise)} tone="payment" />
         <MetricBox label="Debtor Count" value={String(rows.length)} />
-        <MetricBox label="Privacy" value="Masked Profiles" />
+        <MetricBox label="Contact" value="Visible (Admin)" />
       </div>
       <div className="min-h-0 overflow-auto">
         <table className="w-full text-left text-xs">
           <thead className="sticky top-0 bg-slate-900 text-slate-400">
             <tr>
-              {["Customer Name", "Phone", "Total Dues", "Last Payment Date", "Aging Bracket", "Action"].map((heading) => (
+              {["Customer Name", "Phone", "Total Dues", "Last Payment Date", "Aging Bracket", "Actions"].map((heading) => (
                 <th key={heading} className="border-b border-slate-800 px-2 py-2 font-semibold uppercase">{heading}</th>
               ))}
             </tr>
@@ -479,15 +683,33 @@ function UdhariView({
           <tbody>
             {rows.map((row) => (
               <tr key={row.ledger_id} className="border-b border-slate-900 transition-colors hover:bg-slate-900/50">
-                <td className="px-2 py-2">{row.customer_name ?? "Masked Customer"}</td>
-                <td className="px-2 py-2 font-mono">{maskPhone(row.phone)}</td>
-                <td className="px-2 py-2 font-mono text-red-300">{formatPaise(row.balance_paise)}</td>
-                <td className="px-2 py-2 font-mono">{row.last_transaction_date ?? row.last_payment_date ?? "Not recorded"}</td>
+                <td className="px-2 py-2 font-medium text-slate-100">{row.customer_name ?? "Masked Customer"}</td>
+                <td className="px-2 py-2 font-mono">
+                  {row.phone ? (
+                    <a href={`tel:${row.phone}`} className="text-sky-300 underline-offset-2 hover:underline" title="Call customer">{row.phone}</a>
+                  ) : "—"}
+                </td>
+                <td className="px-2 py-2 font-mono font-semibold text-red-300">{formatPaise(row.balance_paise)}</td>
+                <td className="px-2 py-2 font-mono text-slate-400">{row.last_transaction_date ?? row.last_payment_date ?? "Not recorded"}</td>
                 <td className="px-2 py-2">{getAgingBracket(row.last_transaction_date ?? row.last_payment_date)}</td>
                 <td className="px-2 py-2">
-                  <button type="button" onClick={() => onSendReminder(row)} className="h-7 border border-slate-700 px-2 text-[11px] font-semibold uppercase hover:border-emerald-400">
-                    Send Reminder
-                  </button>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onViewStatement(row)}
+                      disabled={!row.ledger_id}
+                      className="h-7 border border-sky-700/60 bg-sky-950/30 px-2 text-[11px] font-semibold uppercase text-sky-300 hover:border-sky-400 hover:bg-sky-950/60 disabled:opacity-40"
+                    >
+                      View Statement
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSendReminder(row)}
+                      className="h-7 border border-slate-700 px-2 text-[11px] font-semibold uppercase hover:border-emerald-400"
+                    >
+                      Send Reminder
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -634,8 +856,17 @@ function LedgerReportView({
   setReportToDate,
   reportData,
   ledgers,
+  customerQuery,
+  setCustomerQuery,
+  customerSuggestions,
+  customerDropOpen,
+  setCustomerDropOpen,
+  onSelectCustomer,
   onExportCSV,
-  onPrint
+  onPrint,
+  onDownloadPDF,
+  downloadingPdf,
+  onSendStatement
 }: {
   reportLedgerId: string;
   setReportLedgerId: (id: string) => void;
@@ -645,20 +876,65 @@ function LedgerReportView({
   setReportToDate: (date: string) => void;
   reportData: LedgerReportResponse | null;
   ledgers: LedgerOption[];
+  customerQuery: string;
+  setCustomerQuery: (q: string) => void;
+  customerSuggestions: { customer_id: number; customer_name: string; phone: string; ledger_id: number | null; balance_rupees: string }[];
+  customerDropOpen: boolean;
+  setCustomerDropOpen: (open: boolean) => void;
+  onSelectCustomer: (s: { customer_id: number; customer_name: string; phone: string; ledger_id: number | null; balance_rupees: string }) => void;
   onExportCSV: () => void;
   onPrint: () => void;
+  onDownloadPDF: () => void;
+  downloadingPdf: boolean;
+  onSendStatement: () => void;
 }) {
   return (
     <div className="grid h-full grid-rows-[auto_auto_1fr] min-h-0 overflow-hidden">
-      <div className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs">
+      {/* Top toolbar */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs">
+        {/* Customer quick-search */}
+        <div className="relative">
+          <label className="mr-1 font-semibold uppercase text-slate-400">Customer:</label>
+          <input
+            value={customerQuery}
+            onChange={(e) => { setCustomerQuery(e.target.value); setCustomerDropOpen(true); }}
+            onFocus={() => setCustomerDropOpen(true)}
+            onBlur={() => window.setTimeout(() => setCustomerDropOpen(false), 150)}
+            placeholder="Search name or phone…"
+            className="h-8 w-44 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-sky-400"
+          />
+          {customerDropOpen && customerSuggestions.length > 0 && (
+            <ul className="absolute z-30 mt-0.5 max-h-52 w-64 overflow-auto border border-slate-700 bg-slate-900 shadow-lg shadow-black/40">
+              {customerSuggestions.map((s) => (
+                <li key={s.customer_id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); onSelectCustomer(s); }}
+                    disabled={!s.ledger_id}
+                    className="flex w-full items-center justify-between px-2 py-1.5 text-left text-xs transition hover:bg-slate-800 disabled:opacity-40"
+                  >
+                    <span>
+                      <span className="font-medium text-slate-100">{s.customer_name}</span>
+                      <span className="text-slate-500"> · {s.phone || "—"}</span>
+                    </span>
+                    <span className="ml-2 shrink-0 font-mono text-red-300">Rs {s.balance_rupees}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <span className="text-slate-700">|</span>
+
         <label className="flex items-center gap-2 font-semibold uppercase text-slate-400">
-          Select Ledger:
+          Ledger:
           <select
             value={reportLedgerId}
             onChange={(e) => setReportLedgerId(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded"
+            className="h-8 max-w-[180px] border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400"
           >
-            <option value="">Choose a Ledger</option>
+            <option value="">— all ledgers —</option>
             {ledgers.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.account_name} ({l.account_type})
@@ -673,7 +949,7 @@ function LedgerReportView({
             type="date"
             value={reportFromDate}
             onChange={(e) => setReportFromDate(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded"
+            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400"
           />
         </label>
 
@@ -683,26 +959,26 @@ function LedgerReportView({
             type="date"
             value={reportToDate}
             onChange={(e) => setReportToDate(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded"
+            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400"
           />
         </label>
 
-        <div className="flex gap-2 ml-auto">
-          <button
-            type="button"
-            onClick={onExportCSV}
-            disabled={!reportData}
-            className="h-8 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold px-3 rounded uppercase text-[10px] tracking-wide border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
+        <div className="ml-auto flex gap-2">
+          <button type="button" onClick={onExportCSV} disabled={!reportData}
+            className="h-8 border border-slate-700 bg-slate-800 px-3 text-[10px] font-bold uppercase text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
             Export CSV
           </button>
-          <button
-            type="button"
-            onClick={onPrint}
-            disabled={!reportData}
-            className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold px-3 rounded uppercase text-[10px] tracking-wide disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Print Statement
+          <button type="button" onClick={onPrint} disabled={!reportData}
+            className="h-8 border border-slate-700 bg-slate-800 px-3 text-[10px] font-bold uppercase text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
+            Print
+          </button>
+          <button type="button" onClick={onDownloadPDF} disabled={!reportData || downloadingPdf}
+            className="h-8 bg-emerald-600 px-3 text-[10px] font-bold uppercase text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+            {downloadingPdf ? "Generating…" : "Download PDF"}
+          </button>
+          <button type="button" onClick={onSendStatement} disabled={!reportData?.statement_share?.whatsapp_link}
+            className="h-8 bg-sky-600 px-3 text-[10px] font-bold uppercase text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50">
+            WhatsApp Statement
           </button>
         </div>
       </div>
@@ -903,6 +1179,123 @@ function getToday() {
 function getMonthStart() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+// Indian financial year starts 1 April.
+function getFinancialYearStart() {
+  const d = new Date();
+  const year = d.getMonth() + 1 >= 4 ? d.getFullYear() : d.getFullYear() - 1;
+  return `${year}-04-01`;
+}
+
+function FinancialsView({
+  fromDate,
+  setFromDate,
+  toDate,
+  setToDate,
+  data,
+  onPrint
+}: {
+  fromDate: string;
+  setFromDate: (value: string) => void;
+  toDate: string;
+  setToDate: (value: string) => void;
+  data: FinancialsResponse | null;
+  onPrint: () => void;
+}) {
+  return (
+    <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
+      <div className="flex flex-wrap items-end gap-2 border-b border-slate-800 bg-slate-900 p-2">
+        <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">From
+          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400" />
+        </label>
+        <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">To
+          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400" />
+        </label>
+        <button type="button" onClick={onPrint} className="h-8 border border-slate-700 bg-slate-800 px-3 text-[11px] font-semibold uppercase hover:border-emerald-400">Print</button>
+      </div>
+
+      {!data ? (
+        <div className="grid place-items-center text-xs text-slate-500">Loading financials…</div>
+      ) : (
+        <div className="min-h-0 overflow-auto p-3">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Profit & Loss */}
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-300">Profit &amp; Loss ({data.from} → {data.to})</h3>
+              <FinLine label="Income (Sales)" value={formatPaise(data.pnl.income_paise)} tone="pos" bold />
+              {data.pnl.expense_lines.map((line) => (
+                <FinLine key={line.name} label={`  ${line.name}`} value={formatPaise(line.paise)} tone="neg" muted />
+              ))}
+              <FinLine label="Total Expenses" value={formatPaise(data.pnl.expense_paise)} tone="neg" bold />
+              <div className="my-1 border-t border-slate-700" />
+              <FinLine label="Net Profit" value={formatPaise(data.pnl.net_profit_paise)} tone={data.pnl.net_profit_paise >= 0 ? "pos" : "neg"} bold />
+            </div>
+
+            {/* Trial Balance */}
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-300">Trial Balance (as of {data.to})</h3>
+              <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 text-xs">
+                <span className="text-[10px] font-semibold uppercase text-slate-500">Ledger</span>
+                <span className="text-right text-[10px] font-semibold uppercase text-slate-500">Debit</span>
+                <span className="text-right text-[10px] font-semibold uppercase text-slate-500">Credit</span>
+                {data.trial_balance.rows.map((row) => (
+                  <FinTbRow key={row.name} name={row.name} debit={row.debit_paise} credit={row.credit_paise} />
+                ))}
+                <span className="mt-1 border-t border-slate-700 pt-1 font-bold text-white">Total</span>
+                <span className="mt-1 border-t border-slate-700 pt-1 text-right font-mono font-bold text-white">{formatPaise(data.trial_balance.total_debit_paise)}</span>
+                <span className="mt-1 border-t border-slate-700 pt-1 text-right font-mono font-bold text-white">{formatPaise(data.trial_balance.total_credit_paise)}</span>
+              </div>
+              <p className={`mt-2 text-[11px] font-semibold ${data.trial_balance.balanced ? "text-emerald-300" : "text-red-300"}`}>
+                {data.trial_balance.balanced ? "✓ Balanced" : "✗ Out of balance — check postings"}
+              </p>
+            </div>
+
+            {/* Balance Sheet */}
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 lg:col-span-2">
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-300">Balance Sheet (as of {data.to})</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase text-slate-500">Assets</p>
+                  {data.balance_sheet.assets.map((line) => <FinLine key={line.name} label={line.name} value={formatPaise(line.paise)} />)}
+                  <div className="my-1 border-t border-slate-700" />
+                  <FinLine label="Total Assets" value={formatPaise(data.balance_sheet.total_assets_paise)} bold />
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase text-slate-500">Liabilities &amp; Equity</p>
+                  {data.balance_sheet.liabilities.map((line) => <FinLine key={line.name} label={line.name} value={formatPaise(line.paise)} tone="neg" />)}
+                  <FinLine label="Opening Capital / Owner's Funds" value={formatPaise(data.balance_sheet.opening_capital_paise)} />
+                  <FinLine label="Retained Earnings (P&L)" value={formatPaise(data.balance_sheet.retained_earnings_paise)} tone="pos" />
+                  <div className="my-1 border-t border-slate-700" />
+                  <FinLine label="Total Liabilities + Equity" value={formatPaise(data.balance_sheet.total_liabilities_paise + data.balance_sheet.equity_paise)} bold />
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] font-semibold text-emerald-300">✓ Balanced (Assets = Liabilities + Capital + Retained Earnings)</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FinLine({ label, value, tone, bold, muted }: { label: string; value: string; tone?: "pos" | "neg"; bold?: boolean; muted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-0.5 text-xs">
+      <span className={`${bold ? "font-bold text-white" : muted ? "text-slate-500" : "text-slate-300"} whitespace-pre`}>{label}</span>
+      <span className={`font-mono ${bold ? "font-bold text-white" : tone === "pos" ? "text-emerald-300" : tone === "neg" ? "text-rose-300" : "text-slate-200"}`}>{value}</span>
+    </div>
+  );
+}
+
+function FinTbRow({ name, debit, credit }: { name: string; debit: number; credit: number }) {
+  return (
+    <>
+      <span className="truncate text-slate-300">{name}</span>
+      <span className="text-right font-mono text-slate-200">{debit ? formatPaise(debit) : "—"}</span>
+      <span className="text-right font-mono text-slate-200">{credit ? formatPaise(credit) : "—"}</span>
+    </>
+  );
 }
 
 const printStyles = `

@@ -4,7 +4,10 @@ import path from "path";
 
 const bundleOnly = process.argv.includes("--bundle-only");
 const renameOnly = process.argv.includes("--rename-only");
-const appName = "jewelry-erp";
+// Must match the package.json "name" — pkg derives output filenames from it
+// (e.g. "jewellery-erp-win.exe"). A mismatch here makes the rename silently no-op
+// and the Tauri build then fails: "resource path binaries\app-server-...exe doesn't exist".
+const appName = "jewellery-erp";
 
 // Create target directory if it doesn't exist
 const binariesDir = path.join("src-tauri", "binaries");

@@ -53,6 +53,21 @@ describe("Backup & Recovery API", () => {
     ).toBe(true);
   });
 
+  test("GET /api/backup/last-status reflects the latest backup", async () => {
+    // No backup yet → stale.
+    const before = await request(app).get("/api/backup/last-status").set("Authorization", `Bearer ${adminToken}`);
+    expect(before.status).toBe(200);
+    expect(before.body.last_backup_at).toBeNull();
+    expect(before.body.stale).toBe(true);
+
+    db.insert(backupScheduleConfig).values({ is_enabled: false, interval_hours: 24, target: "LOCAL", local_backup_dir: testBackupDir, max_retained_backups: 10 }).run();
+    await request(app).post("/api/backup/create").set("Authorization", `Bearer ${adminToken}`).send({ target: "LOCAL" });
+
+    const after = await request(app).get("/api/backup/last-status").set("Authorization", `Bearer ${adminToken}`);
+    expect(after.body.last_backup_at).not.toBeNull();
+    expect(after.body.stale).toBe(false);
+  });
+
   test("POST /api/backup/test-restore/:id passes integrity check", async () => {
     db.insert(backupScheduleConfig)
       .values({

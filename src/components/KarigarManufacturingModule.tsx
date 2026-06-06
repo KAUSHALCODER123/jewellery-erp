@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { withDocumentToken } from "../utils/documentAuth.js";
 
 type KarigarManufacturingModuleProps = {
   apiBaseUrl?: string;
@@ -20,11 +21,18 @@ type Karigar = {
 type JobOrder = {
   id: number;
   order_number: string;
+  job_name?: string | null;
   karigar_id: number;
   design_image_path?: string | null;
   target_purity: number;
   target_weight_mg: number;
   status: "PENDING" | "WIP" | "COMPLETED" | "CANCELLED";
+};
+
+type CustomerOption = {
+  id: number;
+  name: string;
+  phone?: string | null;
 };
 
 type LedgerResponse = {
@@ -42,7 +50,10 @@ type LedgerResponse = {
 
 type IssueForm = {
   karigarId: string;
+  customerId: string;
+  jobNumber: string;
   jobName: string;
+  metalType: "GOLD" | "SILVER";
   targetPurity: string;
   targetWeightGrams: string;
   designImagePath: string;
@@ -50,20 +61,25 @@ type IssueForm = {
   purityTunch: string;
 };
 
+type WastageMode = "PERCENTAGE" | "PER_GRAM";
+
 type ReceiveForm = {
   jobId: string;
   finalGrossWeightGrams: string;
-  finalNetWeightGrams: string;
+  stoneWeightGrams: string;
   scrapReturnedGrams: string;
   scrapPurityTunch: string;
+  wastageMode: WastageMode;
+  wastageValue: string;
   laborChargeRupees: string;
 };
 
-const ACCEPTABLE_WASTAGE_PERCENTAGE = "2.50";
-
 const initialIssueForm: IssueForm = {
   karigarId: "",
+  customerId: "",
+  jobNumber: "",
   jobName: "",
+  metalType: "GOLD",
   targetPurity: "91.60",
   targetWeightGrams: "",
   designImagePath: "",
@@ -74,9 +90,11 @@ const initialIssueForm: IssueForm = {
 const initialReceiveForm: ReceiveForm = {
   jobId: "",
   finalGrossWeightGrams: "",
-  finalNetWeightGrams: "",
+  stoneWeightGrams: "0",
   scrapReturnedGrams: "",
   scrapPurityTunch: "100.00",
+  wastageMode: "PERCENTAGE",
+  wastageValue: "2.50",
   laborChargeRupees: ""
 };
 
@@ -84,6 +102,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
   const { session } = useAuthSession();
   const [activeTab, setActiveTab] = useState<ActiveTab>("issue");
   const [karigars, setKarigars] = useState<Karigar[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [wipJobs, setWipJobs] = useState<JobOrder[]>([]);
   const [issueForm, setIssueForm] = useState<IssueForm>(initialIssueForm);
   const [receiveForm, setReceiveForm] = useState<ReceiveForm>(initialReceiveForm);
@@ -124,7 +143,9 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
 
   useEffect(() => {
     void loadKarigars();
+    void loadCustomers();
     void loadWipJobs();
+    void loadNextJobNumber();
   }, []);
 
   useEffect(() => {
@@ -156,6 +177,26 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
     } catch {
       setKarigars([]);
     }
+  }
+
+  async function loadCustomers() {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/crm/customers?limit=100`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as { customers?: CustomerOption[] } | null;
+      setCustomers(response.ok && result?.customers ? result.customers : []);
+    } catch {
+      setCustomers([]);
+    }
+  }
+
+  async function loadNextJobNumber() {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/karigar/next-job-number`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as { order_number?: string } | null;
+      if (response.ok && result?.order_number) {
+        setIssueForm((current) => (current.jobNumber.trim() ? current : { ...current, jobNumber: result.order_number as string }));
+      }
+    } catch { /* leave blank; server auto-generates on submit */ }
   }
 
   async function loadWipJobs() {
@@ -230,8 +271,10 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          order_number: issueForm.jobName.trim().toUpperCase().replace(/\s+/g, "-"),
+          order_number: issueForm.jobNumber.trim(),
+          job_name: issueForm.jobName.trim(),
           karigar_id: Number(issueForm.karigarId),
+          customer_id: issueForm.customerId ? Number(issueForm.customerId) : null,
           target_purity: issueForm.targetPurity,
           target_weight_mg: targetWeightMg,
           design_image_path: issueForm.designImagePath || null
@@ -253,7 +296,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
           job_id: jobResult.job.id,
           gross_weight_mg: grossWeightMg,
           purity_tunch: issueForm.purityTunch,
-          metal_type: "GOLD",
+          metal_type: issueForm.metalType,
           issue_date: getToday()
         })
       });
@@ -265,6 +308,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
 
       setMessage("Raw metal issued and Karigar ledger updated.");
       setIssueForm(initialIssueForm);
+      void loadNextJobNumber();
       void loadWipJobs();
       void loadKarigars();
     } catch (caught) {
@@ -292,10 +336,12 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
         body: JSON.stringify({
           job_id: selectedReceiveJob.id,
           final_gross_weight_mg: gramsToMg(receiveForm.finalGrossWeightGrams),
-          final_net_weight_mg: gramsToMg(receiveForm.finalNetWeightGrams),
+          // Net = gross - stone/bead deduction (auto-derived).
+          final_net_weight_mg: Math.max(0, gramsToMg(receiveForm.finalGrossWeightGrams) - gramsToMg(receiveForm.stoneWeightGrams)),
           scrap_returned_mg: gramsToMg(receiveForm.scrapReturnedGrams),
           scrap_purity_tunch: receiveForm.scrapPurityTunch,
-          acceptable_wastage_percentage: ACCEPTABLE_WASTAGE_PERCENTAGE,
+          wastage_mode: receiveForm.wastageMode,
+          wastage_value: receiveForm.wastageValue,
           labor_charge_paise: rupeesToPaise(receiveForm.laborChargeRupees),
           receive_date: getToday()
         })
@@ -313,6 +359,10 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not receive job.");
     }
+  }
+
+  function printJobSlip(jobId: number) {
+    window.open(withDocumentToken(`${apiBaseUrl}/api/documents/karigar/job/${jobId}/slip`), "_blank", "noopener,noreferrer");
   }
 
   function openTransferModal(jobId: number, grossWeightGrams: number, netWeightGrams: number, jobName: string) {
@@ -410,7 +460,16 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
         {activeTab === "issue" && (
           <form onSubmit={issueMetal} className="grid h-full grid-cols-[310px_1fr_300px] overflow-hidden">
             <aside className="grid content-start gap-3 border-r border-slate-800 bg-slate-900 p-3">
-              <PanelTitle title="Karigar Selection" />
+              <PanelTitle title="Order & Karigar" />
+              <MetricBox label="Job Slip No." value={issueForm.jobNumber || "Auto"} tone="ok" />
+              <Field label="Customer (custom order)">
+                <select value={issueForm.customerId} onChange={(event) => setIssueForm({ ...issueForm, customerId: event.target.value })} className={controlClassName}>
+                  <option value="">Stock job (no customer)</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>{customer.name}{customer.phone ? ` - ${customer.phone}` : ""}</option>
+                  ))}
+                </select>
+              </Field>
               <Field label="Artisan">
                 <select value={issueForm.karigarId} onChange={(event) => setIssueForm({ ...issueForm, karigarId: event.target.value })} className={controlClassName}>
                   <option value="">Select Karigar</option>
@@ -444,13 +503,18 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
                 </div>
 
                 <div className="grid grid-cols-4 gap-2">
+                  <Field label="Metal Type">
+                    <select value={issueForm.metalType} onChange={(event) => setIssueForm({ ...issueForm, metalType: event.target.value as IssueForm["metalType"] })} className={controlClassName}>
+                      <option value="GOLD">Gold (bullion / scrap)</option>
+                      <option value="SILVER">Silver</option>
+                    </select>
+                  </Field>
                   <Field label="Gross Weight Issued (g)">
                     <input value={issueForm.grossWeightIssuedGrams} onChange={(event) => setIssueForm({ ...issueForm, grossWeightIssuedGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
                   </Field>
                   <Field label="Purity / Tunch (%)">
                     <input value={issueForm.purityTunch} onChange={(event) => setIssueForm({ ...issueForm, purityTunch: event.target.value })} className={controlClassName} inputMode="decimal" />
                   </Field>
-                  <MetricBox label="Gross Payload" value={`${gramsToMg(issueForm.grossWeightIssuedGrams)} mg`} />
                   <MetricBox label="Fine Gold Equivalent" value={formatMg(issuePreview)} tone="ok" />
                 </div>
               </div>
@@ -491,8 +555,11 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
                   <Field label="Final Gross (g)">
                     <input value={receiveForm.finalGrossWeightGrams} onChange={(event) => setReceiveForm({ ...receiveForm, finalGrossWeightGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
                   </Field>
-                  <Field label="Final Net (g)">
-                    <input value={receiveForm.finalNetWeightGrams} onChange={(event) => setReceiveForm({ ...receiveForm, finalNetWeightGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
+                  <Field label="Stone / Less (g)">
+                    <input value={receiveForm.stoneWeightGrams} onChange={(event) => setReceiveForm({ ...receiveForm, stoneWeightGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
+                  </Field>
+                  <Field label="Net (g)">
+                    <input value={(receivePreview.netWeightMg / 1000).toFixed(3)} readOnly tabIndex={-1} className={`${controlClassName} bg-slate-900 text-slate-300`} />
                   </Field>
                   <Field label="Scrap/Dust (g)">
                     <input value={receiveForm.scrapReturnedGrams} onChange={(event) => setReceiveForm({ ...receiveForm, scrapReturnedGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
@@ -500,7 +567,25 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
                   <Field label="Scrap Purity (%)">
                     <input value={receiveForm.scrapPurityTunch} onChange={(event) => setReceiveForm({ ...receiveForm, scrapPurityTunch: event.target.value })} className={controlClassName} inputMode="decimal" />
                   </Field>
-                  <Field label="Labor Charge">
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <Field label="Wastage Mode">
+                    <select value={receiveForm.wastageMode} onChange={(event) => setReceiveForm({ ...receiveForm, wastageMode: event.target.value as WastageMode })} className={controlClassName}>
+                      <option value="PERCENTAGE">Wastage %</option>
+                      <option value="PER_GRAM">Wastage / Gram</option>
+                    </select>
+                  </Field>
+                  <Field label={receiveForm.wastageMode === "PER_GRAM" ? "Allowance (g per gram)" : "Allowance (%)"}>
+                    <input
+                      value={receiveForm.wastageValue}
+                      onChange={(event) => setReceiveForm({ ...receiveForm, wastageValue: event.target.value })}
+                      className={controlClassName}
+                      inputMode="decimal"
+                      placeholder={receiveForm.wastageMode === "PER_GRAM" ? "0.200" : "2.50"}
+                    />
+                  </Field>
+                  <Field label="Labor Charge (Rs)">
                     <input value={receiveForm.laborChargeRupees} onChange={(event) => setReceiveForm({ ...receiveForm, laborChargeRupees: event.target.value })} className={controlClassName} inputMode="decimal" />
                   </Field>
                 </div>
@@ -547,6 +632,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
                 const job = ledger?.jobs.find((j) => j.id === jobId);
                 openTransferModal(jobId, grossWeightGrams, netWeightGrams, job?.order_number || "");
               }}
+              onPrintSlip={printJobSlip}
               rows={ledger?.timeline.filter((entry) => entry.fine_gold_delta_mg !== 0).map((entry) => {
                 const isReceipt = entry.type === "JOB_RECEIPT";
                 const isTransferred = isReceipt ? !!entry.details.is_transferred : undefined;
@@ -568,6 +654,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
               metricLabel="Pending Labor Payout"
               metricValue={ledger ? formatPaise(ledger.karigar.cash_balance_paise) : "-"}
               tone="warn"
+              onPrintSlip={printJobSlip}
               rows={ledger?.timeline.filter((entry) => entry.cash_delta_paise !== 0).map((entry) => ({
                 id: `${entry.type}-${entry.date}-${entry.job_id}`,
                 date: entry.date,
@@ -684,15 +771,20 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
 }
 
 function calculateReconciliationPreview(form: ReceiveForm, job: JobOrder | null) {
+  // Approximates issued fine gold with the job target; the server reconciles against actual issues.
   const issuedFineMg = job?.target_weight_mg ?? 0;
-  const finalFineMg = calculateFineGoldMg(gramsToMg(form.finalNetWeightGrams), job?.target_purity ?? 0);
+  const netWeightMg = Math.max(0, gramsToMg(form.finalGrossWeightGrams) - gramsToMg(form.stoneWeightGrams));
+  const finalFineMg = calculateFineGoldMg(netWeightMg, job?.target_purity ?? 0);
   const scrapFineMg = calculateFineGoldMg(gramsToMg(form.scrapReturnedGrams), tunchToBasisPoints(form.scrapPurityTunch));
   const totalFineGoldRecoveredMg = finalFineMg + scrapFineMg;
   const actualLossMg = Math.max(issuedFineMg - totalFineGoldRecoveredMg, 0);
-  const acceptableLossMg = Math.floor((issuedFineMg * tunchToBasisPoints(ACCEPTABLE_WASTAGE_PERCENTAGE)) / 10000);
+  // PER_GRAM: mg of loss per gram of issued metal. PERCENTAGE: % of issued fine gold.
+  const acceptableLossMg = form.wastageMode === "PER_GRAM"
+    ? Math.floor((gramsToMg(form.wastageValue) * issuedFineMg) / 1000)
+    : Math.floor((issuedFineMg * tunchToBasisPoints(form.wastageValue)) / 10000);
   const excessLossMg = Math.max(0, actualLossMg - acceptableLossMg);
 
-  return { totalFineGoldRecoveredMg, actualLossMg, acceptableLossMg, excessLossMg };
+  return { totalFineGoldRecoveredMg, actualLossMg, acceptableLossMg, excessLossMg, netWeightMg };
 }
 
 function calculateFineGoldMg(weightMg: number, purityBasisPoints: number) {
@@ -812,7 +904,8 @@ function LedgerPane({
   metricValue,
   tone,
   rows,
-  onTransferClick
+  onTransferClick,
+  onPrintSlip
 }: {
   title: string;
   metricLabel: string;
@@ -829,6 +922,7 @@ function LedgerPane({
     netWeightGrams?: number;
   }>;
   onTransferClick?: (jobId: number, grossWeightGrams: number, netWeightGrams: number) => void;
+  onPrintSlip?: (jobId: number) => void;
 }) {
   return (
     <section className="grid min-h-0 grid-rows-[auto_auto_1fr] border-r border-slate-800 last:border-r-0">
@@ -849,6 +943,15 @@ function LedgerPane({
                         <span className={`ml-2 px-1 py-0.2 rounded text-[9px] font-bold ${row.isTransferred ? "bg-emerald-950/60 text-emerald-400 border border-emerald-900" : "bg-amber-950/60 text-amber-400 border border-amber-900"}`}>
                           {row.isTransferred ? "Transferred" : "Pending Stock"}
                         </span>
+                      )}
+                      {onPrintSlip && (
+                        <button
+                          type="button"
+                          onClick={() => onPrintSlip(row.jobId!)}
+                          className="ml-2 text-[9px] font-bold uppercase text-blue-300 underline hover:text-blue-200"
+                        >
+                          Print Slip
+                        </button>
                       )}
                     </div>
                   )}

@@ -11,7 +11,17 @@
       "Bash(grep -vE \"console.log|at Object|at C:|ExperimentalWarning|trace-warnings|BEFORE DELETE|AFTER DELETE|Connected to SQLite|^\\\\s*$\")",
       "Bash(sed -n '228,272p' tests/api/girvi-pavati.test.ts)",
       "Bash(sed -n '84,95p' tests/api/gst-reports.test.ts)",
-      "Bash(node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api/documents-auth.test.ts tests/api/voucher-audit-lock.test.ts tests/api/legal-print-documents.test.ts tests/api/gst-reports.test.ts tests/api/girvi-pavati.test.ts tests/api/accounts-vouchers.test.ts tests/api/tally.test.ts --runInBand --forceExit)"
+      "Bash(node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api/documents-auth.test.ts tests/api/voucher-audit-lock.test.ts tests/api/legal-print-documents.test.ts tests/api/gst-reports.test.ts tests/api/girvi-pavati.test.ts tests/api/accounts-vouchers.test.ts tests/api/tally.test.ts --runInBand --forceExit)",
+      "Bash(Select-Object -First 5)",
+      "Bash(git config *)",
+      "Bash(echo \"name: $\\(git config user.name\\)\")",
+      "Bash(echo \"email: $\\(git config user.email\\)\")",
+      "Bash(grep -iE '\\(\\\\.env|node_modules|secret|credential|\\\\.key$|\\\\.pem$\\)')",
+      "Bash(git commit -q -m 'Initial commit: Jewellery ERP codebase *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(gh --version)"
     ]
   }
 }

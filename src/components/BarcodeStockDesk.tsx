@@ -571,6 +571,14 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
             <button type="button" disabled={!summary || summary.session.status !== "OPEN"} onClick={completeVerification} className="h-9 border border-amber-500 px-4 text-xs font-bold uppercase text-amber-200 disabled:border-slate-700 disabled:text-slate-600">
               Complete
             </button>
+            <button
+              type="button"
+              disabled={!summary}
+              onClick={() => summary && window.open(withDocumentToken(`${apiBaseUrl}/api/documents/stock-verification/${summary.session.id}/report`), "_blank", "noopener,noreferrer")}
+              className="h-9 border border-blue-500 px-4 text-xs font-bold uppercase text-blue-200 disabled:border-slate-700 disabled:text-slate-600"
+            >
+              Print Report
+            </button>
           </div>
 
           <div className="grid grid-cols-5 border border-slate-800 bg-slate-900 text-xs">

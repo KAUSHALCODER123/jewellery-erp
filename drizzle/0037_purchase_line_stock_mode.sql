@@ -1,0 +1,1 @@
+ALTER TABLE `purchase_invoice_lines` ADD `stock_mode` text DEFAULT 'PIECES' NOT NULL;

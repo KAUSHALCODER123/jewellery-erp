@@ -1,7 +1,7 @@
 import request from "supertest";
 import { app } from "../../src/server.js";
 import { db } from "../../src/db/client.js";
-import { karigars, itemStones, jobOrders, items, materialIssues, auditLogs } from "../../src/db/schema.js";
+import { karigars, itemStones, jobOrders, items, materialIssues, jobReceipts, customers, auditLogs } from "../../src/db/schema.js";
 import { eq, and } from "drizzle-orm";
 
 describe("API Hostile Math & Input Constraints", () => {
@@ -213,5 +213,73 @@ describe("API Hostile Math & Input Constraints", () => {
       .send({ cancellation_reason: "again" });
 
     expect(secondCancel.status).toBe(409);
+  });
+
+  // Auto-generated sequential job slip number + job name + customer link.
+  test("POST /api/karigar/jobs auto-generates JOB-#### and stores job_name + customer link", async () => {
+    const customer = db.insert(customers).values({ name: "Custom Order Buyer", phone: "9000000001" }).returning().get();
+
+    const first = await request(app)
+      .post("/api/karigar/jobs")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ job_name: "Bridal Bangle", karigar_id: 1, customer_id: customer.id, target_purity: "91.60", target_weight_mg: 20000 });
+
+    expect(first.status).toBe(201);
+    expect(first.body.job.order_number).toBe("JOB-0001");
+    expect(first.body.job.job_name).toBe("Bridal Bangle");
+    expect(first.body.job.customer_id).toBe(customer.id);
+
+    // Next job auto-increments the slip number.
+    const second = await request(app)
+      .post("/api/karigar/jobs")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ job_name: "Plain Chain", karigar_id: 1, target_purity: "91.60", target_weight_mg: 10000 });
+
+    expect(second.status).toBe(201);
+    expect(second.body.job.order_number).toBe("JOB-0002");
+  });
+
+  // PER_GRAM wastage allowance computed against issued gross weight, recorded on the receipt.
+  test("POST /api/karigar/receive-job honours PER_GRAM wastage allowance", async () => {
+    const job = db
+      .insert(jobOrders)
+      .values({ order_number: "JOB-PERGRAM", karigar_id: 1, target_purity: 10000, target_weight_mg: 10000, status: "PENDING" })
+      .returning()
+      .get();
+
+    // Issue 10g gross at 100% tunch => 10000 mg fine gold, 10000 mg gross.
+    await request(app)
+      .post("/api/karigar/issue-metal")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ job_id: job.id, gross_weight_mg: 10000, purity_tunch: "100.00", metal_type: "GOLD", issue_date: "2026-06-01" });
+
+    // Receive 9.8g finished net (0 stone), 0 scrap. Allowance 0.100 g/gram of issued gross (10g) => 1000 mg.
+    // Actual loss = 10000 - 9800 = 200 mg, well under the 1000 mg allowance => no excess.
+    const res = await request(app)
+      .post("/api/karigar/receive-job")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        job_id: job.id,
+        final_gross_weight_mg: 9800,
+        final_net_weight_mg: 9800,
+        scrap_returned_mg: 0,
+        scrap_purity_tunch: "100.00",
+        wastage_mode: "PER_GRAM",
+        wastage_value: "0.100",
+        labor_charge_paise: 50000,
+        receive_date: "2026-06-03"
+      });
+
+    expect(res.status).toBe(201);
+
+    const receipt = db.select().from(jobReceipts).where(eq(jobReceipts.job_id, job.id)).get();
+    expect(receipt?.wastage_mode).toBe("PER_GRAM");
+    expect(receipt?.wastage_value).toBe(100); // 0.100 g => 100 mg per gram
+    expect(receipt?.acceptable_loss_mg).toBe(1000);
+    expect(receipt?.actual_loss_mg).toBe(200);
+    expect(receipt?.excess_loss_mg).toBe(0);
+
+    // Liability fully settled: issued 10000 mg, debited 10000 mg => balance 0.
+    expect(db.select().from(karigars).where(eq(karigars.id, 1)).get()?.fine_gold_balance_mg).toBe(0);
   });
 });

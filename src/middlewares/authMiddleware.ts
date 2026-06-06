@@ -11,6 +11,10 @@ export type JwtUserPayload = {
   username: string;
   role: UserRole;
   is_active: boolean;
+  firm_id?: number | null;
+  firm_key?: string | null;
+  firm_name?: string | null;
+  fiscal_year?: string | null;
   jti?: string;
   exp?: number;
 };
@@ -105,12 +109,19 @@ export function requireRole(allowedRoles: UserRole[]) {
   };
 }
 
-export function signAuthToken(user: { id: number; username: string; role: UserRole }) {
+export function signAuthToken(
+  user: { id: number; username: string; role: UserRole },
+  extra?: { firm_id?: number | null; firm_key?: string | null; firm_name?: string | null; fiscal_year?: string | null }
+) {
   return jwt.sign(
     {
       userId: user.id,
       username: user.username,
       role: user.role,
+      firm_id: extra?.firm_id ?? null,
+      firm_key: extra?.firm_key ?? null,
+      firm_name: extra?.firm_name ?? null,
+      fiscal_year: extra?.fiscal_year ?? null,
       jti: randomUUID()
     },
     getJwtSecret(),

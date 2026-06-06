@@ -311,6 +311,34 @@ backupRouter.post("/restore/:id", requireAuth, requireAdmin, async (request, res
   return response.json({ restore: result });
 });
 
+// Last successful backup + staleness, for the "back up before closing" reminder.
+backupRouter.get("/last-status", requireAuth, (_request, response) => {
+  const last = db
+    .select()
+    .from(backupLogs)
+    .where(eq(backupLogs.status, "SUCCESS"))
+    .orderBy(desc(backupLogs.completed_at))
+    .limit(1)
+    .get();
+
+  const STALE_HOURS = 24;
+  if (!last || !last.completed_at) {
+    return response.json({ last_backup_at: null, last_backup_id: null, hours_since: null, stale: true, stale_threshold_hours: STALE_HOURS });
+  }
+
+  const completed = new Date(`${last.completed_at.replace(" ", "T")}Z`).getTime();
+  const hoursSince = (Date.now() - completed) / 3_600_000;
+
+  return response.json({
+    last_backup_at: last.completed_at,
+    last_backup_id: last.id,
+    last_backup_target: last.target,
+    hours_since: Math.round(hoursSince * 10) / 10,
+    stale: hoursSince >= STALE_HOURS,
+    stale_threshold_hours: STALE_HOURS
+  });
+});
+
 backupRouter.get("/schedule", requireAuth, (_request, response) => {
   const config = ensureScheduleConfig();
   return response.json({

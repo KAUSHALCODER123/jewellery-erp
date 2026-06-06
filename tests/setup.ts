@@ -2,6 +2,12 @@ import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { db } from "../src/db/client.js";
 import {
+  approvalMemoLines,
+  approvalMemos,
+  metalLoanFixings,
+  metalLoans,
+  einvoiceDocuments,
+  ewaybills,
   barcodeSequences,
   users,
   invoiceLines,
@@ -23,6 +29,7 @@ import {
   voucherLines,
   quotationLines,
   quotations,
+  suppliers,
   purchaseInvoiceLines,
   purchaseInvoices,
   salesReturnLines,
@@ -58,7 +65,9 @@ import {
   auditLogs,
   tokenBlacklist,
   itemGroups,
-  itemDefinitions
+  itemDefinitions,
+  expenses,
+  loyaltyLedger
 } from "../src/db/schema.js";
 import { hashPassword } from "../src/utils/auth.js";
 
@@ -98,6 +107,12 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   // Clean all tables to ensure isolation, deleting child tables first
+  db.delete(approvalMemoLines).run();
+  db.delete(approvalMemos).run();
+  db.delete(metalLoanFixings).run();
+  db.delete(metalLoans).run();
+  db.delete(einvoiceDocuments).run();
+  db.delete(ewaybills).run();
   db.delete(backupLogs).run();
   db.delete(backupScheduleConfig).run();
   db.delete(bisSubmissionItems).run();
@@ -118,6 +133,7 @@ beforeEach(async () => {
   db.delete(salesReturns).run();
   db.delete(purchaseInvoiceLines).run();
   db.delete(purchaseInvoices).run();
+  db.delete(suppliers).run();
   db.delete(quotationLines).run();
   db.delete(quotations).run();
   db.delete(urdPurchases).run();
@@ -125,6 +141,7 @@ beforeEach(async () => {
   db.delete(gssAccounts).run();
   db.delete(gssTemplates).run();
   db.delete(invoiceLines).run();
+  db.delete(loyaltyLedger).run();
   db.delete(voucherLines).run();
   db.delete(journalEntries).run();
   db.delete(voucherHeaders).run();
@@ -145,6 +162,7 @@ beforeEach(async () => {
   db.delete(messageTemplates).run();
   db.delete(printTemplates).run();
   db.delete(auditLogs).run();
+  db.delete(expenses).run();
   db.delete(customers).run();
   db.delete(tokenBlacklist).run();
   db.delete(items).run();

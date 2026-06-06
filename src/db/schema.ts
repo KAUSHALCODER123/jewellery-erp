@@ -26,6 +26,8 @@ export type HardwareDeviceType = "THERMAL_BARCODE_PRINTER" | "BARCODE_SCANNER" |
 export type HardwareConnectionType = "USB_SERIAL" | "NETWORK" | "KEYBOARD_WEDGE" | "MANUAL";
 export type ScannerEventType = "BARCODE_SCAN" | "RFID_SCAN" | "TRAY_SCAN" | "UNKNOWN_SCAN" | "PRINT_LABEL";
 export type AntiTheftAlertStatus = "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+export type LoyaltyEarnMode = "PER_HUNDRED_RUPEES" | "PER_GRAM_GOLD";
+export type LoyaltyLedgerType = "EARN" | "REDEEM";
 
 export const customers = sqliteTable("customers", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -45,9 +47,12 @@ export const customers = sqliteTable("customers", {
   birthday_date: text("birthday_date"),
   ring_size: text("ring_size"),
   spouse_name: text("spouse_name"),
+  loyalty_enrolled: integer("loyalty_enrolled", { mode: "boolean" }).notNull().default(false),
   loyalty_points_balance: integer("loyalty_points_balance").default(0),
   opening_balance_paise: integer("opening_balance_paise").notNull().default(0),
   opening_balance_type: text("opening_balance_type", { enum: ["DEBIT", "CREDIT"] }).notNull().default("DEBIT"),
+  // Maximum udhari (credit) the shop allows this customer; 0 = no limit set.
+  credit_limit_paise: integer("credit_limit_paise").notNull().default(0),
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
@@ -223,6 +228,8 @@ export const invoices = sqliteTable("invoices", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   invoice_number: text("invoice_number").unique().notNull(),
   customer_id: integer("customer_id").references(() => customers.id),
+  walk_in_name: text("walk_in_name"),
+  firm_id: integer("firm_id").references(() => firms.id),
   total_amount_paise: integer("total_amount_paise").notNull(),
   gst_percentage: real("gst_percentage"),
   gst_amount_paise: integer("gst_amount_paise").default(0),
@@ -361,9 +368,21 @@ export const quotationLines = sqliteTable("quotation_lines", {
   line_total_paise: integer("line_total_paise").notNull()
 });
 
+// Wholesale supplier / vendor master so purchases pick from a list instead of free text.
+export const suppliers = sqliteTable("suppliers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+  phone: text("phone"),
+  gstin: text("gstin"),
+  address: text("address"),
+  is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
 export const purchaseInvoices = sqliteTable("purchase_invoices", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   purchase_number: text("purchase_number").notNull().unique(),
+  supplier_id: integer("supplier_id").references(() => suppliers.id),
   supplier_name: text("supplier_name").notNull(),
   supplier_phone: text("supplier_phone"),
   supplier_gstin: text("supplier_gstin"),
@@ -383,6 +402,11 @@ export const purchaseInvoiceLines = sqliteTable("purchase_invoice_lines", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   purchase_invoice_id: integer("purchase_invoice_id").notNull().references(() => purchaseInvoices.id),
   description: text("description").notNull(),
+  // Stock category and piece count, used to ingest barcoded inventory items from the purchase.
+  category: text("category").notNull().default("Purchase Stock"),
+  quantity: integer("quantity").notNull().default(1),
+  // PIECES = one barcoded item per piece; LOT = one weight-wise item holding the full line weight.
+  stock_mode: text("stock_mode", { enum: ["PIECES", "LOT"] }).notNull().default("PIECES"),
   metal_type: text("metal_type").notNull(),
   purity_karat: integer("purity_karat").notNull(),
   gross_weight_mg: integer("gross_weight_mg").notNull(),
@@ -482,8 +506,23 @@ export const tokenBlacklist = sqliteTable("token_blacklist", {
   expires_at: text("expires_at").notNull()
 });
 
+export const firms = sqliteTable("firms", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
+  display_name: text("display_name").notNull(),
+  gstin: text("gstin"),
+  address: text("address"),
+  contact_number: text("contact_number"),
+  is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+export type Firm = typeof firms.$inferSelect;
+export type NewFirm = typeof firms.$inferInsert;
+
 export const organizationSettings = sqliteTable("organization_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  firm_id: integer("firm_id").references(() => firms.id),
   shop_name: text("shop_name").notNull(),
   address: text("address").notNull(),
   gstin: text("gstin"),
@@ -501,6 +540,9 @@ export const organizationSettings = sqliteTable("organization_settings", {
   tally_gateway_url: text("tally_gateway_url").notNull().default("http://localhost:9000"),
   tally_company_name: text("tally_company_name").notNull().default("Test Shop"),
   loyalty_points_per_hundred: integer("loyalty_points_per_hundred").notNull().default(1),
+  loyalty_earn_mode: text("loyalty_earn_mode", { enum: ["PER_HUNDRED_RUPEES", "PER_GRAM_GOLD"] }).notNull().default("PER_HUNDRED_RUPEES"),
+  loyalty_points_per_gram_gold: integer("loyalty_points_per_gram_gold").notNull().default(1),
+  print_language: text("print_language").notNull().default("english"),
   updated_at: text("updated_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
@@ -535,6 +577,20 @@ export const ledgers = sqliteTable("ledgers", {
   }).notNull(),
   entity_id: integer("entity_id"),
   balance_paise: integer("balance_paise").notNull().default(0)
+});
+
+// Shop running expenses (rent, salary, utilities, sundry) — posts to an EXPENSE ledger,
+// paid from Cash or Bank, and feeds the Day Book cash reconciliation.
+export const expenses = sqliteTable("expenses", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  expense_date: text("expense_date").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  amount_paise: integer("amount_paise").notNull(),
+  payment_mode: text("payment_mode", { enum: ["CASH", "BANK"] }).notNull().default("CASH"),
+  voucher_id: integer("voucher_id"),
+  created_by: integer("created_by").references(() => users.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
 export const voucherHeaders = sqliteTable("voucher_headers", {
@@ -572,6 +628,17 @@ export const journalEntries = sqliteTable("journal_entries", {
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
+export const loyaltyLedger = sqliteTable("loyalty_ledger", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  customer_id: integer("customer_id").notNull().references(() => customers.id),
+  invoice_id: integer("invoice_id").references(() => invoices.id),
+  transaction_type: text("transaction_type", { enum: ["EARN", "REDEEM"] }).notNull(),
+  points: integer("points").notNull(),
+  balance_after: integer("balance_after").notNull(),
+  description: text("description"),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
 export const girviLoans = sqliteTable("girvi_loans", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   customer_id: integer("customer_id").notNull().references(() => customers.id),
@@ -598,7 +665,14 @@ export const girviCollateral = sqliteTable("girvi_collateral", {
   item_description: text("item_description").notNull(),
   metal_type: text("metal_type").notNull(),
   purity_karat: integer("purity_karat").notNull(),
+  // Gross weight as physically weighed; stone/non-metal deduction subtracted to get net.
+  gross_weight_mg: integer("gross_weight_mg").notNull().default(0),
+  stone_deduction_mg: integer("stone_deduction_mg").notNull().default(0),
+  // Net metal weight (gross - stone). This is the weight used for collateral valuation.
   weight_mg: integer("weight_mg").notNull(),
+  // Rate per gram actually applied at pledge time (audit trail), and whether it was an admin override.
+  valuation_rate_paise_per_gram: integer("valuation_rate_paise_per_gram").notNull().default(0),
+  rate_overridden: integer("rate_overridden", { mode: "boolean" }).notNull().default(false),
   image_path: text("image_path")
 });
 
@@ -686,6 +760,8 @@ export const repairJobs = sqliteTable("repair_jobs", {
 export const jobOrders = sqliteTable("job_orders", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   order_number: text("order_number").notNull().unique(),
+  // Human-friendly job/design label, kept separate from the auto-generated order_number slip.
+  job_name: text("job_name"),
   karigar_id: integer("karigar_id").notNull().references(() => karigars.id),
   customer_id: integer("customer_id").references(() => customers.id),
   design_image_path: text("design_image_path"),
@@ -715,6 +791,9 @@ export const jobReceipts = sqliteTable("job_receipts", {
   final_net_weight_mg: integer("final_net_weight_mg").notNull(),
   scrap_returned_mg: integer("scrap_returned_mg").notNull(),
   scrap_purity_tunch: integer("scrap_purity_tunch").notNull().default(10000),
+  // Wastage allowance the operator entered: PERCENTAGE (value = basis points) or PER_GRAM (value = mg of loss per gram of issued metal).
+  wastage_mode: text("wastage_mode", { enum: ["PERCENTAGE", "PER_GRAM"] }).notNull().default("PERCENTAGE"),
+  wastage_value: integer("wastage_value").notNull().default(200),
   acceptable_loss_mg: integer("acceptable_loss_mg").notNull(),
   actual_loss_mg: integer("actual_loss_mg").notNull(),
   excess_loss_mg: integer("excess_loss_mg").notNull().default(0),
@@ -725,6 +804,154 @@ export const jobReceipts = sqliteTable("job_receipts", {
   is_transferred: integer("is_transferred", { mode: "boolean" }).notNull().default(false)
 });
 
+export type CustomerOrderStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export const customerOrders = sqliteTable("customer_orders", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  order_number: text("order_number").notNull().unique(),
+  customer_id: integer("customer_id").notNull().references(() => customers.id),
+  item_description: text("item_description").notNull(),
+  target_weight_mg: integer("target_weight_mg").notNull().default(0),
+  target_purity: integer("target_purity").notNull().default(9167),
+  notes: text("notes"),
+  customer_gold_mg: integer("customer_gold_mg").notNull().default(0),
+  customer_gold_purity_tunch: integer("customer_gold_purity_tunch").notNull().default(10000),
+  expected_by_date: text("expected_by_date"),
+  advance_paise: integer("advance_paise").notNull().default(0),
+  status: text("status", { enum: ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELLED"] }).notNull().default("OPEN"),
+  karigar_job_id: integer("karigar_job_id").references(() => jobOrders.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+// Approval / Jangad / Memo: jewellery handed out on sale-or-return — to a customer "on approval"
+// or sent to another jeweller / exhibition. Stock leaves the floor but is not yet sold; each line
+// is tracked until it is returned to stock or converted into a sale (invoice).
+export const approvalMemos = sqliteTable("approval_memos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  memo_number: text("memo_number").notNull().unique(),
+  memo_type: text("memo_type", { enum: ["CUSTOMER", "OUTWARD"] }).notNull().default("CUSTOMER"),
+  customer_id: integer("customer_id").references(() => customers.id),
+  party_name: text("party_name").notNull(),
+  party_phone: text("party_phone"),
+  issue_date: text("issue_date").notNull(),
+  due_date: text("due_date"),
+  status: text("status", { enum: ["OPEN", "PARTIAL", "CLOSED", "CONVERTED"] }).notNull().default("OPEN"),
+  notes: text("notes"),
+  created_by: integer("created_by").references(() => users.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const approvalMemoLines = sqliteTable("approval_memo_lines", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  memo_id: integer("memo_id").notNull().references(() => approvalMemos.id),
+  item_id: integer("item_id").references(() => items.id),
+  description: text("description").notNull(),
+  barcode: text("barcode"),
+  metal_type: text("metal_type"),
+  purity_karat: integer("purity_karat"),
+  gross_weight_mg: integer("gross_weight_mg").notNull().default(0),
+  net_weight_mg: integer("net_weight_mg").notNull().default(0),
+  estimated_value_paise: integer("estimated_value_paise").notNull().default(0),
+  line_status: text("line_status", { enum: ["OUT", "RETURNED", "SOLD"] }).notNull().default("OUT"),
+  returned_at: text("returned_at"),
+  invoice_id: integer("invoice_id").references(() => invoices.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+export type ApprovalMemo = typeof approvalMemos.$inferSelect;
+export type NewApprovalMemo = typeof approvalMemos.$inferInsert;
+export type ApprovalMemoLine = typeof approvalMemoLines.$inferSelect;
+
+// Metal loan / unfixed purchase: gold taken from a supplier or bank where the liability is owed in
+// FINE GRAMS, not rupees. The shop "fixes" the rate later (fully or in parts) at the prevailing gold
+// rate, converting owed grams into a rupee payable. Until fixed, the gram balance floats with the market.
+export const metalLoans = sqliteTable("metal_loans", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  loan_number: text("loan_number").notNull().unique(),
+  supplier_id: integer("supplier_id").notNull().references(() => suppliers.id),
+  metal_type: text("metal_type").notNull().default("Gold"),
+  issue_date: text("issue_date").notNull(),
+  gross_weight_mg: integer("gross_weight_mg").notNull().default(0),
+  // Purity as basis points (e.g. 9999 = 99.99%) to match the fine-weight convention elsewhere.
+  purity_basis_points: integer("purity_basis_points").notNull().default(9999),
+  fine_weight_mg: integer("fine_weight_mg").notNull().default(0),
+  // Remaining unfixed fine weight (mg). Starts equal to fine_weight_mg, drops as rate is fixed.
+  fine_outstanding_mg: integer("fine_outstanding_mg").notNull().default(0),
+  // Running rupee value of fixed portions.
+  fixed_amount_paise: integer("fixed_amount_paise").notNull().default(0),
+  status: text("status", { enum: ["UNFIXED", "PARTIALLY_FIXED", "FIXED"] }).notNull().default("UNFIXED"),
+  notes: text("notes"),
+  created_by: integer("created_by").references(() => users.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const metalLoanFixings = sqliteTable("metal_loan_fixings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  loan_id: integer("loan_id").notNull().references(() => metalLoans.id),
+  fixing_date: text("fixing_date").notNull(),
+  fine_weight_fixed_mg: integer("fine_weight_fixed_mg").notNull(),
+  rate_paise_per_gram: integer("rate_paise_per_gram").notNull(),
+  amount_paise: integer("amount_paise").notNull(),
+  notes: text("notes"),
+  created_by: integer("created_by").references(() => users.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+export type MetalLoan = typeof metalLoans.$inferSelect;
+export type MetalLoanFixing = typeof metalLoanFixings.$inferSelect;
+
+// GST e-invoice (IRP). We build the canonical IRP request payload + QR content + the document hash
+// (IRN) locally. Actual IRP registration happens via a configured GSP gateway or by the jeweller on
+// the government portal; the registered IRN / Ack / signed QR are recorded back here.
+export const einvoiceDocuments = sqliteTable("einvoice_documents", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  invoice_id: integer("invoice_id").notNull().references(() => invoices.id),
+  doc_type: text("doc_type").notNull().default("INV"),
+  supply_category: text("supply_category").notNull().default("B2C"),
+  irn: text("irn"),
+  ack_no: text("ack_no"),
+  ack_date: text("ack_date"),
+  signed_qr_code: text("signed_qr_code"),
+  qr_content: text("qr_content"),
+  payload_json: text("payload_json"),
+  gateway: text("gateway").notNull().default("LOCAL"),
+  irp_registered: integer("irp_registered", { mode: "boolean" }).notNull().default(false),
+  status: text("status", { enum: ["PREPARED", "REGISTERED", "CANCELLED", "FAILED"] }).notNull().default("PREPARED"),
+  cancel_reason: text("cancel_reason"),
+  cancelled_at: text("cancelled_at"),
+  error_message: text("error_message"),
+  created_by: integer("created_by").references(() => users.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+// E-way bill for goods movement above the value threshold (branch transfer, karigar, exhibition,
+// dispatch). Same prepare-locally / register-via-gateway-or-portal model as e-invoice.
+export const ewaybills = sqliteTable("ewaybills", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  invoice_id: integer("invoice_id").notNull().references(() => invoices.id),
+  eway_bill_number: text("eway_bill_number"),
+  eway_date: text("eway_date"),
+  valid_until: text("valid_until"),
+  transport_mode: text("transport_mode").notNull().default("ROAD"),
+  vehicle_number: text("vehicle_number"),
+  transporter_id: text("transporter_id"),
+  transporter_name: text("transporter_name"),
+  distance_km: integer("distance_km").notNull().default(0),
+  from_pincode: text("from_pincode"),
+  to_pincode: text("to_pincode"),
+  payload_json: text("payload_json"),
+  gateway: text("gateway").notNull().default("LOCAL"),
+  status: text("status", { enum: ["PREPARED", "GENERATED", "CANCELLED"] }).notNull().default("PREPARED"),
+  cancel_reason: text("cancel_reason"),
+  cancelled_at: text("cancelled_at"),
+  error_message: text("error_message"),
+  created_by: integer("created_by").references(() => users.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+export type EinvoiceDocument = typeof einvoiceDocuments.$inferSelect;
+export type Ewaybill = typeof ewaybills.$inferSelect;
+
 export type NewItem = typeof items.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -733,7 +960,8 @@ export const customersRelations = relations(customers, ({ many }) => ({
   gssAccounts: many(gssAccounts),
   girviLoans: many(girviLoans),
   invoices: many(invoices),
-  ledgers: many(ledgers)
+  ledgers: many(ledgers),
+  loyaltyLedger: many(loyaltyLedger)
 }));
 
 export const gssAccountsRelations = relations(gssAccounts, ({ one }) => ({
@@ -770,6 +998,17 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   customer: one(customers, {
     fields: [invoices.customer_id],
     references: [customers.id]
+  })
+}));
+
+export const loyaltyLedgerRelations = relations(loyaltyLedger, ({ one }) => ({
+  customer: one(customers, {
+    fields: [loyaltyLedger.customer_id],
+    references: [customers.id]
+  }),
+  invoice: one(invoices, {
+    fields: [loyaltyLedger.invoice_id],
+    references: [invoices.id]
   })
 }));
 

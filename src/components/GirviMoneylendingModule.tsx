@@ -26,11 +26,6 @@ type IssueForm = {
   nextDueDate: string;
   panNumber: string;
   aadhaarNumber: string;
-  itemDescription: string;
-  metalType: "GOLD" | "SILVER";
-  purityKarat: string;
-  weightGrams: string;
-  collateralImagePath: string;
   interestRatePercentage: string;
   interestType: "SIMPLE" | "COMPOUND";
   ratePeriod: "MONTHLY" | "ANNUALLY";
@@ -40,6 +35,23 @@ type IssueForm = {
   customerPhotoPath: string;
   thumbprintPath: string;
 };
+
+// One pledged collateral item. The loan accepts many of these (the grid below).
+type CollateralRow = {
+  key: string;
+  itemDescription: string;
+  metalType: "GOLD" | "SILVER";
+  purityKarat: string;
+  grossWeightGrams: string;
+  stoneWeightGrams: string;
+  rateOverrideRupees: string;
+  imagePath: string;
+};
+
+// Where a captured/uploaded image should be stored: a loan-level field or a specific collateral row.
+type CaptureTarget =
+  | { kind: "loanField"; field: "customerPhotoPath" | "thumbprintPath" }
+  | { kind: "collateral"; key: string };
 
 type ActiveLoan = {
   id: number;
@@ -72,11 +84,6 @@ const initialIssueForm: IssueForm = {
   nextDueDate: "",
   panNumber: "",
   aadhaarNumber: "",
-  itemDescription: "",
-  metalType: "GOLD",
-  purityKarat: "22",
-  weightGrams: "",
-  collateralImagePath: "",
   interestRatePercentage: "",
   interestType: "SIMPLE",
   ratePeriod: "MONTHLY",
@@ -87,11 +94,26 @@ const initialIssueForm: IssueForm = {
   thumbprintPath: ""
 };
 
+function emptyCollateralRow(key: string): CollateralRow {
+  return {
+    key,
+    itemDescription: "",
+    metalType: "GOLD",
+    purityKarat: "22",
+    grossWeightGrams: "",
+    stoneWeightGrams: "0",
+    rateOverrideRupees: "",
+    imagePath: ""
+  };
+}
+
 export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneylendingModuleProps) {
   const { session } = useAuthSession();
   const [activeTab, setActiveTab] = useState<ActiveTab>("issue");
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [issueForm, setIssueForm] = useState<IssueForm>(initialIssueForm);
+  const collateralKeyRef = useRef(1);
+  const [collateralRows, setCollateralRows] = useState<CollateralRow[]>(() => [emptyCollateralRow("c0")]);
   const [liveGoldRateRupees, setLiveGoldRateRupees] = useState("0.00");
   const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
   const [selectedLoanId, setSelectedLoanId] = useState("");
@@ -114,7 +136,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isWebcamOpen, setIsWebcamOpen] = useState(false);
-  const [activeCaptureField, setActiveCaptureField] = useState<"customerPhotoPath" | "thumbprintPath" | "collateralImagePath" | null>(null);
+  const [activeCaptureField, setActiveCaptureField] = useState<CaptureTarget | null>(null);
 
   // Localization for print documents
   const [pavatiLanguage, setPavatiLanguage] = useState<"en" | "mr" | "hi">("en");
@@ -191,22 +213,46 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
     }
   }, [selectedLoanId]);
 
-  const maxPermissibleLoanPaise = useMemo(
-    () => calculateMaxPermissibleLoanPaise(issueForm.weightGrams, liveGoldRateRupees),
-    [issueForm.weightGrams, liveGoldRateRupees]
+  // Net metal weight (gross - stone) per row; the rate is an authorized override or the live/stored rate.
+  function rowNetWeightMg(row: CollateralRow) {
+    return Math.max(0, gramsToMg(row.grossWeightGrams) - gramsToMg(row.stoneWeightGrams));
+  }
+  function rowRatePaisePerGram(row: CollateralRow) {
+    return row.rateOverrideRupees.trim() ? rupeesToPaise(row.rateOverrideRupees) : rupeesToPaise(liveGoldRateRupees);
+  }
+  function rowValuePaise(row: CollateralRow) {
+    return Math.floor((rowNetWeightMg(row) * rowRatePaisePerGram(row)) / 1000);
+  }
+
+  // Aggregate collateral valuation drives the 75% LTV ceiling for the whole loan.
+  const collateralValuationPaise = useMemo(
+    () => collateralRows.reduce((total, row) => total + rowValuePaise(row), 0),
+    [collateralRows, liveGoldRateRupees]
   );
-  const maxPermissibleLoanRupees = maxPermissibleLoanPaise / 100;
+  const maxPermissibleLoanPaise = Math.floor((collateralValuationPaise * LTV_PERCENTAGE) / 100);
   const principalPaise = rupeesToPaise(issueForm.principalRupees);
   const principalExceedsLtv = principalPaise > maxPermissibleLoanPaise && principalPaise > 0;
   const kycRequired = principalPaise >= HIGH_VALUE_CASH_KYC_LIMIT_PAISE;
   const kycMissing = kycRequired && (!issueForm.panNumber.trim() || !issueForm.aadhaarNumber.trim());
+  // A row counts only once it has a description and a positive net weight.
+  const validCollateralRows = collateralRows.filter((row) => row.itemDescription.trim() && rowNetWeightMg(row) > 0);
   const issueSubmitDisabled =
     !issueForm.customerId ||
     !issueForm.disbursementLedgerId ||
-    !issueForm.itemDescription.trim() ||
+    validCollateralRows.length === 0 ||
     principalPaise <= 0 ||
     principalExceedsLtv ||
     kycMissing;
+
+  function updateCollateralRow(key: string, patch: Partial<CollateralRow>) {
+    setCollateralRows((rows) => rows.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+  }
+  function addCollateralRow() {
+    setCollateralRows((rows) => [...rows, emptyCollateralRow(`c${collateralKeyRef.current++}`)]);
+  }
+  function removeCollateralRow(key: string) {
+    setCollateralRows((rows) => (rows.length > 1 ? rows.filter((row) => row.key !== key) : rows));
+  }
 
   const selectedLoan = activeLoans.find((loan) => String(loan.id) === selectedLoanId) ?? null;
   const repaymentPaise = rupeesToPaise(repaymentRupees);
@@ -306,7 +352,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
     }
   }
 
-  async function uploadImage(fileOrBlob: File | Blob, field: "customerPhotoPath" | "thumbprintPath" | "collateralImagePath") {
+  async function uploadImage(fileOrBlob: File | Blob, target: CaptureTarget) {
     const upload = new FormData();
     const file = fileOrBlob instanceof File ? fileOrBlob : new File([fileOrBlob], "capture.png", { type: "image/png" });
     upload.append("image", file);
@@ -326,15 +372,20 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       }
 
       const path = result.image_path ?? result.url ?? "";
-      setIssueForm((current) => ({ ...current, [field]: path }));
-      setMessage(`${field.replace("Path", "").replace("ImagePath", "Collateral")} uploaded successfully.`);
+      if (target.kind === "loanField") {
+        setIssueForm((current) => ({ ...current, [target.field]: path }));
+        setMessage(`${target.field === "customerPhotoPath" ? "Customer photo" : "Thumbprint"} uploaded successfully.`);
+      } else {
+        updateCollateralRow(target.key, { imagePath: path });
+        setMessage("Collateral photo uploaded successfully.");
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Upload failed.");
     }
   }
 
   // Webcam actions
-  async function startWebcam(field: "customerPhotoPath" | "thumbprintPath" | "collateralImagePath") {
+  async function startWebcam(field: CaptureTarget) {
     try {
       setError("");
       setActiveCaptureField(field);
@@ -411,15 +462,17 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       thumbprint_path: issueForm.thumbprintPath || null,
       issue_date: issueForm.issueDate,
       next_due_date: issueForm.nextDueDate || null,
-      collateral: [
-        {
-          item_description: issueForm.itemDescription.trim(),
-          metal_type: issueForm.metalType,
-          purity_karat: Number(issueForm.purityKarat),
-          weight_mg: gramsToMg(issueForm.weightGrams),
-          image_path: issueForm.collateralImagePath || null
-        }
-      ],
+      collateral: validCollateralRows.map((row) => ({
+        item_description: row.itemDescription.trim(),
+        metal_type: row.metalType,
+        purity_karat: Number(row.purityKarat),
+        gross_weight_mg: gramsToMg(row.grossWeightGrams),
+        stone_deduction_mg: gramsToMg(row.stoneWeightGrams),
+        rate_override_paise_per_gram: row.rateOverrideRupees.trim()
+          ? rupeesToPaise(row.rateOverrideRupees)
+          : null,
+        image_path: row.imagePath || null
+      })),
       kyc_override: kycRequired
         ? {
             pan_number: issueForm.panNumber.trim(),
@@ -446,6 +499,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       const id = result?.loan?.id ?? 0;
       setPavatiLoan({ id, loanNumber: result?.loan?.loan_number ?? issueForm.loanNumber });
       setIssueForm(initialIssueForm);
+      setCollateralRows([emptyCollateralRow(`c${collateralKeyRef.current++}`)]);
       void loadNextLoanNumber();
       reloadAllLoans();
     } catch (caught) {
@@ -605,7 +659,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
         
         canvas.toBlob((blob) => {
           if (blob) {
-            void uploadImage(blob, "thumbprintPath");
+            void uploadImage(blob, { kind: "loanField", field: "thumbprintPath" });
           }
           setIsBiometricModalOpen(false);
         }, "image/png");
@@ -653,7 +707,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       
       canvas.toBlob((blob) => {
         if (blob) {
-          void uploadImage(blob, "thumbprintPath");
+          void uploadImage(blob, { kind: "loanField", field: "thumbprintPath" });
         }
         setIsBiometricModalOpen(false);
       }, "image/png");
@@ -731,12 +785,12 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                   ) : (
                     <div className="w-10 h-10 border border-slate-700 bg-slate-950 flex items-center justify-center text-[8px] text-slate-500">No Photo</div>
                   )}
-                  <button type="button" onClick={() => startWebcam("customerPhotoPath")} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white">
+                  <button type="button" onClick={() => startWebcam({ kind: "loanField", field: "customerPhotoPath" })} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white">
                     📷 Webcam
                   </button>
                   <label className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white cursor-pointer text-center">
                     Upload
-                    <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), "customerPhotoPath")} className="hidden" />
+                    <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), { kind: "loanField", field: "customerPhotoPath" })} className="hidden" />
                   </label>
                 </div>
               </div>
@@ -750,7 +804,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                   ) : (
                     <div className="w-10 h-10 border border-slate-700 bg-slate-950 flex items-center justify-center text-[8px] text-slate-500">No Thumb</div>
                   )}
-                  <button type="button" onClick={() => startWebcam("thumbprintPath")} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white">
+                  <button type="button" onClick={() => startWebcam({ kind: "loanField", field: "thumbprintPath" })} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white">
                     📷 Webcam
                   </button>
                   <button
@@ -762,7 +816,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                   </button>
                   <label className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white cursor-pointer text-center">
                     Upload
-                    <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), "thumbprintPath")} className="hidden" />
+                    <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), { kind: "loanField", field: "thumbprintPath" })} className="hidden" />
                   </label>
                 </div>
               </div>
@@ -771,43 +825,89 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
             <section className="grid min-h-0 grid-rows-[auto_1fr]">
               <PanelHeader title="Collateral & Interest" note="Weights convert to mg at submit" />
               <div className="grid content-start gap-3 overflow-auto p-3">
-                <div className="grid grid-cols-4 gap-2">
-                  <Field label="Item Description">
-                    <input value={issueForm.itemDescription} onChange={(event) => setIssueForm({ ...issueForm, itemDescription: event.target.value })} className={controlClassName} />
-                  </Field>
-                  <Field label="Metal Type">
-                    <select value={issueForm.metalType} onChange={(event) => setIssueForm({ ...issueForm, metalType: event.target.value as IssueForm["metalType"] })} className={controlClassName}>
-                      <option value="GOLD">Gold</option>
-                      <option value="SILVER">Silver</option>
-                    </select>
-                  </Field>
-                  <Field label="Purity">
-                    <input value={issueForm.purityKarat} onChange={(event) => setIssueForm({ ...issueForm, purityKarat: event.target.value })} className={controlClassName} inputMode="decimal" />
-                  </Field>
-                  <Field label="Weight (g)">
-                    <input value={issueForm.weightGrams} onChange={(event) => setIssueForm({ ...issueForm, weightGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-[1fr_220px] gap-3 items-end">
-                  <div className="grid gap-1">
-                    <label className="text-[10px] uppercase font-semibold text-slate-400">Collateral Photo</label>
-                    <div className="flex gap-2 items-center">
-                      {issueForm.collateralImagePath ? (
-                        <img src={`${apiBaseUrl}${issueForm.collateralImagePath}`} className="w-12 h-12 object-cover border border-slate-700 bg-slate-950" />
-                      ) : (
-                        <div className="w-12 h-12 border border-slate-700 bg-slate-950 flex items-center justify-center text-[10px] text-slate-500">No Photo</div>
-                      )}
-                      <button type="button" onClick={() => startWebcam("collateralImagePath")} className="px-3 py-1.5 bg-slate-800 text-xs uppercase font-bold hover:bg-slate-700 rounded text-white">
-                        📷 Capture Photo
-                      </button>
-                      <label className="px-3 py-1.5 bg-slate-800 text-xs uppercase font-bold hover:bg-slate-700 rounded text-white cursor-pointer text-center">
-                        Upload File
-                        <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), "collateralImagePath")} className="hidden" />
-                      </label>
-                    </div>
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase font-semibold text-slate-400">Pledged Collateral Items</label>
+                    <button type="button" onClick={addCollateralRow} className="rounded bg-slate-800 px-3 py-1 text-[10px] font-bold uppercase text-emerald-300 hover:bg-slate-700">
+                      + Add Item
+                    </button>
                   </div>
-                  <MetricBox label="Collateral Image" value={issueForm.collateralImagePath ? "Uploaded" : "Pending"} />
+
+                  {collateralRows.map((row, index) => {
+                    const overridden = row.rateOverrideRupees.trim().length > 0;
+                    return (
+                      <div key={row.key} className="grid gap-2 border border-slate-800 bg-slate-950 p-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-semibold uppercase text-slate-500">Item {index + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeCollateralRow(row.key)}
+                            disabled={collateralRows.length <= 1}
+                            className="text-[10px] font-bold uppercase text-red-300 hover:text-red-200 disabled:text-slate-700"
+                          >
+                            ✕ Remove
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          <Field label="Item Description">
+                            <input value={row.itemDescription} onChange={(event) => updateCollateralRow(row.key, { itemDescription: event.target.value })} className={controlClassName} />
+                          </Field>
+                          <Field label="Metal Type">
+                            <select value={row.metalType} onChange={(event) => updateCollateralRow(row.key, { metalType: event.target.value as CollateralRow["metalType"] })} className={controlClassName}>
+                              <option value="GOLD">Gold</option>
+                              <option value="SILVER">Silver</option>
+                            </select>
+                          </Field>
+                          <Field label="Purity">
+                            <input value={row.purityKarat} onChange={(event) => updateCollateralRow(row.key, { purityKarat: event.target.value })} className={controlClassName} inputMode="decimal" />
+                          </Field>
+                          <Field label="Gross Wt (g)">
+                            <input value={row.grossWeightGrams} onChange={(event) => updateCollateralRow(row.key, { grossWeightGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
+                          </Field>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          <Field label="Stone / Less Wt (g)">
+                            <input value={row.stoneWeightGrams} onChange={(event) => updateCollateralRow(row.key, { stoneWeightGrams: event.target.value })} className={controlClassName} inputMode="decimal" />
+                          </Field>
+                          <Field label="Net Wt (g)">
+                            <input value={(rowNetWeightMg(row) / 1000).toFixed(3)} readOnly tabIndex={-1} className={`${controlClassName} bg-slate-900 text-slate-300`} />
+                          </Field>
+                          <Field label="Rate Override (₹/g)">
+                            <input
+                              value={row.rateOverrideRupees}
+                              onChange={(event) => updateCollateralRow(row.key, { rateOverrideRupees: event.target.value })}
+                              className={controlClassName}
+                              inputMode="decimal"
+                              placeholder={`Stored ₹${liveGoldRateRupees}`}
+                            />
+                          </Field>
+                          <MetricBox label={overridden ? "Item Value (override)" : "Item Value"} value={formatIndianCurrency(rowValuePaise(row))} />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {row.imagePath ? (
+                            <img src={`${apiBaseUrl}${row.imagePath}`} className="h-12 w-12 border border-slate-700 bg-slate-950 object-cover" />
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center border border-slate-700 bg-slate-950 text-[10px] text-slate-500">No Photo</div>
+                          )}
+                          <button type="button" onClick={() => startWebcam({ kind: "collateral", key: row.key })} className="rounded bg-slate-800 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-slate-700">
+                            📷 Capture Photo
+                          </button>
+                          <label className="cursor-pointer rounded bg-slate-800 px-3 py-1.5 text-center text-xs font-bold uppercase text-white hover:bg-slate-700">
+                            Upload File
+                            <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), { kind: "collateral", key: row.key })} className="hidden" />
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex items-center justify-between border-t border-slate-800 pt-2 text-xs">
+                    <span className="uppercase text-slate-400">Total Collateral Value (net basis)</span>
+                    <span className="font-mono font-semibold text-slate-100">{formatIndianCurrency(collateralValuationPaise)}</span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2">
@@ -1209,7 +1309,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
           <div className="w-full max-w-md overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-slate-950">
               <h3 className="text-xs font-bold uppercase text-white">
-                Capture {activeCaptureField === "customerPhotoPath" ? "Customer Photo" : activeCaptureField === "thumbprintPath" ? "Thumbprint" : "Collateral"}
+                Capture {activeCaptureField?.kind === "loanField" && activeCaptureField.field === "customerPhotoPath" ? "Customer Photo" : activeCaptureField?.kind === "loanField" && activeCaptureField.field === "thumbprintPath" ? "Thumbprint" : "Collateral"}
               </h3>
               <button type="button" onClick={stopWebcam} className="text-slate-400 hover:text-white">&times;</button>
             </div>
@@ -1271,13 +1371,6 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       )}
     </section>
   );
-}
-
-function calculateMaxPermissibleLoanPaise(weightGrams: string, goldRateRupees: string) {
-  const weightMg = gramsToMg(weightGrams);
-  const ratePaisePerGram = rupeesToPaise(goldRateRupees);
-
-  return Math.floor((weightMg * ratePaisePerGram * LTV_PERCENTAGE) / (1000 * 100));
 }
 
 function isRepaymentBreakdown(value: RepaymentBreakdown | { errors?: string[] } | null): value is RepaymentBreakdown {

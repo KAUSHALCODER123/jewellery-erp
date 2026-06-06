@@ -1,4 +1,4 @@
-import { and, eq, or, like, sql, inArray } from "drizzle-orm";
+import { and, desc, eq, or, like, sql } from "drizzle-orm";
 import { Router } from "express";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { logAction } from "../audit/logAction.js";
@@ -12,7 +12,8 @@ import {
   girviCollateral,
   invoices,
   journalEntries,
-  ledgers
+  ledgers,
+  loyaltyLedger
 } from "../db/schema.js";
 import { decimalStringToInteger } from "../utils/decimal.js";
 
@@ -186,6 +187,14 @@ crmRouter.get("/customers/:id/360", (request, response) => {
     const udhariBalancePaise = customerData.ledgers[0]?.balance_paise ?? 0;
 
     // Separate customer profile from relations
+    const loyaltyHistory = db
+      .select()
+      .from(loyaltyLedger)
+      .where(eq(loyaltyLedger.customer_id, customerId))
+      .orderBy(desc(loyaltyLedger.created_at), desc(loyaltyLedger.id))
+      .limit(25)
+      .all();
+
     const { gssAccounts: _g, girviLoans: _l, invoices: _i, ledgers: _led, ...profile } = customerData;
 
     return response.json({
@@ -193,6 +202,7 @@ crmRouter.get("/customers/:id/360", (request, response) => {
       gss_accounts: activeMaturedGss,
       girvi_loans: customerData.girviLoans,
       invoice_history: lifetimeInvoiceHistory,
+      loyalty_ledger: loyaltyHistory,
       udhari_balance_paise: udhariBalancePaise
     });
   } catch (error) {
@@ -314,19 +324,27 @@ function validateCustomerPayload(body: unknown, opts: { requireName: boolean }):
 
   const pan = optionalUpper(body.pan_number);
   if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
-    errors.push("pan_number must be a valid PAN (e.g. ABCDE1234F).");
+    errors.push("PAN must be a valid PAN (e.g. ABCDE1234F).");
   }
   const aadhaar = optionalText(body.aadhaar_number);
   if (aadhaar && !/^\d{12}$/.test(aadhaar)) {
-    errors.push("aadhaar_number must be 12 digits.");
+    errors.push("Aadhaar number must be 12 digits.");
   }
   const gstin = optionalUpper(body.gstin);
   if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
-    errors.push("gstin must be a valid 15-character GSTIN.");
+    errors.push("GSTIN must be a valid 15-character GSTIN.");
   }
   const email = optionalText(body.email);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push("email must be a valid email address.");
+    errors.push("Email must be a valid email address.");
+  }
+  const birthday = optionalText(body.birthday_date);
+  if (birthday && !isNotFutureDate(birthday)) {
+    errors.push("Birth date must be a valid date and cannot be in the future.");
+  }
+  const anniversary = optionalText(body.anniversary_date);
+  if (anniversary && !isNotFutureDate(anniversary)) {
+    errors.push("Anniversary must be a valid date and cannot be in the future.");
   }
 
   const openingType = body.opening_balance_type === "CREDIT" ? "CREDIT" : "DEBIT";
@@ -356,13 +374,14 @@ function validateCustomerPayload(body: unknown, opts: { requireName: boolean }):
       area: optionalText(body.area) || null,
       taluka: optionalText(body.taluka) || null,
       district: optionalText(body.district) || null,
-      birthday_date: optionalText(body.birthday_date) || null,
-      anniversary_date: optionalText(body.anniversary_date) || null,
+      birthday_date: birthday || null,
+      anniversary_date: anniversary || null,
       ring_size: optionalText(body.ring_size) || null,
       spouse_name: optionalText(body.spouse_name) || null,
       pan_number: pan || null,
       aadhaar_number: aadhaar || null,
       kyc_photo_path: optionalText(body.kyc_photo_path) || null,
+      loyalty_enrolled: Boolean(body.loyalty_enrolled),
       opening_balance_paise: openingPaise,
       opening_balance_type: openingType
     }
@@ -371,6 +390,16 @@ function validateCustomerPayload(body: unknown, opts: { requireName: boolean }):
 
 function optionalText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+// Accepts a YYYY-MM-DD string that is a real calendar date and not after today.
+function isNotFutureDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  return parsed.getTime() <= endOfToday.getTime();
 }
 
 function optionalUpper(value: unknown): string | null {

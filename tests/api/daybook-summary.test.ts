@@ -46,6 +46,33 @@ describe("Reports day-book summary", () => {
     expect(res.body.cash_in_hand_paise).toBeGreaterThanOrEqual(6000000);
     expect(res.body).toHaveProperty("total_urd_purchase_paise");
     expect(res.body).toHaveProperty("karigar_issued_fine_mg");
+
+    // Payment-mode till tally: the all-cash sale lands in cash_received, not bank.
+    expect(res.body.payment_modes.cash_received_paise).toBeGreaterThanOrEqual(6000000);
+    expect(res.body.payment_modes.bank_received_paise).toBe(0);
+
+    // Cash closing = opening + cash in - cash out (cash-only reconciliation).
+    const recon = res.body.cash_reconciliation;
+    expect(recon.closing_cash_paise).toBe(recon.opening_cash_paise + recon.cash_received_paise - recon.cash_paid_paise);
+    expect(recon.cash_received_paise).toBeGreaterThanOrEqual(6000000);
+  });
+
+  it("records an expense and reflects it in day-book cash reconciliation", async () => {
+    const create = await request(app)
+      .post("/api/accounts/expenses")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ category: "Shop Rent", amount_paise: 500000, payment_mode: "CASH", description: "June rent" });
+    expect(create.status).toBe(201);
+    expect(create.body.expense.category).toBe("Shop Rent");
+
+    const res = await request(app)
+      .get("/api/reports/daybook-summary")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.body.total_expenses_paise).toBeGreaterThanOrEqual(500000);
+    // Cash expense flows out of the till: counted in cash_paid and cash_expenses.
+    expect(res.body.cash_reconciliation.cash_expenses_paise).toBeGreaterThanOrEqual(500000);
+    expect(res.body.cash_reconciliation.cash_paid_paise).toBeGreaterThanOrEqual(500000);
   });
 
   it("denies COUNTER_STAFF access (RBAC)", async () => {

@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: dark;
-  background: #121212;
+  background: #151E2E;
 }
 
 html,
@@ -15,8 +15,8 @@ body,
 
 body {
   margin: 0;
-  background: #121212;
-  color: #e0e0e0;
+  background: #151E2E;
+  color: #ECE8DF;
   font-family:
     Inter,
     ui-sans-serif,

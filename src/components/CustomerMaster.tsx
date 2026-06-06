@@ -27,6 +27,7 @@ type FormState = {
   aadhaar_number: string;
   ring_size: string;
   spouse_name: string;
+  loyalty_enrolled: boolean;
   opening_balance: string;
   opening_balance_type: "DEBIT" | "CREDIT";
 };
@@ -52,6 +53,7 @@ function toFormState(initial: CustomerMasterProps["initial"]): FormState {
     aadhaar_number: v("aadhaar_number"),
     ring_size: v("ring_size"),
     spouse_name: v("spouse_name"),
+    loyalty_enrolled: Boolean(initial ? (initial as Record<string, unknown>).loyalty_enrolled : false),
     opening_balance: "",
     opening_balance_type: "DEBIT"
   };
@@ -164,6 +166,15 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
           </label>
           <label className="text-xs text-slate-300">Spouse Name
             <input className={control} value={form.spouse_name} onChange={(e) => set("spouse_name", e.target.value)} />
+          </label>
+          <label className="col-span-2 flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/70 px-2 py-2 text-xs font-semibold text-slate-300">
+            <input
+              type="checkbox"
+              checked={form.loyalty_enrolled}
+              onChange={(e) => set("loyalty_enrolled", e.target.checked)}
+              className="h-4 w-4 rounded border-slate-700 bg-slate-950 accent-amber-500"
+            />
+            Enroll in loyalty points program
           </label>
 
           {!isEdit && (

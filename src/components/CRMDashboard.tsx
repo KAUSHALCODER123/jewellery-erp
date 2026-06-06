@@ -17,7 +17,8 @@ import {
   Loader2,
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Pencil
 } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import CustomerMaster from "./CustomerMaster.js";
@@ -31,13 +32,21 @@ type Customer = {
   id: number;
   name: string;
   phone: string;
+  whatsapp_phone: string | null;
+  email: string | null;
   address: string | null;
   area: string | null;
+  taluka: string | null;
+  district: string | null;
   birthday_date: string | null;
   anniversary_date: string | null;
+  loyalty_enrolled: boolean;
   loyalty_points_balance: number;
   ring_size: string | null;
   spouse_name: string | null;
+  pan_number: string | null;
+  aadhaar_number: string | null;
+  gstin: string | null;
 };
 
 type GssAccount = {
@@ -84,6 +93,15 @@ type Customer360 = {
     total_value_paise: number;
   };
   udhari_balance_paise: number;
+  loyalty_ledger: Array<{
+    id: number;
+    invoice_id: number | null;
+    transaction_type: "EARN" | "REDEEM";
+    points: number;
+    balance_after: number;
+    description: string | null;
+    created_at: string | null;
+  }>;
 };
 
 type Toast = {
@@ -113,6 +131,8 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
   const [customer360, setCustomer360] = useState<Customer360 | null>(null);
   const [loading360, setLoading360] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
+  // Bumped after an edit to force the 360 panel to re-fetch even when the selected id is unchanged.
+  const [refresh360, setRefresh360] = useState(0);
 
   // Toast Messages
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -200,7 +220,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
     };
 
     fetch360();
-  }, [selectedCustomerId]);
+  }, [selectedCustomerId, refresh360]);
 
   const showToast = (message: string, type: Toast["type"] = "success") => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -274,8 +294,10 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
           onClose={() => setShowAddCustomer(false)}
           onSaved={(saved) => {
             setShowAddCustomer(false);
+            setEditCustomer(null);
             void fetchCustomers();
             setSelectedCustomerId(saved.id);
+            setRefresh360((n) => n + 1);
           }}
         />
       )}
@@ -506,12 +528,20 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setSelectedCustomerId(null)}
-                    className="flex h-8 w-8 items-center justify-center border border-slate-800 hover:border-slate-700 bg-slate-950/60 rounded text-slate-400 hover:text-white transition"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setEditCustomer(customer360.customer); setShowAddCustomer(true); }}
+                      className="flex h-8 items-center gap-1.5 border border-slate-800 hover:border-emerald-500/60 bg-slate-950/60 rounded px-2.5 text-[11px] font-semibold uppercase text-slate-300 hover:text-emerald-300 transition"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Edit
+                    </button>
+                    <button
+                      onClick={() => setSelectedCustomerId(null)}
+                      className="flex h-8 w-8 items-center justify-center border border-slate-800 hover:border-slate-700 bg-slate-950/60 rounded text-slate-400 hover:text-white transition"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </header>
 
                 {/* Panel Body Scrollable */}
@@ -539,6 +569,31 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                       <div>
                         <span className="text-slate-500 block text-[9px] uppercase font-semibold">Spouse Name</span>
                         <span className="text-slate-300 font-medium block mt-0.5">{customer360.customer.spouse_name || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px] uppercase font-semibold">PAN</span>
+                        <span className="text-slate-300 font-mono font-semibold block mt-0.5">{customer360.customer.pan_number || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px] uppercase font-semibold">Aadhaar</span>
+                        <span className="text-slate-300 font-mono font-semibold block mt-0.5">{customer360.customer.aadhaar_number || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px] uppercase font-semibold">GSTIN</span>
+                        <span className="text-slate-300 font-mono font-semibold block mt-0.5">{customer360.customer.gstin || "-"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px] uppercase font-semibold">Loyalty</span>
+                        {(() => {
+                          const enrolled = customer360.customer.loyalty_enrolled;
+                          const bal = customer360.customer.loyalty_points_balance;
+                          const label = enrolled ? "Enrolled" : bal > 0 ? `Not enrolled (${bal} pts)` : "Not enrolled";
+                          return (
+                            <span className={enrolled || bal > 0 ? "text-emerald-300 font-semibold block mt-0.5" : "text-slate-500 font-medium block mt-0.5"}>
+                              {label}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </section>
@@ -598,6 +653,49 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                           </span>
                         )}
                       </div>
+                    </div>
+                  </section>
+
+                  <section className="space-y-2.5">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <History className="h-3.5 w-3.5 text-slate-400" />
+                      Loyalty History
+                    </h4>
+                    <div className="rounded-lg border border-slate-800 bg-slate-950/30 p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[10px] font-semibold uppercase text-slate-500">Current Balance</span>
+                        <span className="font-mono text-sm font-bold text-emerald-300">{customer360.customer.loyalty_points_balance} pts</span>
+                      </div>
+                      {customer360.loyalty_ledger.length === 0 ? (
+                        <div className="border border-dashed border-slate-800 py-3 text-center text-[11px] text-slate-500 rounded">
+                          No loyalty point movements
+                        </div>
+                      ) : (
+                        <div className="max-h-44 overflow-y-auto">
+                          <table className="w-full text-left text-[10px]">
+                            <thead className="text-slate-500">
+                              <tr>
+                                <th className="py-1 font-semibold uppercase">Date</th>
+                                <th className="py-1 font-semibold uppercase">Type</th>
+                                <th className="py-1 text-right font-semibold uppercase">Pts</th>
+                                <th className="py-1 text-right font-semibold uppercase">Bal</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/70">
+                              {customer360.loyalty_ledger.map((row) => (
+                                <tr key={row.id}>
+                                  <td className="py-1.5 text-slate-400">{row.created_at?.slice(0, 10) ?? "-"}</td>
+                                  <td className={row.transaction_type === "EARN" ? "py-1.5 font-semibold text-emerald-300" : "py-1.5 font-semibold text-amber-300"}>
+                                    {row.transaction_type}
+                                  </td>
+                                  <td className="py-1.5 text-right font-mono text-slate-200">{row.points > 0 ? "+" : ""}{row.points}</td>
+                                  <td className="py-1.5 text-right font-mono text-slate-400">{row.balance_after}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   </section>
 

@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { withDocumentToken } from "../utils/documentAuth.js";
 
 type RefineryManagementModuleProps = {
   apiBaseUrl?: string;
@@ -60,6 +61,9 @@ type ReceiveForm = {
   chargesRupees: string;
   paymentMode: string;
   description: string;
+  addToStock: boolean;
+  barcode: string;
+  location: string;
 };
 
 const initialNewRefineryForm: NewRefineryForm = {
@@ -80,7 +84,10 @@ const initialReceiveForm: ReceiveForm = {
   fineGoldReceivedGrams: "",
   chargesRupees: "",
   paymentMode: "CASH",
-  description: ""
+  description: "",
+  addToStock: true,
+  barcode: "",
+  location: "VAULT"
 };
 
 export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryManagementModuleProps) {
@@ -93,6 +100,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
   const [ledgerRefineryId, setLedgerRefineryId] = useState("");
   const [ledger, setLedger] = useState<LedgerResponse | null>(null);
   const [message, setMessage] = useState("");
+  const [lastChallanTransferId, setLastChallanTransferId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   // URD Melting Integration State
@@ -286,6 +294,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
       }
 
       setMessage("Scrap metal issued to refinery successfully.");
+      setLastChallanTransferId(typeof result.transfer?.id === "number" ? result.transfer.id : null);
       setIssueForm(initialIssueForm);
       void loadRefineries();
     } catch (caught) {
@@ -319,7 +328,10 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
           charges_paise: chargesPaise,
           payment_mode: receiveForm.paymentMode,
           description: receiveForm.description.trim() || null,
-          receive_date: getToday()
+          receive_date: getToday(),
+          add_to_stock: receiveForm.addToStock,
+          barcode: receiveForm.barcode.trim() || null,
+          location: receiveForm.location.trim() || "VAULT"
         })
       });
       const result = await response.json();
@@ -328,7 +340,11 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
         throw new Error(result.errors?.join(" ") || "Failed to process refinery receipt.");
       }
 
-      setMessage("Fine metal received and charges recorded successfully.");
+      if (result.bullion_item) {
+        setMessage(`Fine metal received. 24K bullion bar ${result.bullion_item.barcode} (${result.bullion_item.fine_weight_grams} g) added to master stock.`);
+      } else {
+        setMessage("Fine metal received and charges recorded successfully.");
+      }
       setReceiveForm(initialReceiveForm);
       void loadRefineries();
     } catch (caught) {
@@ -373,8 +389,17 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
       </header>
 
       {(message || error) && (
-        <div className={`border-b border-slate-800 px-3 py-1.5 text-xs font-semibold ${error ? "bg-red-950/50 text-red-200" : "bg-emerald-950/40 text-emerald-200"}`}>
-          {error || message}
+        <div className={`flex items-center gap-3 border-b border-slate-800 px-3 py-1.5 text-xs font-semibold ${error ? "bg-red-950/50 text-red-200" : "bg-emerald-950/40 text-emerald-200"}`}>
+          <span>{error || message}</span>
+          {!error && lastChallanTransferId !== null && (
+            <button
+              type="button"
+              onClick={() => window.open(withDocumentToken(`${apiBaseUrl}/api/documents/refinery/transfer/${lastChallanTransferId}/challan`), "_blank", "noopener,noreferrer")}
+              className="rounded border border-blue-400 px-2 py-0.5 text-[11px] font-bold uppercase text-blue-200 hover:bg-blue-950/40"
+            >
+              Print Challan
+            </button>
+          )}
         </div>
       )}
 
@@ -680,6 +705,41 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                     placeholder="Refined bar numbers, pure assays, testing records..."
                   />
                 </Field>
+
+                <div className="rounded-sm border border-emerald-900/50 bg-emerald-950/10 p-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-emerald-300">
+                    <input
+                      type="checkbox"
+                      checked={receiveForm.addToStock}
+                      onChange={(e) => setReceiveForm(prev => ({ ...prev, addToStock: e.target.checked }))}
+                      className="h-4 w-4 accent-emerald-500 cursor-pointer"
+                    />
+                    Add returned fine gold to master stock as a 24K bullion bar
+                  </label>
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    Mints a pure 24K stock item so your gram-to-gram metal balance closes the refining loop. Uncheck only if the refiner kept the metal against your account.
+                  </p>
+                  {receiveForm.addToStock && (
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <Field label="Bullion Barcode (optional)">
+                        <input
+                          value={receiveForm.barcode}
+                          onChange={(e) => setReceiveForm(prev => ({ ...prev, barcode: e.target.value }))}
+                          className={controlClassName}
+                          placeholder="Auto: FINE-24K-R##"
+                        />
+                      </Field>
+                      <Field label="Stock Location">
+                        <input
+                          value={receiveForm.location}
+                          onChange={(e) => setReceiveForm(prev => ({ ...prev, location: e.target.value }))}
+                          className={controlClassName}
+                          placeholder="VAULT"
+                        />
+                      </Field>
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -687,6 +747,11 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
               <PanelTitle title="Receipt Overview" />
               <MetricBox label="Fine Metal Received" value={formatMg(gramsToMg(receiveForm.fineGoldReceivedGrams))} tone="ok" />
               <MetricBox label="Charges Recorded" value={formatPaise(rupeesToPaise(receiveForm.chargesRupees))} tone="warn" />
+              <MetricBox
+                label="Master Stock Impact"
+                value={receiveForm.addToStock && gramsToMg(receiveForm.fineGoldReceivedGrams) > 0 ? `+ ${formatMg(gramsToMg(receiveForm.fineGoldReceivedGrams))} 24K bar` : "No stock entry"}
+                tone={receiveForm.addToStock ? "ok" : "neutral"}
+              />
               <button type="submit" disabled={!receiveForm.refineryId} className="h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold uppercase text-slate-950 transition-colors cursor-pointer shadow-sm">
                 Receive Fine Metal
               </button>

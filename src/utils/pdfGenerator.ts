@@ -7,7 +7,93 @@ export type OrganizationData = {
   address: string;
   gstin: string | null;
   contact_number: string;
+  print_language?: string | null;
 };
+
+export type PrintLanguage = "english" | "marathi" | "hindi" | "gujarati";
+
+type L10n = {
+  taxInvoice: string; receipt: string; serialNo: string; itemDescription: string; hsn: string;
+  grossWt: string; stoneWt: string; netWt: string; rate: string; making: string; total: string;
+  invoiceNo: string; date: string; customer: string; phone: string; paymentDetails: string;
+  cash: string; upi: string; card: string; udhari: string; gssCredit: string;
+  grossTotal: string; discount: string; gstAmount: string; netPayable: string;
+  oldGoldExchange: string; oldGoldExchanged: string; weight: string; ratePerG: string;
+  deduction: string; tunch: string; customerSignature: string; authorizedSignatory: string;
+  thankYou: string; certified: string; purity: string; item: string; gst: string; amount: string;
+  gross: string; urd: string; payments: string; gWt: string; sWt: string; nWt: string; mc: string;
+};
+
+const EN: L10n = {
+  taxInvoice: "TAX INVOICE", receipt: "RECEIPT", serialNo: "S.No", itemDescription: "Item Description",
+  hsn: "HSN", grossWt: "Gross Wt", stoneWt: "Stone Wt", netWt: "Net Wt", rate: "Rate",
+  making: "Making", total: "Total", invoiceNo: "Invoice No.", date: "Date", customer: "Customer",
+  phone: "Phone", paymentDetails: "Payment Details", cash: "Cash", upi: "UPI", card: "Card",
+  udhari: "Udhari", gssCredit: "GSS Credit", grossTotal: "Gross Total", discount: "Discount",
+  gstAmount: "GST Amount", netPayable: "Net Payable",
+  oldGoldExchange: "Old Gold Exchange (URD) Details", oldGoldExchanged: "Old Gold Exchanged:",
+  weight: "Weight", ratePerG: "Rate/g", deduction: "Deduction", tunch: "Tunch",
+  customerSignature: "Customer Signature", authorizedSignatory: "Authorized Signatory",
+  thankYou: "Thank you",
+  certified: "Certified that the particulars given above are true and correct.",
+  purity: "Purity", item: "Item", gst: "GST", amount: "Amount", gross: "Gross", urd: "URD",
+  payments: "Payments", gWt: "G.Wt", sWt: "S.Wt", nWt: "N.Wt", mc: "MC"
+};
+
+const MR: L10n = {
+  taxInvoice: "कर चलान", receipt: "पावती", serialNo: "क्र.नं.", itemDescription: "वस्तू तपशील",
+  hsn: "HSN", grossWt: "एकूण वजन", stoneWt: "खडे वजन", netWt: "निव्वळ वजन", rate: "दर",
+  making: "घडवण", total: "एकूण", invoiceNo: "चलान क्र.", date: "दिनांक", customer: "ग्राहक",
+  phone: "फोन", paymentDetails: "भरणा तपशील", cash: "रोख", upi: "UPI", card: "कार्ड",
+  udhari: "उधारी", gssCredit: "GSS जमा", grossTotal: "एकूण रक्कम", discount: "सवलत",
+  gstAmount: "GST रक्कम", netPayable: "देय रक्कम",
+  oldGoldExchange: "जुने सोने विनिमय (URD) तपशील", oldGoldExchanged: "जुने सोने बदलले:",
+  weight: "वजन", ratePerG: "दर/ग्रॅम", deduction: "कपात", tunch: "तोळ",
+  customerSignature: "ग्राहकाची सही", authorizedSignatory: "अधिकृत सही",
+  thankYou: "धन्यवाद",
+  certified: "वरील माहिती खरी व बरोबर असल्याचे प्रमाणित करतो.",
+  purity: "शुद्धता", item: "वस्तू", gst: "GST", amount: "रक्कम", gross: "एकूण",
+  urd: "जुने सोने", payments: "भरणा", gWt: "ए.व", sWt: "ख.व", nWt: "नि.व", mc: "घड"
+};
+
+const HI: L10n = {
+  taxInvoice: "कर बीजक", receipt: "रसीद", serialNo: "क्र.सं.", itemDescription: "वस्तु विवरण",
+  hsn: "HSN", grossWt: "कुल वजन", stoneWt: "पत्थर वजन", netWt: "शुद्ध वजन", rate: "दर",
+  making: "बनाई", total: "कुल", invoiceNo: "चालान नं.", date: "तारीख", customer: "ग्राहक",
+  phone: "फ़ोन", paymentDetails: "भुगतान विवरण", cash: "नकद", upi: "UPI", card: "कार्ड",
+  udhari: "उधारी", gssCredit: "GSS जमा", grossTotal: "कुल राशि", discount: "छूट",
+  gstAmount: "GST राशि", netPayable: "देय राशि",
+  oldGoldExchange: "पुराना सोना विनिमय (URD) विवरण", oldGoldExchanged: "पुराना सोना बदला:",
+  weight: "वजन", ratePerG: "दर/ग्राम", deduction: "कटौती", tunch: "तुंच",
+  customerSignature: "ग्राहक हस्ताक्षर", authorizedSignatory: "अधिकृत हस्ताक्षर",
+  thankYou: "धन्यवाद",
+  certified: "उपरोक्त विवरण सत्य एवं सही है।",
+  purity: "शुद्धता", item: "वस्तु", gst: "GST", amount: "राशि", gross: "कुल",
+  urd: "पुराना सोना", payments: "भुगतान", gWt: "क.व", sWt: "प.व", nWt: "श.व", mc: "बना"
+};
+
+const GU: L10n = {
+  taxInvoice: "કર ચલણ", receipt: "રસીદ", serialNo: "ક્ર.નં.", itemDescription: "વસ્તુ વર્ણન",
+  hsn: "HSN", grossWt: "કુલ વજન", stoneWt: "પત્થર વજન", netWt: "ચોખ્ખું વજન", rate: "દર",
+  making: "ઘડામણ", total: "કુલ", invoiceNo: "ચલણ ક્ર.", date: "તારીખ", customer: "ગ્રાહક",
+  phone: "ફોન", paymentDetails: "ચુકવણી વિગત", cash: "રોકડ", upi: "UPI", card: "કાર્ડ",
+  udhari: "ઉધારી", gssCredit: "GSS જમા", grossTotal: "કુલ રકમ", discount: "છૂટ",
+  gstAmount: "GST રકમ", netPayable: "ચૂકવવાની રકમ",
+  oldGoldExchange: "જૂના સોનાનો વ્યવહાર (URD) વિગત", oldGoldExchanged: "જૂના સોનાનો વ્યવહાર:",
+  weight: "વજન", ratePerG: "દર/ગ્રામ", deduction: "કપાત", tunch: "તુંચ",
+  customerSignature: "ગ્રાહક સહી", authorizedSignatory: "અધિકૃત સહી",
+  thankYou: "આભાર",
+  certified: "ઉપરોક્ત માહિતી સત્ય અને સાચી છે.",
+  purity: "શુદ્ધતા", item: "વસ્તુ", gst: "GST", amount: "રકમ", gross: "કુલ",
+  urd: "જૂના સોના", payments: "ચુકવણી", gWt: "ક.વ", sWt: "પ.વ", nWt: "ચ.વ", mc: "ઘડ"
+};
+
+export function getL10n(language?: string | null): L10n {
+  if (language === "marathi") return MR;
+  if (language === "hindi") return HI;
+  if (language === "gujarati") return GU;
+  return EN;
+}
 
 export type InvoiceDocumentData = {
   id: number;
@@ -18,6 +104,7 @@ export type InvoiceDocumentData = {
     name: string;
     phone: string;
   } | null;
+  walk_in_name?: string | null;
   hsn_code: string | null;
   total_amount_paise: number;
   gst_percentage?: number | null;
@@ -76,6 +163,9 @@ export type PrintTemplateContent = {
   footerText: string;
   fields: string[];
   columns: string[];
+  accentColor?: string;
+  headerTextColor?: string;
+  fontSizeBase?: "small" | "medium" | "large";
 };
 
 export type PrintTemplateData = {
@@ -98,9 +188,14 @@ export type LabelItemDocumentData = {
 };
 
 const robotoBasePath = path.resolve(process.cwd(), "node_modules/pdfmake/fonts/Roboto");
+const indicFontsDir = path.resolve(process.cwd(), "fonts");
+const indicFontsLoaded: Record<string, boolean> = {};
 
 pdfMake.setUrlAccessPolicy(() => false);
-pdfMake.setLocalAccessPolicy((filePath) => path.resolve(filePath).startsWith(robotoBasePath));
+pdfMake.setLocalAccessPolicy((filePath) => {
+  const resolved = path.resolve(filePath);
+  return resolved.startsWith(robotoBasePath) || resolved.startsWith(indicFontsDir);
+});
 pdfMake.addFonts({
   Roboto: {
     normal: path.join(robotoBasePath, "Roboto-Regular.ttf"),
@@ -110,15 +205,44 @@ pdfMake.addFonts({
   }
 });
 
+// Optional Indic fonts — place TTF files in <project>/fonts/ to enable regional-language PDFs.
+// Download from: https://fonts.google.com/noto
+//   fonts/NotoSansDevanagari-Regular.ttf  → for Marathi & Hindi
+//   fonts/NotoSansGujarati-Regular.ttf    → for Gujarati
+(function loadIndicFonts() {
+  const devanagari = path.join(indicFontsDir, "NotoSansDevanagari-Regular.ttf");
+  const gujarati = path.join(indicFontsDir, "NotoSansGujarati-Regular.ttf");
+  try {
+    if (fs.existsSync(devanagari)) {
+      pdfMake.addFonts({ NotoDevanagari: { normal: devanagari, bold: devanagari, italics: devanagari, bolditalics: devanagari } });
+      indicFontsLoaded["NotoDevanagari"] = true;
+    }
+    if (fs.existsSync(gujarati)) {
+      pdfMake.addFonts({ NotoGujarati: { normal: gujarati, bold: gujarati, italics: gujarati, bolditalics: gujarati } });
+      indicFontsLoaded["NotoGujarati"] = true;
+    }
+  } catch {
+    // skip if fonts directory doesn't exist
+  }
+})();
+
+function fontForLanguage(language?: string | null): string {
+  if ((language === "marathi" || language === "hindi") && indicFontsLoaded["NotoDevanagari"]) return "NotoDevanagari";
+  if (language === "gujarati" && indicFontsLoaded["NotoGujarati"]) return "NotoGujarati";
+  return "Roboto";
+}
+
 export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organizationData: OrganizationData) {
   const grossTotalPaise = invoiceData.lines.reduce((total, line) => total + line.line_total_paise, 0);
   const gstAmountPaise = invoiceData.gst_amount_paise ?? 0;
   const urdDeductionPaise = invoiceData.urd_deduction_paise ?? invoiceData.urdPurchases.reduce((total, line) => total + line.deduction_amount_paise, 0);
+  const l = getL10n(organizationData.print_language);
+  const font = fontForLanguage(organizationData.print_language);
 
   return createPdfBuffer({
     pageSize: "A4",
     pageMargins: [28, 32, 28, 36],
-    defaultStyle: { font: "Roboto", fontSize: 9 },
+    defaultStyle: { font, fontSize: 9 },
     styles: {
       title: { fontSize: 15, bold: true, alignment: "center" },
       shopName: { fontSize: 14, bold: true },
@@ -126,7 +250,7 @@ export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organi
       tableHeader: { bold: true, fillColor: "#e2e8f0", color: "#0f172a" }
     },
     content: [
-      { text: "TAX INVOICE", style: "title", margin: [0, 0, 0, 8] },
+      { text: l.taxInvoice, style: "title", margin: [0, 0, 0, 8] },
       {
         columns: [
           {
@@ -143,10 +267,10 @@ export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organi
             table: {
               widths: [70, "*"],
               body: [
-                metaRow("Invoice No.", invoiceData.invoice_number),
-                metaRow("Date", formatDate(invoiceData.created_at)),
-                metaRow("Customer", invoiceData.customer?.name ?? "Walk-in Customer"),
-                metaRow("Phone", invoiceData.customer?.phone ?? "-")
+                metaRow(l.invoiceNo, invoiceData.invoice_number),
+                metaRow(l.date, formatDate(invoiceData.created_at)),
+                metaRow(l.customer, invoiceData.customer?.name ?? invoiceData.walk_in_name ?? "Walk-in Customer"),
+                metaRow(l.phone, invoiceData.customer?.phone ?? "-")
               ]
             },
             layout: "lightHorizontalLines"
@@ -159,7 +283,7 @@ export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organi
           headerRows: 1,
           widths: [22, "*", 42, 42, 42, 42, 54, 54, 58],
           body: [
-            ["S.No", "Item Description", "HSN", "Gross Wt", "Stone Wt", "Net Wt", "Rate", "Making", "Total"].map((text) => ({
+            [l.serialNo, l.itemDescription, l.hsn, l.grossWt, l.stoneWt, l.netWt, l.rate, l.making, l.total].map((text) => ({
               text,
               style: "tableHeader"
             })),
@@ -200,13 +324,13 @@ export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organi
         }
       },
       ...(invoiceData.urdPurchases.length > 0 ? [
-        { text: "Old Gold Exchange (URD) Details", style: "sectionLabel", margin: [0, 12, 0, 4] },
+        { text: l.oldGoldExchange, style: "sectionLabel", margin: [0, 12, 0, 4] },
         {
           table: {
             headerRows: 1,
             widths: [22, "*", 54, 54, 58, 68],
             body: [
-              ["S.No", "Description / Metal Purity", "Weight", "Rate/g", "Deduction", "Tunch"].map((text) => ({
+              [l.serialNo, l.itemDescription, l.weight, l.ratePerG, l.deduction, l.tunch].map((text) => ({
                 text,
                 style: "tableHeader"
               })),
@@ -234,12 +358,12 @@ export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organi
           {
             width: "*",
             stack: [
-              { text: "Payment Details", style: "sectionLabel", margin: [0, 14, 0, 4] },
-              paymentLine("Cash", invoiceData.payments.cash_paise),
-              paymentLine("UPI", invoiceData.payments.upi_paise),
-              paymentLine("Card", invoiceData.payments.card_paise),
-              paymentLine("Udhari", invoiceData.payments.udhari_paise),
-              paymentLine("GSS Credit", invoiceData.payments.gss_credit_paise)
+              { text: l.paymentDetails, style: "sectionLabel", margin: [0, 14, 0, 4] },
+              paymentLine(l.cash, invoiceData.payments.cash_paise),
+              paymentLine(l.upi, invoiceData.payments.upi_paise),
+              paymentLine(l.card, invoiceData.payments.card_paise),
+              paymentLine(l.udhari, invoiceData.payments.udhari_paise),
+              paymentLine(l.gssCredit, invoiceData.payments.gss_credit_paise)
             ]
           },
           {
@@ -248,11 +372,11 @@ export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organi
             table: {
               widths: ["*", 80],
               body: [
-                summaryRow("Gross Total", grossTotalPaise),
-                summaryRow("Old Gold (URD) Deduction", -urdDeductionPaise),
-                summaryRow("Discount", -(invoiceData.discount_paise ?? 0)),
-                summaryRow("GST Amount", gstAmountPaise),
-                summaryRow("Net Payable", invoiceData.total_amount_paise, true)
+                summaryRow(l.grossTotal, grossTotalPaise),
+                summaryRow(`${l.urd} ${l.deduction}`, -urdDeductionPaise),
+                summaryRow(l.discount, -(invoiceData.discount_paise ?? 0)),
+                summaryRow(l.gstAmount, gstAmountPaise),
+                summaryRow(l.netPayable, invoiceData.total_amount_paise, true)
               ]
             },
             layout: "lightHorizontalLines"
@@ -260,15 +384,15 @@ export async function generateA4Invoice(invoiceData: InvoiceDocumentData, organi
         ]
       },
       {
-        text: "Certified that the particulars given above are true and correct.",
+        text: l.certified,
         margin: [0, 24, 0, 0],
         fontSize: 8,
         color: "#475569"
       },
       {
         columns: [
-          { text: "Customer Signature", decoration: "overline", margin: [0, 28, 0, 0] },
-          { text: "Authorized Signatory", alignment: "right", decoration: "overline", margin: [0, 28, 0, 0] }
+          { text: l.customerSignature, decoration: "overline", margin: [0, 28, 0, 0] },
+          { text: l.authorizedSignatory, alignment: "right", decoration: "overline", margin: [0, 28, 0, 0] }
         ]
       }
     ]
@@ -280,11 +404,14 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
   const gstAmountPaise = invoiceData.gst_amount_paise ?? 0;
   const urdDeductionPaise = invoiceData.urd_deduction_paise ?? invoiceData.urdPurchases.reduce((total, line) => total + line.deduction_amount_paise, 0);
 
+  const l = getL10n(organizationData.print_language);
+  const font = fontForLanguage(organizationData.print_language);
+
   return createPdfBuffer({
     pageSize: "A5",
     pageOrientation: "landscape",
     pageMargins: [20, 20, 20, 24],
-    defaultStyle: { font: "Roboto", fontSize: 7.5 },
+    defaultStyle: { font, fontSize: 7.5 },
     styles: {
       title: { fontSize: 11, bold: true, alignment: "center" },
       shopName: { fontSize: 10, bold: true },
@@ -292,7 +419,7 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
       tableHeader: { bold: true, fillColor: "#e2e8f0", color: "#0f172a" }
     },
     content: [
-      { text: "TAX INVOICE", style: "title", margin: [0, 0, 0, 4] },
+      { text: l.taxInvoice, style: "title", margin: [0, 0, 0, 4] },
       {
         columns: [
           {
@@ -309,9 +436,9 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
             table: {
               widths: [60, "*"],
               body: [
-                metaRow("Invoice No.", invoiceData.invoice_number),
-                metaRow("Date", formatDate(invoiceData.created_at)),
-                metaRow("Customer", invoiceData.customer?.name ?? "Walk-in Customer")
+                metaRow(l.invoiceNo, invoiceData.invoice_number),
+                metaRow(l.date, formatDate(invoiceData.created_at)),
+                metaRow(l.customer, invoiceData.customer?.name ?? invoiceData.walk_in_name ?? "Walk-in Customer")
               ]
             },
             layout: "lightHorizontalLines"
@@ -324,7 +451,7 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
           headerRows: 1,
           widths: [15, "*", 30, 35, 35, 35, 45, 45, 48],
           body: [
-            ["S.No", "Item Description", "HSN", "Gross Wt", "Stone Wt", "Net Wt", "Rate", "Making", "Total"].map((text) => ({
+            [l.serialNo, l.itemDescription, l.hsn, l.grossWt, l.stoneWt, l.netWt, l.rate, l.making, l.total].map((text) => ({
               text,
               style: "tableHeader"
             })),
@@ -365,13 +492,13 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
         }
       },
       ...(invoiceData.urdPurchases.length > 0 ? [
-        { text: "Old Gold Exchange (URD) Details", style: "sectionLabel", margin: [0, 6, 0, 2] },
+        { text: l.oldGoldExchange, style: "sectionLabel", margin: [0, 6, 0, 2] },
         {
           table: {
             headerRows: 1,
             widths: [15, "*", 35, 35, 45, 48],
             body: [
-              ["S.No", "Description / Metal Purity", "Weight", "Rate/g", "Deduction", "Tunch"].map((text) => ({
+              [l.serialNo, l.itemDescription, l.weight, l.ratePerG, l.deduction, l.tunch].map((text) => ({
                 text,
                 style: "tableHeader"
               })),
@@ -399,11 +526,11 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
           {
             width: "*",
             stack: [
-              { text: "Payment Details", style: "sectionLabel", margin: [0, 8, 0, 2] },
-              paymentLine("Cash", invoiceData.payments.cash_paise),
-              paymentLine("UPI", invoiceData.payments.upi_paise),
-              paymentLine("Card", invoiceData.payments.card_paise),
-              paymentLine("Udhari", invoiceData.payments.udhari_paise)
+              { text: l.paymentDetails, style: "sectionLabel", margin: [0, 8, 0, 2] },
+              paymentLine(l.cash, invoiceData.payments.cash_paise),
+              paymentLine(l.upi, invoiceData.payments.upi_paise),
+              paymentLine(l.card, invoiceData.payments.card_paise),
+              paymentLine(l.udhari, invoiceData.payments.udhari_paise)
             ]
           },
           {
@@ -412,11 +539,11 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
             table: {
               widths: ["*", 60],
               body: [
-                summaryRow("Gross Total", grossTotalPaise),
-                summaryRow("Old Gold Deduction", -urdDeductionPaise),
-                summaryRow("Discount", -(invoiceData.discount_paise ?? 0)),
-                summaryRow("GST Amount", gstAmountPaise),
-                summaryRow("Net Payable", invoiceData.total_amount_paise, true)
+                summaryRow(l.grossTotal, grossTotalPaise),
+                summaryRow(`${l.urd} ${l.deduction}`, -urdDeductionPaise),
+                summaryRow(l.discount, -(invoiceData.discount_paise ?? 0)),
+                summaryRow(l.gstAmount, gstAmountPaise),
+                summaryRow(l.netPayable, invoiceData.total_amount_paise, true)
               ]
             },
             layout: "lightHorizontalLines"
@@ -424,15 +551,15 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
         ]
       },
       {
-        text: "Certified that the particulars given above are true and correct.",
+        text: l.certified,
         margin: [0, 10, 0, 0],
         fontSize: 6.5,
         color: "#475569"
       },
       {
         columns: [
-          { text: "Customer Signature", decoration: "overline", margin: [0, 18, 0, 0], fontSize: 7 },
-          { text: "Authorized Signatory", alignment: "right", decoration: "overline", margin: [0, 18, 0, 0], fontSize: 7 }
+          { text: l.customerSignature, decoration: "overline", margin: [0, 18, 0, 0], fontSize: 7 },
+          { text: l.authorizedSignatory, alignment: "right", decoration: "overline", margin: [0, 18, 0, 0], fontSize: 7 }
         ]
       }
     ]
@@ -442,31 +569,33 @@ export async function generateA5Invoice(invoiceData: InvoiceDocumentData, organi
 export async function generateThermalReceipt(invoiceData: InvoiceDocumentData, organizationData: OrganizationData) {
   const grossTotalPaise = invoiceData.lines.reduce((total, line) => total + line.line_total_paise, 0);
   const urdDeductionPaise = invoiceData.urd_deduction_paise ?? invoiceData.urdPurchases.reduce((total, line) => total + line.deduction_amount_paise, 0);
+  const l = getL10n(organizationData.print_language);
+  const font = fontForLanguage(organizationData.print_language);
 
   return createPdfBuffer({
     pageSize: { width: 226.77, height: "auto" },
     pageMargins: [10, 12, 10, 14],
-    defaultStyle: { font: "Roboto", fontSize: 8 },
+    defaultStyle: { font, fontSize: 8 },
     content: [
       { text: organizationData.shop_name, alignment: "center", bold: true, fontSize: 10 },
       { text: organizationData.address, alignment: "center", fontSize: 7 },
       { text: `GSTIN: ${organizationData.gstin || "-"}`, alignment: "center", fontSize: 7 },
       { text: `Ph: ${organizationData.contact_number}`, alignment: "center", fontSize: 7 },
       dashedLine(),
-      { text: `Tax Inv: ${invoiceData.invoice_number}` },
-      { text: `Date: ${formatDate(invoiceData.created_at)}` },
-      { text: `Cust: ${invoiceData.customer?.name ?? "Walk-in"}` },
-      { text: `Phone: ${invoiceData.customer?.phone ?? "-"}` },
+      { text: `${l.invoiceNo}: ${invoiceData.invoice_number}` },
+      { text: `${l.date}: ${formatDate(invoiceData.created_at)}` },
+      { text: `${l.customer}: ${invoiceData.customer?.name ?? invoiceData.walk_in_name ?? "Walk-in"}` },
+      { text: `${l.phone}: ${invoiceData.customer?.phone ?? "-"}` },
       dashedLine(),
       ...invoiceData.lines.flatMap((line, index) => [
         { text: `${index + 1}. ${line.metal_type} ${line.purity_karat}K HSN:${invoiceData.hsn_code || "7113"}`, bold: true },
-        { text: `G.Wt ${formatMg(line.gross_weight_mg)}  S.Wt ${formatMg(line.stone_weight_mg ?? 0)}  N.Wt ${formatMg(line.net_weight_mg)}` },
-        { text: `Rate ${formatPaise(line.metal_rate_paise_per_gram)}  MC ${formatPaise(line.making_charge_paise)}` },
-        { text: `Total ${formatPaise(line.line_total_paise)}`, alignment: "right", margin: [0, 0, 0, 3] }
+        { text: `${l.gWt} ${formatMg(line.gross_weight_mg)}  ${l.sWt} ${formatMg(line.stone_weight_mg ?? 0)}  ${l.nWt} ${formatMg(line.net_weight_mg)}` },
+        { text: `${l.rate} ${formatPaise(line.metal_rate_paise_per_gram)}  ${l.mc} ${formatPaise(line.making_charge_paise)}` },
+        { text: `${l.total} ${formatPaise(line.line_total_paise)}`, alignment: "right", margin: [0, 0, 0, 3] }
       ]),
       dashedLine(),
       ...(invoiceData.urdPurchases.length > 0 ? [
-        { text: "Old Gold Exchanged:", bold: true },
+        { text: l.oldGoldExchanged, bold: true },
         ...invoiceData.urdPurchases.map((urd, index) => ({
           text: `${index + 1}. ${urd.description} (${urd.metal_type} ${urd.purity_tunch} tunch)\n   ${formatMg(urd.weight_mg)} @ ${formatPaise(urd.applied_rate_paise_per_gram)} = ${formatPaise(urd.deduction_amount_paise)}`,
           fontSize: 7.5,
@@ -474,18 +603,18 @@ export async function generateThermalReceipt(invoiceData: InvoiceDocumentData, o
         })),
         dashedLine()
       ] : []),
-      receiptAmountLine("Gross", grossTotalPaise),
-      receiptAmountLine("URD", -urdDeductionPaise),
-      receiptAmountLine("GST", invoiceData.gst_amount_paise ?? 0),
-      receiptAmountLine("Net Payable", invoiceData.total_amount_paise, true),
+      receiptAmountLine(l.gross, grossTotalPaise),
+      receiptAmountLine(l.urd, -urdDeductionPaise),
+      receiptAmountLine(l.gst, invoiceData.gst_amount_paise ?? 0),
+      receiptAmountLine(l.netPayable, invoiceData.total_amount_paise, true),
       dashedLine(),
-      { text: "Payments", bold: true },
-      receiptAmountLine("Cash", invoiceData.payments.cash_paise),
-      receiptAmountLine("UPI", invoiceData.payments.upi_paise),
-      receiptAmountLine("Card", invoiceData.payments.card_paise),
-      receiptAmountLine("Udhari", invoiceData.payments.udhari_paise),
+      { text: l.payments, bold: true },
+      receiptAmountLine(l.cash, invoiceData.payments.cash_paise),
+      receiptAmountLine(l.upi, invoiceData.payments.upi_paise),
+      receiptAmountLine(l.card, invoiceData.payments.card_paise),
+      receiptAmountLine(l.udhari, invoiceData.payments.udhari_paise),
       dashedLine(),
-      { text: "Thank you", alignment: "center", bold: true }
+      { text: l.thankYou, alignment: "center", bold: true }
     ]
   });
 }
@@ -534,7 +663,7 @@ function templateInvoiceTokenMap(invoiceData: InvoiceDocumentData, organizationD
     "invoice.urd": formatPaise(invoiceData.urd_deduction_paise ?? 0),
     "invoice.gross": formatPaise(grossTotalPaise),
     "invoice.total": formatPaise(invoiceData.total_amount_paise),
-    "customer.name": invoiceData.customer?.name ?? "Walk-in Customer",
+    "customer.name": invoiceData.customer?.name ?? invoiceData.walk_in_name ?? "Walk-in Customer",
     "customer.phone": invoiceData.customer?.phone ?? "-",
     "payment.cash": formatPaise(invoiceData.payments.cash_paise),
     "payment.upi": formatPaise(invoiceData.payments.upi_paise),
@@ -571,16 +700,17 @@ function templateInvoiceRow(line: InvoiceLineDocumentData, index: number, column
   return (columns.length ? columns : ["item"]).map((column) => ({ text: values[column] ?? "-" }));
 }
 
-function templateColumnHeading(column: string) {
+function templateColumnHeading(column: string, language?: string | null) {
+  const l = getL10n(language);
   const headings: Record<string, string> = {
-    item: "Item",
-    purity: "Purity",
-    grossWeight: "Gross Wt",
-    netWeight: "Net Wt",
-    rate: "Rate/g",
-    making: "Making",
-    gst: "GST",
-    amount: "Amount"
+    item: l.item,
+    purity: l.purity,
+    grossWeight: l.grossWt,
+    netWeight: l.netWt,
+    rate: l.ratePerG,
+    making: l.making,
+    gst: l.gst,
+    amount: l.amount
   };
 
   return headings[column] ?? column;
@@ -617,23 +747,28 @@ export async function generateTemplateInvoice(invoiceData: InvoiceDocumentData, 
   const isThermal = template.page_size === "THERMAL_80";
   const isA5 = template.page_size === "A5";
   const content = template.content;
+  const accentColor = content.accentColor ?? "#e2e8f0";
+  const headerTextColor = content.headerTextColor ?? "#0f172a";
+  const baseFontSize = content.fontSizeBase === "small" ? 8 : content.fontSizeBase === "large" ? 10 : 9;
   const grossTotalPaise = invoiceData.lines.reduce((total, line) => total + line.line_total_paise, 0);
   const rows = invoiceData.lines.map((line, index) => templateInvoiceRow(line, index, content.columns));
   const widths = content.columns.map((column) => column === "item" ? "*" : "auto");
+  const l = getL10n(organizationData.print_language);
+  const font = fontForLanguage(organizationData.print_language);
 
   return createPdfBuffer({
     pageSize: templatePdfPageSize(template.page_size),
     pageOrientation: isA5 ? "landscape" : "portrait",
     pageMargins: isThermal ? [8, 10, 8, 10] : [28, 30, 28, 34],
-    defaultStyle: { font: "Roboto", fontSize: isThermal ? 7 : 9 },
+    defaultStyle: { font, fontSize: isThermal ? 7 : baseFontSize },
     styles: {
-      shop: { fontSize: isThermal ? 11 : 15, bold: true, alignment: "center" },
-      title: { fontSize: isThermal ? 9 : 12, bold: true, alignment: "center" },
-      header: { bold: true, fillColor: "#e2e8f0" }
+      shop: { fontSize: isThermal ? 11 : baseFontSize + 6, bold: true, alignment: "center" },
+      title: { fontSize: isThermal ? 9 : baseFontSize + 3, bold: true, alignment: "center" },
+      header: { bold: true, fillColor: accentColor, color: headerTextColor }
     },
     content: [
       ...templateHeader(organizationData, template),
-      { text: template.document_type === "RECEIPT" ? "RECEIPT" : "TAX INVOICE", style: "title", margin: [0, 0, 0, 8] },
+      { text: template.document_type === "RECEIPT" ? l.receipt : l.taxInvoice, style: "title", margin: [0, 0, 0, 8] },
       {
         columns: [
           { width: "*", stack: templateTokenLines(content.fields, templateInvoiceTokenMap(invoiceData, organizationData, grossTotalPaise)) },
@@ -647,7 +782,7 @@ export async function generateTemplateInvoice(invoiceData: InvoiceDocumentData, 
           headerRows: 1,
           widths: widths.length ? widths : ["*"],
           body: [
-            content.columns.length ? content.columns.map((column) => ({ text: templateColumnHeading(column), style: "header" })) : [{ text: "Items", style: "header" }],
+            content.columns.length ? content.columns.map((column) => ({ text: templateColumnHeading(column, organizationData.print_language), style: "header" })) : [{ text: l.item, style: "header" }],
             ...(rows.length ? rows : [[{ text: "No items", colSpan: Math.max(content.columns.length, 1) }]])
           ]
         },
@@ -658,11 +793,11 @@ export async function generateTemplateInvoice(invoiceData: InvoiceDocumentData, 
         table: {
           widths: ["*", "auto"],
           body: [
-            summaryRow("Gross", grossTotalPaise),
-            summaryRow("Discount", -(invoiceData.discount_paise ?? 0)),
-            summaryRow("URD Deduction", -(invoiceData.urd_deduction_paise ?? 0)),
-            summaryRow("GST", invoiceData.gst_amount_paise ?? 0),
-            summaryRow("Net Payable", invoiceData.total_amount_paise, true)
+            summaryRow(l.gross, grossTotalPaise),
+            summaryRow(l.discount, -(invoiceData.discount_paise ?? 0)),
+            summaryRow(`${l.urd} ${l.deduction}`, -(invoiceData.urd_deduction_paise ?? 0)),
+            summaryRow(l.gst, invoiceData.gst_amount_paise ?? 0),
+            summaryRow(l.netPayable, invoiceData.total_amount_paise, true)
           ]
         },
         layout: "lightHorizontalLines",
@@ -693,6 +828,165 @@ export async function generateBarcodeLabel(item: LabelItemDocumentData, organiza
 
 async function createPdfBuffer(documentDefinition: unknown) {
   return Buffer.from(await pdfMake.createPdf(documentDefinition).getBuffer());
+}
+
+export type CustomerStatementEntry = {
+  created_at: string | null;
+  transaction_type: "DEBIT" | "CREDIT";
+  amount_paise: number;
+  amount_rupees: string;
+  running_balance_paise: number;
+  running_balance_rupees: string;
+  particulars: string;
+  description: string | null;
+  reference_type: string;
+  reference_id: number | null;
+};
+
+export type CustomerStatementData = {
+  customer_name: string;
+  customer_phone: string | null;
+  ledger_name: string;
+  from_date: string;
+  to_date: string;
+  opening_balance_paise: number;
+  opening_balance_rupees: string;
+  closing_balance_paise: number;
+  closing_balance_rupees: string;
+  total_debits_paise: number;
+  total_debits_rupees: string;
+  total_credits_paise: number;
+  total_credits_rupees: string;
+  entries: CustomerStatementEntry[];
+};
+
+export async function generateCustomerStatement(data: CustomerStatementData, org: OrganizationData) {
+  const balanceColor = (paise: number) => (paise >= 0 ? "#dc2626" : "#16a34a");
+
+  const entryRows = data.entries.map((entry) => [
+    { text: entry.created_at ? entry.created_at.slice(0, 10) : "-", fontSize: 8 },
+    { text: entry.particulars, fontSize: 8 },
+    { text: entry.description ?? "-", fontSize: 7.5, color: "#64748b" },
+    { text: entry.transaction_type === "DEBIT" ? `Rs ${entry.amount_rupees}` : "-", alignment: "right", fontSize: 8, color: "#16a34a" },
+    { text: entry.transaction_type === "CREDIT" ? `Rs ${entry.amount_rupees}` : "-", alignment: "right", fontSize: 8, color: "#dc2626" },
+    { text: `Rs ${entry.running_balance_rupees}`, alignment: "right", fontSize: 8, bold: true, color: balanceColor(entry.running_balance_paise) }
+  ]);
+
+  return createPdfBuffer({
+    pageSize: "A4",
+    pageMargins: [28, 32, 28, 36],
+    defaultStyle: { font: "Roboto", fontSize: 9 },
+    styles: {
+      shopName: { fontSize: 14, bold: true },
+      title: { fontSize: 13, bold: true, alignment: "center" },
+      tableHeader: { bold: true, fillColor: "#e2e8f0", color: "#0f172a", fontSize: 8 },
+      meta: { fontSize: 8.5 }
+    },
+    content: [
+      // Shop header
+      {
+        columns: [
+          {
+            width: "*",
+            stack: [
+              { text: org.shop_name, style: "shopName" },
+              { text: org.address, style: "meta", margin: [0, 2, 0, 0] },
+              { text: `GSTIN: ${org.gstin ?? "-"} | Phone: ${org.contact_number}`, style: "meta" }
+            ]
+          },
+          {
+            width: 140,
+            stack: [
+              { text: "ACCOUNT STATEMENT", style: "title" },
+              { text: `Period: ${data.from_date}  to  ${data.to_date}`, fontSize: 8, alignment: "center", color: "#475569", margin: [0, 3, 0, 0] }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 10]
+      },
+      // Customer info bar
+      {
+        table: {
+          widths: [80, "*", 80, "*"],
+          body: [
+            [
+              { text: "Customer", bold: true, fillColor: "#f8fafc" },
+              { text: data.customer_name },
+              { text: "Phone", bold: true, fillColor: "#f8fafc" },
+              { text: data.customer_phone ?? "-" }
+            ]
+          ]
+        },
+        layout: "lightHorizontalLines",
+        margin: [0, 0, 0, 10]
+      },
+      // Summary strip
+      {
+        table: {
+          widths: ["*", "*", "*", "*"],
+          body: [
+            [
+              { text: "Opening Balance", alignment: "center", bold: true, fillColor: "#f1f5f9", fontSize: 8 },
+              { text: "Total Sales (Dr)", alignment: "center", bold: true, fillColor: "#f0fdf4", fontSize: 8 },
+              { text: "Total Payments (Cr)", alignment: "center", bold: true, fillColor: "#fef2f2", fontSize: 8 },
+              { text: "Closing Balance", alignment: "center", bold: true, fillColor: "#f1f5f9", fontSize: 8 }
+            ],
+            [
+              { text: `Rs ${data.opening_balance_rupees}`, alignment: "center", fontSize: 9 },
+              { text: `Rs ${data.total_debits_rupees}`, alignment: "center", fontSize: 9, color: "#16a34a", bold: true },
+              { text: `Rs ${data.total_credits_rupees}`, alignment: "center", fontSize: 9, color: "#dc2626", bold: true },
+              { text: `Rs ${data.closing_balance_rupees}`, alignment: "center", fontSize: 9, bold: true, color: balanceColor(data.closing_balance_paise) }
+            ]
+          ]
+        },
+        layout: "lightHorizontalLines",
+        margin: [0, 0, 0, 10]
+      },
+      // Entries table
+      {
+        table: {
+          headerRows: 1,
+          widths: [55, 90, "*", 58, 58, 68],
+          body: [
+            [
+              { text: "Date", style: "tableHeader" },
+              { text: "Particulars", style: "tableHeader" },
+              { text: "Narration", style: "tableHeader" },
+              { text: "Dr (Sales)", style: "tableHeader", alignment: "right" },
+              { text: "Cr (Payment)", style: "tableHeader", alignment: "right" },
+              { text: "Balance", style: "tableHeader", alignment: "right" }
+            ],
+            [
+              { text: "—", fontSize: 8, color: "#94a3b8" },
+              { text: "Opening Balance", bold: true, fontSize: 8 },
+              { text: "", fontSize: 8 },
+              { text: "-", alignment: "right", fontSize: 8 },
+              { text: "-", alignment: "right", fontSize: 8 },
+              { text: `Rs ${data.opening_balance_rupees}`, alignment: "right", bold: true, fontSize: 8 }
+            ],
+            ...entryRows,
+            [
+              { text: "", fontSize: 8 },
+              { text: "Closing Balance", bold: true, fontSize: 8 },
+              { text: "", fontSize: 8 },
+              { text: `Rs ${data.total_debits_rupees}`, alignment: "right", bold: true, fontSize: 8, color: "#16a34a" },
+              { text: `Rs ${data.total_credits_rupees}`, alignment: "right", bold: true, fontSize: 8, color: "#dc2626" },
+              { text: `Rs ${data.closing_balance_rupees}`, alignment: "right", bold: true, fontSize: 8, color: balanceColor(data.closing_balance_paise) }
+            ]
+          ]
+        },
+        layout: "lightHorizontalLines"
+      },
+      // Footer note
+      {
+        text: `This is a computer-generated statement. For queries contact ${org.shop_name} at ${org.contact_number}.`,
+        fontSize: 7.5,
+        color: "#94a3b8",
+        alignment: "center",
+        margin: [0, 14, 0, 0]
+      }
+    ]
+  });
 }
 
 function metaRow(label: string, value: string) {
@@ -779,7 +1073,7 @@ function buildInvoiceTokenMap(invoiceData: InvoiceDocumentData, organizationData
     "invoice.urd": formatPaise(invoiceData.urd_deduction_paise ?? 0),
     "invoice.gross": formatPaise(grossTotalPaise),
     "invoice.total": formatPaise(invoiceData.total_amount_paise),
-    "customer.name": invoiceData.customer?.name ?? "Walk-in Customer",
+    "customer.name": invoiceData.customer?.name ?? invoiceData.walk_in_name ?? "Walk-in Customer",
     "customer.phone": invoiceData.customer?.phone ?? "-",
     "payment.cash": formatPaise(invoiceData.payments.cash_paise),
     "payment.upi": formatPaise(invoiceData.payments.upi_paise),
@@ -883,7 +1177,10 @@ export type GirviCollateralData = {
   item_description: string;
   metal_type: string;
   purity_karat: number;
+  gross_weight_mg?: number;
+  stone_deduction_mg?: number;
   weight_mg: number;
+  valuation_rate_paise_per_gram?: number;
   image_path: string | null;
 };
 
@@ -973,6 +1270,8 @@ const LOCALIZED_LABELS: Record<string, Record<string, string>> = {
     metal: "Metal / धातू",
     purity: "Purity / शुद्धता",
     weight: "Weight / वजन",
+    grossWeight: "Gross Wt / एकूण वजन",
+    netWeight: "Net Wt / निव्वळ वजन",
     photoHeader: "Photo / फोटो",
     authSign: "Authorized Signatory / सावकाराची सही",
     borrowerSign: "Borrower's Signature / कर्जदाराची सही"
@@ -1001,6 +1300,8 @@ const LOCALIZED_LABELS: Record<string, Record<string, string>> = {
     metal: "धातू (Metal)",
     purity: "शुद्धता (Purity)",
     weight: "वजन (Weight)",
+    grossWeight: "एकूण वजन (Gross)",
+    netWeight: "निव्वळ वजन (Net)",
     photoHeader: "फोटो",
     authSign: "सावकाराची सही (Auth Sign)",
     borrowerSign: "कर्जदाराची सही (Borrower Sign)"
@@ -1029,6 +1330,8 @@ const LOCALIZED_LABELS: Record<string, Record<string, string>> = {
     metal: "धातु (Metal)",
     purity: "शुद्धता (Purity)",
     weight: "वजन (Weight)",
+    grossWeight: "कुल वजन (Gross)",
+    netWeight: "शुद्ध वजन (Net)",
     photoHeader: "फोटो",
     authSign: "साहूकार के हस्ताक्षर",
     borrowerSign: "ऋणदाता के हस्ताक्षर"
@@ -1176,9 +1479,9 @@ export async function generateGirviPavati(loanData: GirviLoanDocumentData, organ
       {
         table: {
           headerRows: 1,
-          widths: [30, "*", 60, 60, 80, 80],
+          widths: [25, "*", 45, 45, 60, 60, 70],
           body: [
-            [labels.sno, labels.desc, labels.metal, labels.purity, labels.weight, labels.photoHeader].map((t) => ({
+            [labels.sno, labels.desc, labels.metal, labels.purity, labels.grossWeight, labels.netWeight, labels.photoHeader].map((t) => ({
               text: t,
               style: "tableHeader"
             })),
@@ -1188,11 +1491,15 @@ export async function generateGirviPavati(loanData: GirviLoanDocumentData, organ
                 ? { image: itemBase64, fit: [50, 50], alignment: "center" }
                 : { text: "No Image", alignment: "center", fontSize: 8, color: "#94a3b8" };
 
+              // Gross falls back to net for legacy records issued before gross/stone capture.
+              const grossMg = item.gross_weight_mg && item.gross_weight_mg > 0 ? item.gross_weight_mg : item.weight_mg;
+
               return [
                 String(index + 1),
                 item.item_description,
                 item.metal_type,
                 `${item.purity_karat}K`,
+                formatMg(grossMg),
                 formatMg(item.weight_mg),
                 colCell
               ];

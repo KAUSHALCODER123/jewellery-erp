@@ -37,10 +37,12 @@ type Reminder = {
   card_number?: string;
   birthday_date?: string;
   anniversary_date?: string;
+  balance_rupees?: string;
+  ledger_id?: number;
 };
 
-type ActiveSubTab = "templates" | "reminders" | "logs";
-type ActiveReminderType = "birthdays" | "girvi" | "gss";
+type ActiveSubTab = "templates" | "reminders" | "logs" | "compose";
+type ActiveReminderType = "birthdays" | "girvi" | "gss" | "udhari";
 
 export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProps) {
   const { session } = useAuthSession();
@@ -57,6 +59,13 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Manual compose
+  const [composeRecipient, setComposeRecipient] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [composeChannel, setComposeChannel] = useState<"WHATSAPP" | "SMS">("WHATSAPP");
+  const [composeSending, setComposeSending] = useState(false);
+  const [composeWhatsAppLink, setComposeWhatsAppLink] = useState("");
 
   const authHeaders = {
     Authorization: `Bearer ${session?.token ?? ""}`,
@@ -100,6 +109,38 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
   function selectTemplate(t: MessageTemplate) {
     setSelectedTemplateId(t.id);
     setTemplateContent(t.content);
+  }
+
+  async function sendManualMessage() {
+    setMessage("");
+    setError("");
+    setComposeWhatsAppLink("");
+    if (!composeRecipient.trim()) {
+      setError("Enter a recipient phone number.");
+      return;
+    }
+    if (!composeBody.trim()) {
+      setError("Enter a message to send.");
+      return;
+    }
+    setComposeSending(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/messenger/send-manual`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ recipient: composeRecipient.trim(), message_body: composeBody.trim(), channel: composeChannel })
+      });
+      const result = (await res.json().catch(() => null)) as { log?: { status?: string }; whatsapp_link?: string; errors?: string[] } | null;
+      if (!res.ok) throw new Error(result?.errors?.join(" ") || "Could not send message.");
+      setMessage(result?.log?.status === "FAILED" ? "Logged, but the phone number looked invalid." : "Message logged/sent.");
+      if (result?.whatsapp_link) setComposeWhatsAppLink(result.whatsapp_link);
+      setComposeBody("");
+      void loadLogs();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not send message.");
+    } finally {
+      setComposeSending(false);
+    }
   }
 
   async function saveTemplate() {
@@ -158,6 +199,9 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
           <button onClick={() => setActiveTab("templates")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "templates" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
             Event Templates
           </button>
+          <button onClick={() => setActiveTab("compose")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "compose" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+            Send Message
+          </button>
           <button onClick={() => setActiveTab("reminders")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "reminders" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
             Wishes & Reminders
           </button>
@@ -173,7 +217,44 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
         </div>
       )}
 
-      <main className="min-h-0 overflow-hidden">
+      <main className="min-h-0 overflow-auto">
+        {activeTab === "compose" && (
+          <div className="grid max-w-2xl gap-3 p-4">
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <h2 className="text-xs font-bold uppercase text-white">Send a Manual Message</h2>
+              <p className="mt-1 text-[11px] text-slate-400">Compose a one-off WhatsApp/SMS message to any number. It is recorded in Message Logs.</p>
+            </div>
+            <div className="grid gap-3 rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                  Recipient Phone
+                  <input value={composeRecipient} onChange={(e) => setComposeRecipient(e.target.value)} placeholder="10-digit mobile" className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded" />
+                </label>
+                <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                  Channel
+                  <select value={composeChannel} onChange={(e) => setComposeChannel(e.target.value === "SMS" ? "SMS" : "WHATSAPP")} className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded">
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="SMS">SMS</option>
+                  </select>
+                </label>
+              </div>
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Message
+                <textarea value={composeBody} onChange={(e) => setComposeBody(e.target.value)} rows={4} placeholder="Type your message…" className="border border-slate-700 bg-slate-950 px-2.5 py-2 text-xs text-white outline-none focus:border-emerald-400 rounded" />
+              </label>
+              <div className="flex items-center justify-end gap-2">
+                {composeWhatsAppLink && (
+                  <a href={composeWhatsAppLink} target="_blank" rel="noopener noreferrer" className="h-9 inline-flex items-center rounded border border-emerald-500 px-4 text-xs font-bold uppercase text-emerald-300 hover:bg-emerald-950/30">
+                    Open in WhatsApp
+                  </a>
+                )}
+                <button type="button" onClick={() => void sendManualMessage()} disabled={composeSending} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
+                  {composeSending ? "Sending…" : "Send Message"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === "templates" && (
           <div className="grid h-full grid-cols-[280px_1fr] overflow-hidden">
             <aside className="border-r border-slate-800 bg-slate-900/50 p-4 overflow-y-auto">
@@ -248,6 +329,9 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
                 <button onClick={() => setReminderType("gss")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "gss" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
                   🟡 GSS Installment Due
                 </button>
+                <button onClick={() => setReminderType("udhari")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "udhari" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+                  💳 Udhari Outstanding
+                </button>
               </div>
 
               <button onClick={scanReminders} className="h-8 px-4 bg-slate-800 hover:bg-slate-700 text-xs font-semibold uppercase text-white rounded">
@@ -280,6 +364,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
                           {reminderType === "birthdays" && (r.birthday_date ? `DOB: ${r.birthday_date}` : `Anniv: ${r.anniversary_date}`)}
                           {reminderType === "girvi" && `Loan: ${r.loan_number} | Due: ${r.next_due_date || "N/A"}`}
                           {reminderType === "gss" && `Card: ${r.card_number}`}
+                          {reminderType === "udhari" && <span className="font-mono font-semibold text-red-300">Rs {r.balance_rupees}</span>}
                         </td>
                         <td className="p-3 text-slate-300 italic max-w-sm truncate" title={r.message_preview}>
                           "{r.message_preview}"

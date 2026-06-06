@@ -34,6 +34,16 @@ const defaultTemplates = [
     content: "Dear {{customer_name}}, your Gold Scheme card {{card_number}} installment is due. Please pay Rs {{amount}}."
   },
   {
+    name: "UDHARI_BALANCE_REMINDER",
+    channel: "WHATSAPP",
+    content: "Dear {{customer_name}}, our records show an outstanding balance of Rs {{amount}} at {{shop_name}}. Kindly clear it at your convenience. Thank you."
+  },
+  {
+    name: "UDHARI_RECEIPT_CONFIRMED",
+    channel: "WHATSAPP",
+    content: "Dear {{customer_name}}, we received Rs {{amount}} on {{date}}. Your outstanding balance is now Rs {{balance_after}}. Thank you. - {{shop_name}}"
+  },
+  {
     name: "BIRTHDAY_WISHES",
     channel: "WHATSAPP",
     content: "Happy Birthday, {{customer_name}}! Wishing you joy and prosperity. From {{shop_name}}."

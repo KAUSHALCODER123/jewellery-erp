@@ -21,3 +21,9 @@ yarn-error.log*
 pnpm-debug.log*
 test-results/
 playwright-report/
+
+# SQLite WAL/SHM sidecar files (better-sqlite3 writes <name>.db-wal / -shm)
+*.db-shm
+*.db-wal
+# Local/generated backup blobs
+.test-backups/

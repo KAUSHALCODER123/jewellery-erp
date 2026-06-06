@@ -68,6 +68,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lastStatus, setLastStatus] = useState<{ last_backup_at: string | null; hours_since: number | null; stale: boolean; stale_threshold_hours: number } | null>(null);
 
   const [scheduleDraft, setScheduleDraft] = useState({
     is_enabled: false,
@@ -95,7 +96,14 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
   useEffect(() => {
     void loadLogs();
     void loadSchedule();
+    void loadLastStatus();
   }, []);
+
+  async function loadLastStatus() {
+    const res = await fetch(`${apiBaseUrl}/api/backup/last-status`, { headers: authHeaders });
+    const data = (await res.json().catch(() => null)) as typeof lastStatus | null;
+    if (res.ok && data) setLastStatus(data);
+  }
 
   useEffect(() => {
     if (activeTab === "recovery") {
@@ -158,6 +166,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
       setMessage(`Backup created: ${(data as { backup: BackupLog }).backup.file_name}`);
       setPassphrase("");
       await loadLogs();
+      await loadLastStatus();
     } catch {
       setError("Backup request failed.");
     } finally {
@@ -309,15 +318,23 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
         </div>
       </header>
 
-      {(message || error) && (
-        <div
-          className={`px-4 py-2 text-xs font-medium ${
-            error ? "bg-red-950/60 text-red-200" : "bg-emerald-950/60 text-emerald-200"
-          }`}
-        >
-          {error || message}
-        </div>
-      )}
+      <div>
+        {lastStatus && (
+          <div className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold ${lastStatus.stale ? "bg-amber-950/60 text-amber-200" : "bg-slate-900 text-slate-300"}`}>
+            <ShieldAlert className="h-3.5 w-3.5" />
+            {lastStatus.last_backup_at
+              ? lastStatus.stale
+                ? `Last backup ${lastStatus.hours_since}h ago — over ${lastStatus.stale_threshold_hours}h. Back up before closing the shop.`
+                : `Last backup ${lastStatus.hours_since}h ago · up to date.`
+              : "No backup yet — run your first encrypted backup before closing the shop."}
+          </div>
+        )}
+        {(message || error) && (
+          <div className={`px-4 py-2 text-xs font-medium ${error ? "bg-red-950/60 text-red-200" : "bg-emerald-950/60 text-emerald-200"}`}>
+            {error || message}
+          </div>
+        )}
+      </div>
 
       <div className="min-h-0 overflow-auto p-4">
         {activeTab === "backup" && (

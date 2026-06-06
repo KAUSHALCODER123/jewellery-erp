@@ -5,7 +5,7 @@ export type { AuthSession };
 export const AuthSessionProvider = AuthProvider;
 
 export function useAuthSession() {
-  const { session, setSession } = useAuth();
+  const { session, setSession, logout } = useAuth();
 
-  return { session, setSession };
+  return { session, setSession, logout };
 }

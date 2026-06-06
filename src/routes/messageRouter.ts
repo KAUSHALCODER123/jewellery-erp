@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, eq, sql, desc } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   messageTemplates,
@@ -8,6 +8,7 @@ import {
   girviLoans,
   gssAccounts,
   gssTemplates,
+  ledgers,
   organizationSettings
 } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
@@ -172,6 +173,46 @@ messageRouter.get("/reminders/gss", (request, response) => {
       monthly_amount_paise: row.template.monthly_amount_paise,
       message_preview: preview,
       whatsapp_link: getWhatsAppLink(row.customer.phone, preview)
+    };
+  });
+
+  return response.json({ reminders });
+});
+
+messageRouter.get("/reminders/udhari", (request, response) => {
+  ensureDefaultTemplatesExist();
+  const template = db.query.messageTemplates.findFirst({
+    where: eq(messageTemplates.name, "UDHARI_BALANCE_REMINDER")
+  }).sync();
+
+  const settings = db.select().from(organizationSettings).get();
+  const shopName = settings?.shop_name ?? "Our Shop";
+
+  const rows = db
+    .select({ customer: customers, ledger: ledgers })
+    .from(ledgers)
+    .innerJoin(customers, eq(ledgers.entity_id, customers.id))
+    .where(and(eq(ledgers.account_type, "CUSTOMER_UDHARI"), gt(ledgers.balance_paise, 0)))
+    .orderBy(desc(ledgers.balance_paise))
+    .all();
+
+  const reminders = rows.map((row) => {
+    const amountRupees = paiseToRupees(row.ledger.balance_paise);
+    let preview = template?.content ?? "Dear {{customer_name}}, our records show an outstanding balance of Rs {{amount}} at {{shop_name}}. Kindly clear it at your convenience. Thank you.";
+    preview = preview
+      .replace(/\{\{\s*customer_name\s*\}\}/gi, row.customer.name)
+      .replace(/\{\{\s*amount\s*\}\}/gi, amountRupees)
+      .replace(/\{\{\s*shop_name\s*\}\}/gi, shopName);
+
+    return {
+      ledger_id: row.ledger.id,
+      customer_id: row.customer.id,
+      customer_name: row.customer.name,
+      phone: row.customer.phone,
+      balance_paise: row.ledger.balance_paise,
+      balance_rupees: amountRupees,
+      message_preview: preview,
+      whatsapp_link: getWhatsAppLink(row.customer.phone ?? "", preview)
     };
   });
 

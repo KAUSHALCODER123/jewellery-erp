@@ -27,6 +27,21 @@ export function CountUp({ value, format, className }: { value: number; format?: 
     const duration = 450;
     let startTs: number | null = null;
 
+    // requestAnimationFrame does not fire in a backgrounded tab, under a headless/automation-driven
+    // browser, or with reduced-motion preferences. Without a fallback the card would freeze at `from`
+    // (e.g. 0) while the real data is already loaded — so snap to the target rather than animate there.
+    const canAnimate =
+      typeof window !== "undefined" &&
+      typeof window.requestAnimationFrame === "function" &&
+      !(typeof document !== "undefined" && document.hidden) &&
+      !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (!canAnimate) {
+      setDisplay(to);
+      fromRef.current = to;
+      return;
+    }
+
     const tick = (ts: number) => {
       if (startTs === null) startTs = ts;
       const progress = Math.min((ts - startTs) / duration, 1);
@@ -40,8 +55,14 @@ export function CountUp({ value, format, className }: { value: number; format?: 
     };
 
     rafRef.current = requestAnimationFrame(tick);
+    // Safety net: regardless of how the animation fares, guarantee the final value is committed.
+    const settle = setTimeout(() => {
+      setDisplay(to);
+      fromRef.current = to;
+    }, duration + 100);
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      clearTimeout(settle);
       fromRef.current = to;
     };
   }, [value]);

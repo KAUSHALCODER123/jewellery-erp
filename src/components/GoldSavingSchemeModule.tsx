@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { usePOSCredit } from "../pos/POSCreditContext.js";
+import { withDocumentToken } from "../utils/documentAuth.js";
 
 type GoldSavingSchemeModuleProps = {
   apiBaseUrl?: string;
@@ -53,7 +54,7 @@ type GssAccount = {
   is_variable?: boolean;
 };
 
-type ReportsSubTab = "statement" | "overdue" | "received" | "maturity" | "defaulters";
+type ReportsSubTab = "statement" | "overdue" | "received" | "maturity" | "defaulters" | "merge";
 
 type StatementData = {
   account: GssAccount;
@@ -124,6 +125,14 @@ type ReceiptModal = {
   amountPaise: number;
   paymentMode: CollectionForm["paymentMode"];
   receiptNumber: string;
+  receiptId?: number;
+};
+
+type ScheduleRow = {
+  installment_number: number;
+  due_date: string;
+  amount_paise: number;
+  paid: boolean;
 };
 
 const initialEnrollment: EnrollmentForm = {
@@ -149,10 +158,17 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
   const [accounts, setAccounts] = useState<GssAccount[]>([]);
   const [enrollment, setEnrollment] = useState<EnrollmentForm>(initialEnrollment);
   const [collection, setCollection] = useState<CollectionForm>(initialCollection);
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+  const [selectedInstallment, setSelectedInstallment] = useState<number | null>(null);
   const [ledgerFilter, setLedgerFilter] = useState("");
   const [receiptModal, setReceiptModal] = useState<ReceiptModal | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Merge state
+  const [mergeSourceId, setMergeSourceId] = useState("");
+  const [mergeTargetId, setMergeTargetId] = useState("");
+  const [merging, setMerging] = useState(false);
 
   // Reports state
   const [reportsSubTab, setReportsSubTab] = useState<ReportsSubTab>("statement");
@@ -186,6 +202,16 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
       void loadAccounts();
     }
   }, [activeTab]);
+
+  // Load the 12-row installment schedule whenever a collection account is selected.
+  useEffect(() => {
+    if (!collection.selectedAccountId) {
+      setSchedule([]);
+      setSelectedInstallment(null);
+      return;
+    }
+    void loadSchedule(collection.selectedAccountId);
+  }, [collection.selectedAccountId]);
 
   const selectedTemplate = templates.find((template) => String(template.id) === enrollment.templateId) ?? null;
   const enrollmentCardValid = /^[A-Za-z0-9]{4,32}$/.test(enrollment.cardNumber.trim());
@@ -280,6 +306,35 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
     });
   }
 
+  async function loadSchedule(accountId: string) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/gss/accounts/${encodeURIComponent(accountId)}/schedule`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as { schedule?: ScheduleRow[] } | null;
+      const rows = response.ok && result?.schedule ? result.schedule : [];
+      setSchedule(rows);
+      // Pre-select the current month's due (first unpaid) row, mirroring the receipt grid flow.
+      const nextDue = rows.find((row) => !row.paid) ?? null;
+      setSelectedInstallment(nextDue ? nextDue.installment_number : null);
+      if (nextDue) {
+        setCollection((current) => ({ ...current, amountReceivedRupees: formatPaiseInput(nextDue.amount_paise) }));
+      }
+    } catch {
+      setSchedule([]);
+      setSelectedInstallment(null);
+    }
+  }
+
+  // Checking the current-due row populates Total Payable; unchecking clears it.
+  function toggleInstallment(row: ScheduleRow) {
+    if (selectedInstallment === row.installment_number) {
+      setSelectedInstallment(null);
+      setCollection((current) => ({ ...current, amountReceivedRupees: "" }));
+    } else {
+      setSelectedInstallment(row.installment_number);
+      setCollection((current) => ({ ...current, amountReceivedRupees: formatPaiseInput(row.amount_paise) }));
+    }
+  }
+
   async function collectPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -314,12 +369,46 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
         account: selectedCollectionAccount,
         amountPaise: collectionAmountPaise,
         paymentMode: collection.paymentMode,
-        receiptNumber: result?.receipt?.id ? `GSS-${result.receipt.id}` : `GSS-${Date.now()}`
+        receiptNumber: result?.receipt?.id ? `GSS-${result.receipt.id}` : `GSS-${Date.now()}`,
+        receiptId: result?.receipt?.id
       });
       setCollection(initialCollection);
       void loadAccounts();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not collect installment.");
+    }
+  }
+
+  async function mergeAccounts() {
+    setMessage("");
+    setError("");
+    if (!mergeSourceId || !mergeTargetId) {
+      setError("Select both a source and a target account to merge.");
+      return;
+    }
+    if (mergeSourceId === mergeTargetId) {
+      setError("Source and target accounts must be different.");
+      return;
+    }
+    setMerging(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/gss/merge`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ source_account_id: Number(mergeSourceId), target_account_id: Number(mergeTargetId) })
+      });
+      const result = (await response.json().catch(() => null)) as { account?: { card_number?: string }; errors?: string[] } | null;
+      if (!response.ok) {
+        throw new Error(result?.errors?.join(" ") || "Could not merge accounts.");
+      }
+      setMessage(`Accounts merged into ${result?.account?.card_number ?? "target account"}. Source account marked MERGED.`);
+      setMergeSourceId("");
+      setMergeTargetId("");
+      void loadAccounts();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not merge accounts.");
+    } finally {
+      setMerging(false);
     }
   }
 
@@ -581,8 +670,43 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
               </div>
               <div className="grid content-start gap-3 p-3">
                 <DurationTracker account={selectedCollectionAccount} template={selectedCollectionTemplate} />
+
+                {selectedCollectionAccount && schedule.length > 0 && (
+                  <div className="border border-slate-800">
+                    <div className="grid grid-cols-[44px_60px_1fr_1fr] border-b border-slate-800 bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase text-slate-400">
+                      <span>Pay</span>
+                      <span>Inst #</span>
+                      <span>Due Date</span>
+                      <span>Installment</span>
+                    </div>
+                    <div className="max-h-44 overflow-auto">
+                      {schedule.map((row) => {
+                        const isNextDue = !row.paid && row.installment_number === (schedule.find((entry) => !entry.paid)?.installment_number ?? -1);
+                        const checked = row.paid || selectedInstallment === row.installment_number;
+                        return (
+                          <label
+                            key={row.installment_number}
+                            className={`grid grid-cols-[44px_60px_1fr_1fr] items-center px-2 py-1 text-xs ${row.paid ? "text-emerald-300" : isNextDue ? "bg-slate-900/60 text-white" : "text-slate-500"}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={row.paid || !isNextDue}
+                              onChange={() => toggleInstallment(row)}
+                              className="h-3.5 w-3.5 accent-emerald-500"
+                            />
+                            <span className="font-mono">{row.installment_number}</span>
+                            <span>{row.due_date}</span>
+                            <span className="font-mono">{formatIndianCurrency(row.amount_paise)}{row.paid ? " ✓" : ""}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-2">
-                  <Field label="Amount Received">
+                  <Field label="Total Payable">
                     <input value={collection.amountReceivedRupees} onChange={(event) => setCollection({ ...collection, amountReceivedRupees: event.target.value })} className={controlClassName} inputMode="decimal" />
                     <span className="font-mono text-[10px] text-slate-500">payload: {collectionAmountPaise} paise</span>
                   </Field>
@@ -660,7 +784,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
         {activeTab === "reports" && (
           <section className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
             <div className="flex items-center gap-1 border-b border-slate-800 bg-slate-900 px-2 py-1.5">
-              {(["statement", "overdue", "received", "maturity", "defaulters"] as ReportsSubTab[]).map((tab) => (
+              {(["statement", "overdue", "received", "maturity", "defaulters", "merge"] as ReportsSubTab[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -671,7 +795,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                       : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                   }`}
                 >
-                  {tab === "statement" ? "Account Statement" : tab === "overdue" ? "Pending / Overdue" : tab === "received" ? "Received Summary" : tab === "maturity" ? "Maturity Tracker" : "Defaulter Control"}
+                  {tab === "statement" ? "Account Statement" : tab === "overdue" ? "Pending / Overdue" : tab === "received" ? "Received Summary" : tab === "maturity" ? "Maturity Tracker" : tab === "defaulters" ? "Defaulter Control" : "Merge Accounts"}
                 </button>
               ))}
               {reportsLoading && <span className="ml-auto animate-pulse text-[10px] text-cyan-300">Loading…</span>}
@@ -921,6 +1045,59 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                   )}
                 </div>
               )}
+
+              {reportsSubTab === "merge" && (
+                <div className="grid max-w-2xl gap-3">
+                  <p className="border border-cyan-800/50 bg-cyan-950/30 px-3 py-2 text-[11px] text-cyan-200">
+                    Merge two Gold Saving Scheme accounts that belong to the <strong>same customer</strong>. The source account's
+                    payments and receipts move into the target; the source is marked MERGED. This cannot be undone.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                      Source account (will be merged away)
+                      <select
+                        value={mergeSourceId}
+                        onChange={(e) => { setMergeSourceId(e.target.value); setMergeTargetId(""); }}
+                        className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-cyan-400 rounded"
+                      >
+                        <option value="">— Select source —</option>
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>{a.card_number} · {a.customer_name ?? "Masked"}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                      Target account (keeps the balance)
+                      <select
+                        value={mergeTargetId}
+                        onChange={(e) => setMergeTargetId(e.target.value)}
+                        disabled={!mergeSourceId}
+                        className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-cyan-400 rounded disabled:text-slate-600"
+                      >
+                        <option value="">— Select target —</option>
+                        {accounts
+                          .filter((a) => {
+                            const source = accounts.find((s) => String(s.id) === mergeSourceId);
+                            return source ? a.customer_id === source.customer_id && a.id !== source.id : false;
+                          })
+                          .map((a) => (
+                            <option key={a.id} value={a.id}>{a.card_number} · {a.customer_name ?? "Masked"}</option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void mergeAccounts()}
+                      disabled={merging || !mergeSourceId || !mergeTargetId}
+                      className="h-9 bg-cyan-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-cyan-400 disabled:bg-slate-700 disabled:text-slate-500 rounded"
+                    >
+                      {merging ? "Merging…" : "Merge Accounts"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -939,8 +1116,16 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
               <ReceiptLine label="Mode" value={receiptModal.paymentMode} />
               <ReceiptLine label="Date" value={getToday()} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button type="button" onClick={() => window.print()} className="h-8 border border-slate-500 text-xs font-semibold uppercase">Print</button>
+              <button
+                type="button"
+                disabled={!receiptModal.receiptId}
+                onClick={() => receiptModal.receiptId && window.open(withDocumentToken(`${apiBaseUrl}/api/documents/gss/receipt/${receiptModal.receiptId}`), "_blank", "noopener,noreferrer")}
+                className="h-8 border border-blue-500 text-xs font-semibold uppercase text-blue-600 disabled:border-slate-300 disabled:text-slate-400"
+              >
+                PDF
+              </button>
               <button type="button" onClick={() => setMessage(`WhatsApp confirmation queued for ${maskPhone(receiptModal.account.phone)}.`)} className="h-8 bg-emerald-500 text-xs font-semibold uppercase text-white">WhatsApp</button>
             </div>
             <button type="button" onClick={() => setReceiptModal(null)} className="mt-2 h-8 w-full border border-slate-300 text-xs font-semibold uppercase">Close</button>

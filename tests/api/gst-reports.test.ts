@@ -1,7 +1,7 @@
 import request from "supertest";
 import { app } from "../../src/server.js";
 import { db } from "../../src/db/client.js";
-import { invoices, invoiceLines } from "../../src/db/schema.js";
+import { invoices, invoiceLines, customers } from "../../src/db/schema.js";
 
 describe("GST compliance reports and invoice printing layouts API", () => {
   let adminToken: string;
@@ -91,6 +91,40 @@ describe("GST compliance reports and invoice printing layouts API", () => {
 
     expect(res.status).toBe(200);
     expect(res.header["content-type"]).toBe("application/pdf");
+  });
+
+  it("splits GSTR-1 into B2B (registered) and B2C (retail)", async () => {
+    // Registered customer (has GSTIN) → B2B invoice-level.
+    const buyer = db.insert(customers).values({ name: "Registered Jeweller", phone: "9811100000", gstin: "27ABCDE1234F1Z5" }).returning().get();
+    const b2bInvoice = db.insert(invoices).values({
+      invoice_number: "SALE-B2B-001",
+      invoice_type: "SALE",
+      customer_id: buyer.id,
+      total_amount_paise: 515000,
+      gst_percentage: 3.0,
+      gst_amount_paise: 15000,
+      hsn_code: "7113",
+      payment_mode: "BANK",
+      gst_not_required: false,
+      created_at: "2026-06-05 13:00:00"
+    }).returning().get();
+    db.insert(invoiceLines).values({
+      invoice_id: b2bInvoice.id, item_id: 1, metal_type: "Gold", purity_karat: 22,
+      gross_weight_mg: 50000, net_weight_mg: 50000, metal_rate_paise_per_gram: 10000,
+      making_charge_paise: 0, gst_paise: 15000, taxable_value_paise: 500000, line_total_paise: 515000
+    }).run();
+
+    const res = await request(app)
+      .get("/api/compliance/gst-export/gstr1-b2b-b2c?from=2026-06-01&to=2026-06-30")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    // The GSTIN invoice is B2B (invoice-level, carries the GSTIN).
+    expect(res.body.b2b).toHaveLength(1);
+    expect(res.body.b2b[0].gstin).toBe("27ABCDE1234F1Z5");
+    expect(res.body.b2b[0].invoice_number).toBe("SALE-B2B-001");
+    // The no-customer SALE-INV-999 falls into B2C rate-wise summary.
+    expect(res.body.b2c.length).toBeGreaterThanOrEqual(1);
   });
 
   it("exports GSTR-1 containing outward sales only", async () => {

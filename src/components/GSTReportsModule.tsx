@@ -6,7 +6,27 @@ type GSTReportsModuleProps = {
   apiBaseUrl?: string;
 };
 
-type ActiveTab = "gstr1" | "gstr2" | "gstr3b" | "audit_locks" | "bis_workflow";
+type ActiveTab = "gstr1" | "gstr2" | "gstr3b" | "b2b_b2c" | "audit_locks" | "bis_workflow";
+
+type PartyRow = {
+  invoice_number?: string;
+  gstin?: string;
+  customer_name?: string;
+  supply_type: string;
+  rate: number;
+  taxable_value_rupees: string;
+  cgst_rupees: string;
+  sgst_rupees: string;
+  igst_rupees: string;
+  total_rupees: string;
+};
+
+type B2bB2cResponse = {
+  date_range: { from: string | null; to: string | null };
+  b2b: PartyRow[];
+  b2c: PartyRow[];
+  totals: { b2b_invoice_count: number; b2c_summary_count: number; b2b_total_rupees: string; b2c_total_rupees: string };
+};
 
 type GstLineItem = {
   hsn_sc: string;
@@ -303,6 +323,12 @@ function BisWorkflowView({
 
   const triggerCardPrint = (itemId: number) => {
     window.open(withDocumentToken(`${apiBaseUrl}/api/documents/huid-card/${itemId}`), "_blank", "noopener,noreferrer");
+    // Record the certificate-print lifecycle event (best-effort), then refresh.
+    void fetch(`${apiBaseUrl}/api/compliance/huid/print-certificate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders },
+      body: JSON.stringify({ item_id: itemId })
+    }).catch(() => undefined);
     // Reload database items after a delay
     setTimeout(() => {
       void loadHuidInventory();
@@ -728,6 +754,70 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+function B2bB2cView({ data }: { data: B2bB2cResponse }) {
+  return (
+    <div className="h-full overflow-auto p-3">
+      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+        <MetricItem label="B2B Invoices" value={String(data.totals.b2b_invoice_count)} />
+        <MetricItem label="B2B Total" value={`Rs ${data.totals.b2b_total_rupees}`} highlight />
+        <MetricItem label="B2C Rate Buckets" value={String(data.totals.b2c_summary_count)} />
+        <MetricItem label="B2C Total" value={`Rs ${data.totals.b2c_total_rupees}`} highlight />
+      </div>
+
+      <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-300">B2B — Registered Customers (invoice-level)</h3>
+      <div className="mb-4 overflow-auto border border-slate-800">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-slate-900 text-[10px] uppercase text-slate-500">
+            <tr>{["Invoice No", "GSTIN", "Customer", "Supply", "Rate %", "Taxable", "CGST", "SGST", "IGST", "Total"].map((h) => <th key={h} className="px-2 py-1.5">{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {data.b2b.length === 0 ? (
+              <tr><td colSpan={10} className="px-2 py-3 text-center text-slate-500">No registered (GSTIN) sales in this period.</td></tr>
+            ) : data.b2b.map((r, i) => (
+              <tr key={`${r.invoice_number}-${i}`} className="border-t border-slate-900">
+                <td className="px-2 py-1.5 font-mono">{r.invoice_number}</td>
+                <td className="px-2 py-1.5 font-mono text-sky-300">{r.gstin}</td>
+                <td className="px-2 py-1.5">{r.customer_name ?? "—"}</td>
+                <td className="px-2 py-1.5">{r.supply_type}</td>
+                <td className="px-2 py-1.5">{r.rate}</td>
+                <td className="px-2 py-1.5 font-mono">{r.taxable_value_rupees}</td>
+                <td className="px-2 py-1.5 font-mono">{r.cgst_rupees}</td>
+                <td className="px-2 py-1.5 font-mono">{r.sgst_rupees}</td>
+                <td className="px-2 py-1.5 font-mono">{r.igst_rupees}</td>
+                <td className="px-2 py-1.5 font-mono font-semibold">{r.total_rupees}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-300">B2C — Retail / Unregistered (rate-wise summary)</h3>
+      <div className="overflow-auto border border-slate-800">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-slate-900 text-[10px] uppercase text-slate-500">
+            <tr>{["Supply", "Rate %", "Taxable", "CGST", "SGST", "IGST", "Total"].map((h) => <th key={h} className="px-2 py-1.5">{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {data.b2c.length === 0 ? (
+              <tr><td colSpan={7} className="px-2 py-3 text-center text-slate-500">No retail sales in this period.</td></tr>
+            ) : data.b2c.map((r, i) => (
+              <tr key={`b2c-${i}`} className="border-t border-slate-900">
+                <td className="px-2 py-1.5">{r.supply_type}</td>
+                <td className="px-2 py-1.5">{r.rate}</td>
+                <td className="px-2 py-1.5 font-mono">{r.taxable_value_rupees}</td>
+                <td className="px-2 py-1.5 font-mono">{r.cgst_rupees}</td>
+                <td className="px-2 py-1.5 font-mono">{r.sgst_rupees}</td>
+                <td className="px-2 py-1.5 font-mono">{r.igst_rupees}</td>
+                <td className="px-2 py-1.5 font-mono font-semibold">{r.total_rupees}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function Gstr3bView({ data }: { data: Gst3bResponse }) {
   return (
     <div className="p-4 flex flex-col gap-5 overflow-auto h-full bg-slate-950 min-h-0">
@@ -883,6 +973,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
   const [gstLines, setGstLines] = useState<GstLineItem[]>([]);
   // GSTR-3B Data
   const [gstr3bData, setGstr3bData] = useState<Gst3bResponse | null>(null);
+  const [b2bb2cData, setB2bb2cData] = useState<B2bB2cResponse | null>(null);
 
   // Audit Locks State
   const [locks, setLocks] = useState<any[]>([]);
@@ -1137,11 +1228,24 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
 
         setGstr3bData(result as Gst3bResponse);
         setGstLines([]);
+      } else if (activeTab === "b2b_b2c") {
+        const response = await fetch(
+          `${apiBaseUrl}/api/compliance/gst-export/gstr1-b2b-b2c?from=${fromDate}&to=${toDate}`,
+          { headers: authHeaders }
+        );
+        const result = (await response.json().catch(() => null)) as B2bB2cResponse | { errors?: string[] } | null;
+        if (!response.ok || !result || "errors" in result) {
+          throw new Error(getErrorMessage(result, "Failed to load B2B/B2C split."));
+        }
+        setB2bb2cData(result as B2bB2cResponse);
+        setGstLines([]);
+        setGstr3bData(null);
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to generate report.");
       setGstLines([]);
       setGstr3bData(null);
+      setB2bb2cData(null);
     } finally {
       setLoading(false);
     }
@@ -1237,6 +1341,23 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
 
       downloadCSVFile(csvContent, `GSTR3B_summary_${fromDate}_to_${toDate}.csv`);
     }
+
+    if (activeTab === "b2b_b2c" && b2bb2cData) {
+      const csvRows: (string | number)[][] = [
+        ["GSTR-1 B2B / B2C Split"],
+        [`Period: ${fromDate} to ${toDate}`],
+        [],
+        ["B2B (Registered Customers)"],
+        ["Invoice No", "GSTIN", "Customer", "Supply Type", "Rate %", "Taxable (Rs)", "CGST (Rs)", "SGST (Rs)", "IGST (Rs)", "Total (Rs)"],
+        ...b2bb2cData.b2b.map((r) => [r.invoice_number ?? "", r.gstin ?? "", r.customer_name ?? "", r.supply_type, r.rate, r.taxable_value_rupees, r.cgst_rupees, r.sgst_rupees, r.igst_rupees, r.total_rupees]),
+        [],
+        ["B2C (Retail / Unregistered) — rate-wise summary"],
+        ["Supply Type", "Rate %", "Taxable (Rs)", "CGST (Rs)", "SGST (Rs)", "IGST (Rs)", "Total (Rs)"],
+        ...b2bb2cData.b2c.map((r) => [r.supply_type, r.rate, r.taxable_value_rupees, r.cgst_rupees, r.sgst_rupees, r.igst_rupees, r.total_rupees])
+      ];
+      const csvContent = csvRows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+      downloadCSVFile(csvContent, `GSTR1_B2B_B2C_${fromDate}_to_${toDate}.csv`);
+    }
   }
 
   function downloadCSVFile(content: string, filename: string) {
@@ -1261,6 +1382,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
           <TabButton active={activeTab === "gstr1"} onClick={() => setActiveTab("gstr1")}>GSTR-1 (Sales)</TabButton>
           <TabButton active={activeTab === "gstr2"} onClick={() => setActiveTab("gstr2")}>GSTR-2 (Purchases)</TabButton>
           <TabButton active={activeTab === "gstr3b"} onClick={() => setActiveTab("gstr3b")}>GSTR-3B (Summary)</TabButton>
+          <TabButton active={activeTab === "b2b_b2c"} onClick={() => setActiveTab("b2b_b2c")}>B2B / B2C Split</TabButton>
           <TabButton active={activeTab === "audit_locks"} onClick={() => setActiveTab("audit_locks")}>Audit Locks</TabButton>
           <TabButton active={activeTab === "bis_workflow"} onClick={() => setActiveTab("bis_workflow")}>HUID & BIS Workflow</TabButton>
         </nav>
@@ -1268,7 +1390,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
 
       <main className="min-h-0 overflow-hidden grid grid-rows-[auto_1fr]">
         {/* Date Filters Header (only for report tabs) */}
-        {(activeTab === "gstr1" || activeTab === "gstr2" || activeTab === "gstr3b") && (
+        {(activeTab === "gstr1" || activeTab === "gstr2" || activeTab === "gstr3b" || activeTab === "b2b_b2c") && (
           <div className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs">
             <label className="flex items-center gap-2 font-semibold uppercase text-slate-400">
               From Date:
@@ -1293,7 +1415,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
             <button
               type="button"
               onClick={exportCSV}
-              disabled={loading || (activeTab === "gstr3b" ? !gstr3bData : gstLines.length === 0)}
+              disabled={loading || (activeTab === "gstr3b" ? !gstr3bData : activeTab === "b2b_b2c" ? !b2bb2cData : gstLines.length === 0)}
               className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold px-4 rounded uppercase text-[10px] tracking-wide ml-auto disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Export GST CSV
@@ -1318,6 +1440,12 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
               <Gstr3bView data={gstr3bData} />
             ) : (
               <EmptyState message="No GSTR-3B summary matches this period." />
+            )
+          ) : activeTab === "b2b_b2c" ? (
+            b2bb2cData ? (
+              <B2bB2cView data={b2bb2cData} />
+            ) : (
+              <EmptyState message="No sales in this period to split into B2B / B2C." />
             )
           ) : activeTab === "audit_locks" ? (
             <AuditLocksView

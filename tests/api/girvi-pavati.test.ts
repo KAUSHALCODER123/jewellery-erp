@@ -69,7 +69,8 @@ describe("Girvi Pavati / Receipt & Media Capture API", () => {
           item_description: "Gold Ring",
           metal_type: "GOLD",
           purity_karat: 22,
-          weight_mg: 10000, // 10g
+          gross_weight_mg: 11000, // 11g gross
+          stone_deduction_mg: 1000, // 1g stone -> 10g net
           image_path: "/api/images/ring.png"
         }
       ]
@@ -94,6 +95,114 @@ describe("Girvi Pavati / Receipt & Media Capture API", () => {
     }).sync();
     expect(loanDb).toBeDefined();
     expect(loanDb?.interest_period_type).toBe("WEEKLY");
+
+    // Gross/net split is persisted and the stored rate is recorded against the collateral.
+    const collateralDb = db.query.girviCollateral.findFirst({
+      where: eq(girviCollateral.loan_id, res.body.loan.id)
+    }).sync();
+    expect(collateralDb?.gross_weight_mg).toBe(11000);
+    expect(collateralDb?.stone_deduction_mg).toBe(1000);
+    expect(collateralDb?.weight_mg).toBe(10000); // net = gross - stone
+    expect(collateralDb?.valuation_rate_paise_per_gram).toBe(600000); // org 22k rate
+    expect(collateralDb?.rate_overridden).toBe(false);
+  });
+
+  test("POST /api/girvi/issue values collateral on NET weight, so stone deduction tightens the LTV cap", async () => {
+    // 10g gross with 9g stone => 1g net. At org 22k rate (Rs 6,000/g) net value is Rs 6,000,
+    // so the 75% LTV cap is just Rs 4,500 and a Rs 30,000 principal must be rejected.
+    const res = await request(app)
+      .post("/api/girvi/issue")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        customer_id: customerId,
+        principal_amount_paise: 3000000,
+        disbursement_ledger_id: ledgerId,
+        loan_number: "L-2026-NET",
+        interest_rate_percentage: 2.0,
+        interest_type: "SIMPLE",
+        rate_period: "MONTHLY",
+        interest_period_type: "MONTHLY",
+        issue_date: "2026-06-01",
+        collateral: [
+          {
+            item_description: "Stone-set Bangle",
+            metal_type: "GOLD",
+            purity_karat: 22,
+            gross_weight_mg: 10000,
+            stone_deduction_mg: 9000
+          }
+        ]
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errors[0]).toContain("75% LTV");
+  });
+
+  test("POST /api/girvi/issue honours an authorized rate override and records it on the collateral", async () => {
+    // Net 10g. Stored 22k rate (Rs 6,000/g) caps LTV at Rs 45,000, which would reject Rs 50,000.
+    // An override of Rs 7,000/g lifts collateral value to Rs 70,000 (LTV Rs 52,500), allowing it.
+    const res = await request(app)
+      .post("/api/girvi/issue")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        customer_id: customerId,
+        principal_amount_paise: 5000000, // Rs 50,000
+        disbursement_ledger_id: ledgerId,
+        loan_number: "L-2026-OVR",
+        interest_rate_percentage: 2.0,
+        interest_type: "SIMPLE",
+        rate_period: "MONTHLY",
+        interest_period_type: "MONTHLY",
+        issue_date: "2026-06-01",
+        collateral: [
+          {
+            item_description: "Gold Coin",
+            metal_type: "GOLD",
+            purity_karat: 22,
+            gross_weight_mg: 10000,
+            stone_deduction_mg: 0,
+            rate_override_paise_per_gram: 700000 // Rs 7,000/g
+          }
+        ]
+      });
+
+    expect(res.status).toBe(201);
+
+    const collateralDb = db.query.girviCollateral.findFirst({
+      where: eq(girviCollateral.loan_id, res.body.loan.id)
+    }).sync();
+    expect(collateralDb?.valuation_rate_paise_per_gram).toBe(700000);
+    expect(collateralDb?.rate_overridden).toBe(true);
+  });
+
+  test("POST /api/girvi/issue persists multiple collateral items and aggregates their value for LTV", async () => {
+    // Two gold items: 10g net + 5g net at stored 22k rate (Rs 6,000/g) => Rs 90,000 valuation.
+    // 75% LTV = Rs 67,500, so a Rs 60,000 principal is allowed and both rows must be stored.
+    const res = await request(app)
+      .post("/api/girvi/issue")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        customer_id: customerId,
+        principal_amount_paise: 6000000, // Rs 60,000
+        disbursement_ledger_id: ledgerId,
+        loan_number: "L-2026-MULTI",
+        interest_rate_percentage: 2.0,
+        interest_type: "SIMPLE",
+        rate_period: "MONTHLY",
+        interest_period_type: "MONTHLY",
+        issue_date: "2026-06-01",
+        collateral: [
+          { item_description: "Gold Bangle", metal_type: "GOLD", purity_karat: 22, gross_weight_mg: 10000, stone_deduction_mg: 0 },
+          { item_description: "Gold Ring", metal_type: "GOLD", purity_karat: 22, gross_weight_mg: 6000, stone_deduction_mg: 1000 }
+        ]
+      });
+
+    expect(res.status).toBe(201);
+
+    const rows = db.select().from(girviCollateral).where(eq(girviCollateral.loan_id, res.body.loan.id)).all();
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.weight_mg).sort((a, b) => a - b)).toEqual([5000, 10000]);
+    expect(rows.map((r) => r.item_description).sort()).toEqual(["Gold Bangle", "Gold Ring"]);
   });
 
   test("POST /api/girvi/repay/calculate processes weekly period rates and aggregates fees", async () => {

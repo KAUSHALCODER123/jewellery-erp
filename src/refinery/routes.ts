@@ -3,6 +3,7 @@ import { Router } from "express";
 import { requireAuth, requireRoles, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
 import {
+  items,
   refineries,
   refineryReceipts,
   refineryTransfers
@@ -158,6 +159,10 @@ refineryRouter.post("/receipts", (request, response) => {
     ? body.payment_mode.trim().toUpperCase()
     : "CASH";
   const description = typeof body.description === "string" ? body.description.trim() : null;
+  // By default the returned fine gold is minted as a 24K bullion bar into master stock.
+  const addToStock = body.add_to_stock === undefined ? true : Boolean(body.add_to_stock);
+  const customBarcode = typeof body.barcode === "string" && body.barcode.trim() ? body.barcode.trim() : null;
+  const stockLocation = typeof body.location === "string" && body.location.trim() ? body.location.trim() : "VAULT";
 
   if (!Number.isInteger(refineryId)) {
     errors.push("refinery_id is required and must be an integer.");
@@ -181,7 +186,16 @@ refineryRouter.post("/receipts", (request, response) => {
     return response.status(404).json({ errors: ["Refinery not found."] });
   }
 
+  // A custom barcode must be unique across the stock catalog.
+  if (customBarcode) {
+    const duplicate = db.query.items.findFirst({ where: eq(items.barcode, customBarcode) }).sync();
+    if (duplicate) {
+      return response.status(409).json({ errors: ["An item already exists with this bullion barcode."] });
+    }
+  }
+
   const userId = (request as AuthenticatedRequest).user.id;
+  const willMintBullion = addToStock && fineGoldReceivedMg > 0;
 
   try {
     const result = db.transaction((tx) => {
@@ -207,15 +221,53 @@ refineryRouter.post("/receipts", (request, response) => {
         .where(eq(refineries.id, refineryId))
         .run();
 
-      return receipt;
+      // Mint the pure 24K gold back into master stock as a fine bullion bar so the
+      // shop's gram-to-gram metal balance closes the refining loop.
+      let bullionItem = null;
+      if (willMintBullion) {
+        const barcode = customBarcode ?? `FINE-24K-R${receipt.id}`;
+        bullionItem = tx
+          .insert(items)
+          .values({
+            barcode,
+            huid: null,
+            category: "Bullion / Fine Gold",
+            metal_type: "Gold",
+            purity_karat: 24,
+            gross_weight_mg: fineGoldReceivedMg,
+            stone_weight_mg: 0,
+            black_bead_weight_mg: 0,
+            net_weight_mg: fineGoldReceivedMg,
+            final_weight_mg: fineGoldReceivedMg,
+            fine_weight_mg: fineGoldReceivedMg,
+            making_charge_type: "FLAT",
+            making_charge_value: 0,
+            design_name: `Refined 24K Fine Gold (${refinery.name})`,
+            tag_prefix: "FINE",
+            location: stockLocation,
+            purchase_date: receiveDate,
+            status: "IN_STOCK",
+            is_urd_recycled_gold: true
+          })
+          .returning()
+          .get();
+      }
+
+      return { receipt, bullionItem };
     });
 
     return response.status(201).json({
       receipt: {
-        ...result,
-        fine_gold_received_grams: milligramsToGrams(result.fine_gold_received_mg),
-        charges_rupees: paiseToRupees(result.charges_paise)
-      }
+        ...result.receipt,
+        fine_gold_received_grams: milligramsToGrams(result.receipt.fine_gold_received_mg),
+        charges_rupees: paiseToRupees(result.receipt.charges_paise)
+      },
+      bullion_item: result.bullionItem
+        ? {
+            ...result.bullionItem,
+            fine_weight_grams: milligramsToGrams(result.bullionItem.fine_weight_mg)
+          }
+        : null
     });
   } catch (err: any) {
     return response.status(500).json({ errors: [err.message || "Failed to process receipt."] });

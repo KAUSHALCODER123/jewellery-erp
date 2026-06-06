@@ -456,6 +456,9 @@ function EditItemModal({
   const [savingStones, setSavingStones] = useState(false);
   const [stoneError, setStoneError] = useState("");
   const [stoneSuccess, setStoneSuccess] = useState("");
+  const [certQuery, setCertQuery] = useState("");
+  const [certResults, setCertResults] = useState<any[] | null>(null);
+  const [certLoading, setCertLoading] = useState(false);
 
   const [newStone, setNewStone] = useState({
     stone_type: "DIAMOND",
@@ -549,6 +552,26 @@ function EditItemModal({
 
   const removeStone = (index: number) => {
     setStones(stones.filter((_, i) => i !== index));
+  };
+
+  const lookupCertificate = async () => {
+    setStoneError("");
+    setCertResults(null);
+    if (!certQuery.trim()) {
+      setStoneError("Enter a certificate number to look up.");
+      return;
+    }
+    setCertLoading(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/inventory/stones/certificates?certificate_number=${encodeURIComponent(certQuery.trim())}`, { headers: authHeaders });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error((data && data.errors?.join(" ")) || "Certificate lookup failed.");
+      setCertResults(Array.isArray(data?.results) ? data.results : []);
+    } catch (caught) {
+      setStoneError(caught instanceof Error ? caught.message : "Certificate lookup failed.");
+    } finally {
+      setCertLoading(false);
+    }
   };
 
   const saveStones = async () => {
@@ -795,6 +818,37 @@ function EditItemModal({
           <div className="space-y-4 text-xs">
             {stoneError && <p className="text-xs text-red-300 bg-red-950/20 px-2.5 py-1 rounded">{stoneError}</p>}
             {stoneSuccess && <p className="text-xs text-emerald-300 bg-emerald-950/20 px-2.5 py-1 rounded">{stoneSuccess}</p>}
+
+            <div className="rounded border border-slate-800 bg-slate-950/40 p-3">
+              <div className="text-[10px] font-bold uppercase text-slate-400">Certificate Lookup (audit)</div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={certQuery}
+                  onChange={(e) => setCertQuery(e.target.value)}
+                  placeholder="Enter certificate number"
+                  className="h-8 flex-1 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded"
+                />
+                <button type="button" onClick={() => void lookupCertificate()} disabled={certLoading} className="h-8 border border-slate-600 px-3 text-[11px] font-semibold uppercase text-slate-200 hover:border-emerald-400 hover:text-emerald-300 rounded disabled:text-slate-600">
+                  {certLoading ? "Searching…" : "Search"}
+                </button>
+              </div>
+              {certResults !== null && (
+                <div className="mt-2 text-[11px]">
+                  {certResults.length === 0 ? (
+                    <p className="text-slate-500">No items found for that certificate number.</p>
+                  ) : (
+                    <ul className="grid gap-1">
+                      {certResults.map((row: any, i: number) => (
+                        <li key={i} className="flex justify-between border-b border-slate-900 py-1">
+                          <span className="font-mono text-slate-300">{row.item?.barcode ?? `Item #${row.item?.id}`}</span>
+                          <span className="text-slate-400">{row.stone?.stone_type ?? "Stone"} · {row.stone?.certificate_lab ?? "—"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
 
             {loadingStones ? (
               <p className="text-center text-slate-400 py-4">Loading gemstone records...</p>

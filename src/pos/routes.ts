@@ -3,12 +3,14 @@ import { Router } from "express";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
 import {
+  barcodeSequences,
   customers,
   gssAccounts,
   invoiceLines,
   invoices,
   items,
   kycVault,
+  loyaltyLedger,
   organizationSettings,
   purchaseInvoiceLines,
   purchaseInvoices,
@@ -122,6 +124,7 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
         .values({
           invoice_number: generateInvoiceNumber(),
           customer_id: validation.checkout.customerId,
+          walk_in_name: validation.checkout.walkInName,
           total_amount_paise: validation.checkout.totals.netPayablePaise,
           gst_percentage: gstPercentage,
           gst_amount_paise: gstAmountPaise,
@@ -308,24 +311,53 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
         oldDuesCollectedPaise = validation.checkout.oldDues.amountPaise;
       }
 
-      // Loyalty: redeem points (validated against balance) and earn on the net payable.
+      // Loyalty: enrolled customers can redeem and earn; every movement is ledgered.
       let loyaltyPointsEarned = 0;
       let loyaltyPointsRedeemed = 0;
       if (validation.checkout.customerId !== null) {
         const customerRow = tx.select().from(customers).where(eq(customers.id, validation.checkout.customerId)).get();
         loyaltyPointsRedeemed = validation.checkout.loyaltyPointsRedeemed;
 
+        if (loyaltyPointsRedeemed > 0 && !customerRow?.loyalty_enrolled) {
+          throw new CheckoutConflictError("Customer is not enrolled in loyalty.");
+        }
+
         if (loyaltyPointsRedeemed > 0 && (customerRow?.loyalty_points_balance ?? 0) < loyaltyPointsRedeemed) {
           throw new CheckoutConflictError("Insufficient loyalty points balance for redemption.");
         }
 
-        const rate = settings?.loyalty_points_per_hundred ?? 1;
-        loyaltyPointsEarned = Math.floor(validation.checkout.totals.netPayablePaise / 10000) * rate;
+        if (customerRow?.loyalty_enrolled) {
+          loyaltyPointsEarned = calculateLoyaltyPointsEarned(tx, validation.checkout, settings);
+        }
 
-        const netDelta = loyaltyPointsEarned - loyaltyPointsRedeemed;
-        if (netDelta !== 0) {
+        let loyaltyBalanceAfter = customerRow?.loyalty_points_balance ?? 0;
+        if (loyaltyPointsRedeemed > 0) {
+          loyaltyBalanceAfter -= loyaltyPointsRedeemed;
+          tx.insert(loyaltyLedger).values({
+            customer_id: validation.checkout.customerId,
+            invoice_id: invoice.id,
+            transaction_type: "REDEEM",
+            points: -loyaltyPointsRedeemed,
+            balance_after: loyaltyBalanceAfter,
+            description: `Redeemed on ${invoice.invoice_number}`
+          }).run();
+        }
+
+        if (loyaltyPointsEarned > 0) {
+          loyaltyBalanceAfter += loyaltyPointsEarned;
+          tx.insert(loyaltyLedger).values({
+            customer_id: validation.checkout.customerId,
+            invoice_id: invoice.id,
+            transaction_type: "EARN",
+            points: loyaltyPointsEarned,
+            balance_after: loyaltyBalanceAfter,
+            description: `Earned on ${invoice.invoice_number}`
+          }).run();
+        }
+
+        if (loyaltyPointsEarned !== 0 || loyaltyPointsRedeemed !== 0) {
           tx.update(customers)
-            .set({ loyalty_points_balance: sql`${customers.loyalty_points_balance} + ${netDelta}` })
+            .set({ loyalty_points_balance: loyaltyBalanceAfter })
             .where(eq(customers.id, validation.checkout.customerId))
             .run();
         }
@@ -1119,6 +1151,7 @@ posRouter.post("/purchases", requireAuth, (request, response) => {
     const purchase = tx.insert(purchaseInvoices)
       .values({
         purchase_number: generateDocumentNumber("PUR"),
+        supplier_id: validation.document.supplierId,
         supplier_name: validation.document.supplierName,
         supplier_phone: validation.document.supplierPhone,
         supplier_gstin: validation.document.supplierGstin,
@@ -1139,6 +1172,9 @@ posRouter.post("/purchases", requireAuth, (request, response) => {
         .values({
           purchase_invoice_id: purchase.id,
           description: line.description,
+          category: line.category,
+          quantity: line.quantity,
+          stock_mode: line.stockMode,
           metal_type: line.metalType,
           purity_karat: line.purityKarat,
           gross_weight_mg: line.grossWeightMg,
@@ -1152,6 +1188,10 @@ posRouter.post("/purchases", requireAuth, (request, response) => {
         .returning()
         .get()
     );
+
+    // Ingest each purchase line into live barcoded inventory.
+    const stockItems = createPurchaseStockItems(tx, validation.document, purchase.purchase_number);
+
     const voucher = postBalancedVoucher(tx, {
       voucherType: "PURCHASE",
       referenceType: "PURCHASE_INVOICE",
@@ -1161,7 +1201,7 @@ posRouter.post("/purchases", requireAuth, (request, response) => {
       lines: buildPurchaseVoucherLines(validation.document, purchase.purchase_number)
     });
 
-    return { purchase, lines, voucher: voucher.voucher, journal_entries: voucher.lines.map((line) => line.journalEntry) };
+    return { purchase, lines, stock_items: stockItems, voucher: voucher.voucher, journal_entries: voucher.lines.map((line) => line.journalEntry) };
   });
 
   // Enqueue Tally sync for retry-worker processing
@@ -1335,6 +1375,7 @@ posRouter.post("/purchase-returns", requireAuth, (request, response) => {
 
 type CheckoutPayload = {
   customerId: number | null;
+  walkInName: string | null;
   gssAccountId: number | null;
   salesItems: SalesItemPayload[];
   urdItems: UrdItemPayload[];
@@ -1416,6 +1457,9 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type CommercialDocumentLine = {
   itemId: number | null;
   description: string;
+  category: string;
+  quantity: number;
+  stockMode: "PIECES" | "LOT";
   metalType: string;
   purityKarat: number;
   grossWeightMg: number;
@@ -1429,6 +1473,7 @@ type CommercialDocumentLine = {
 
 type CommercialDocumentPayload = {
   customerId: number | null;
+  supplierId: number | null;
   supplierName: string;
   supplierPhone: string | null;
   supplierGstin: string | null;
@@ -1506,6 +1551,7 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
   const panNumber = optionalTrimmedText(body.pan_number ?? body.panNumber) ?? null;
   const aadhaarNumber = optionalTrimmedText(body.aadhaar_number ?? body.aadhaarNumber) ?? null;
   const documentImagePath = optionalTrimmedText(body.document_image_path ?? body.kyc_photo_path ?? body.kycPhotoPath) ?? null;
+  const walkInName = optionalTrimmedText(body.walk_in_name ?? body.walkInName) ?? null;
 
   // Optional collection toward the customer's existing udhari (old dues) made in the same bill.
   const oldDuesRaw = Number(body.old_dues_payment_paise ?? body.oldDuesPaymentPaise ?? 0);
@@ -1614,6 +1660,7 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
     ok: true,
     checkout: {
       customerId: customerId as number | null,
+      walkInName,
       gssAccountId: (gssAccountId ?? null) as number | null,
       salesItems,
       urdItems,
@@ -2089,6 +2136,94 @@ function buildPosSaleVoucherLines(checkout: CheckoutPayload, gstAmountPaise: num
   return lines;
 }
 
+// Create barcoded inventory items from each purchase line so a wholesale purchase
+// updates live, sellable stock — distributing the line weight evenly across pieces.
+function createPurchaseStockItems(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  document: CommercialDocumentPayload,
+  purchaseNumber: string
+) {
+  const created: (typeof items.$inferSelect)[] = [];
+
+  for (const line of document.lines) {
+    // LOT = one weight-wise item holding the full line weight; PIECES = one item per piece.
+    const quantity = line.stockMode === "LOT" ? 1 : Math.max(1, line.quantity);
+    const prefix = purchaseBarcodePrefix(line.category);
+    const sequence = tx.query.barcodeSequences.findFirst({
+      where: eq(barcodeSequences.prefix, prefix)
+    }).sync();
+    const firstNumber = sequence?.next_number ?? 1;
+
+    const perGross = Math.floor(line.grossWeightMg / quantity);
+    const perStone = Math.floor(line.stoneWeightMg / quantity);
+    const perNet = Math.floor(line.netWeightMg / quantity);
+
+    for (let piece = 0; piece < quantity; piece += 1) {
+      const isLast = piece === quantity - 1;
+      // The last piece absorbs the rounding remainder so per-piece weights sum to the line total.
+      const grossMg = isLast ? line.grossWeightMg - perGross * (quantity - 1) : perGross;
+      const stoneMg = isLast ? line.stoneWeightMg - perStone * (quantity - 1) : perStone;
+      const netMg = isLast ? line.netWeightMg - perNet * (quantity - 1) : perNet;
+      const tagNumber = firstNumber + piece;
+      const barcode = formatPurchaseBarcode(prefix, tagNumber);
+
+      const duplicate = tx.query.items.findFirst({ where: eq(items.barcode, barcode) }).sync();
+      if (duplicate) {
+        throw new Error(`Cannot ingest purchase stock: barcode ${barcode} already exists.`);
+      }
+
+      created.push(
+        tx.insert(items)
+          .values({
+            barcode,
+            huid: null,
+            category: line.category,
+            metal_type: line.metalType,
+            purity_karat: line.purityKarat,
+            gross_weight_mg: grossMg,
+            stone_weight_mg: stoneMg,
+            black_bead_weight_mg: 0,
+            net_weight_mg: netMg,
+            final_weight_mg: netMg,
+            fine_weight_mg: Math.round((netMg * line.purityKarat) / 24),
+            making_charge_type: "FLAT",
+            making_charge_value: 0,
+            design_name: line.description,
+            tag_prefix: prefix,
+            tag_number: tagNumber,
+            location: "VAULT",
+            vendor_id: document.supplierId,
+            purchase_rate_paise: line.metalRatePaisePerGram,
+            purchase_date: document.documentDate,
+            status: "IN_STOCK"
+          })
+          .returning()
+          .get()
+      );
+    }
+
+    if (sequence) {
+      tx.update(barcodeSequences)
+        .set({ next_number: firstNumber + quantity, updated_at: sql`CURRENT_TIMESTAMP` })
+        .where(eq(barcodeSequences.id, sequence.id))
+        .run();
+    } else {
+      tx.insert(barcodeSequences).values({ prefix, next_number: firstNumber + quantity }).run();
+    }
+  }
+
+  return created;
+}
+
+function purchaseBarcodePrefix(category: string) {
+  const letters = category.toUpperCase().replace(/[^A-Z]/g, "");
+  return letters ? letters.slice(0, 3) : "PUR";
+}
+
+function formatPurchaseBarcode(prefix: string, tagNumber: number) {
+  return `${prefix}${String(tagNumber).padStart(4, "0")}`;
+}
+
 function buildPurchaseVoucherLines(document: CommercialDocumentPayload, purchaseNumber: string): VoucherPostingLine[] {
   const paymentLedger = getSettlementLedger(document.paymentMode, document.supplierName, true);
   const stockAmountPaise = Math.max(document.totalAmountPaise - document.gstAmountPaise, 0);
@@ -2191,6 +2326,24 @@ function buildPurchaseReturnVoucherLines(document: ReturnDocumentPayload, return
   return lines;
 }
 
+function calculateLoyaltyPointsEarned(tx: Tx, checkout: CheckoutPayload, settings: typeof organizationSettings.$inferSelect | undefined) {
+  const mode = settings?.loyalty_earn_mode ?? "PER_HUNDRED_RUPEES";
+
+  if (mode === "PER_GRAM_GOLD") {
+    const pointsPerGram = settings?.loyalty_points_per_gram_gold ?? 1;
+    const goldNetWeightMg = checkout.salesItems.reduce((total, line) => {
+      const item = tx.select().from(items).where(eq(items.id, line.itemId)).get();
+      const metalType = (line.metalType ?? item?.metal_type ?? "").trim().toLowerCase();
+      return metalType === "gold" ? total + (line.netWeightMg ?? item?.net_weight_mg ?? 0) : total;
+    }, 0);
+
+    return Math.floor(goldNetWeightMg / 1000) * pointsPerGram;
+  }
+
+  const pointsPerHundred = settings?.loyalty_points_per_hundred ?? 1;
+  return Math.floor(checkout.totals.netPayablePaise / 10000) * pointsPerHundred;
+}
+
 function getSettlementLedger(mode: string, partyName: string, isVendor: boolean = false): { ledgerName: string; accountType: VoucherPostingLine["accountType"] } {
   const normalized = mode.trim().toUpperCase();
 
@@ -2228,6 +2381,7 @@ function validateCommercialDocumentPayload(body: unknown, documentType: "quotati
   }
 
   const customerId = body.customer_id === undefined || body.customer_id === null ? null : body.customer_id;
+  const supplierId = body.supplier_id === undefined || body.supplier_id === null ? null : body.supplier_id;
   const supplierName = optionalTrimmedText(body.supplier_name ?? body.supplierName) ?? "";
   const supplierPhone = optionalTrimmedText(body.supplier_phone ?? body.supplierPhone) ?? null;
   const supplierGstin = optionalTrimmedText(body.supplier_gstin ?? body.supplierGstin) ?? null;
@@ -2246,6 +2400,10 @@ function validateCommercialDocumentPayload(body: unknown, documentType: "quotati
 
   if (customerId !== null && !Number.isInteger(customerId)) {
     errors.push("customer_id must be an integer or null.");
+  }
+
+  if (supplierId !== null && !Number.isInteger(supplierId)) {
+    errors.push("supplier_id must be an integer or null.");
   }
 
   if (documentType === "purchase" && !supplierName) {
@@ -2282,6 +2440,7 @@ function validateCommercialDocumentPayload(body: unknown, documentType: "quotati
     ok: true,
     document: {
       customerId: customerId as number | null,
+      supplierId: supplierId as number | null,
       supplierName,
       supplierPhone,
       supplierGstin,
@@ -2382,6 +2541,11 @@ function validateCommercialLine(value: unknown, index: number, errors: string[])
 
   const itemId = value.item_id === undefined || value.item_id === null ? null : value.item_id;
   const description = requiredText(value.description, `lines[${index}].description`, errors);
+  const category = optionalTrimmedText(value.category) ?? "Purchase Stock";
+  const quantity = value.quantity === undefined || value.quantity === null
+    ? 1
+    : requiredPositiveInteger(value.quantity, `lines[${index}].quantity`, errors);
+  const stockMode = (optionalTrimmedText(value.stock_mode ?? value.stockMode) ?? "PIECES").toUpperCase() === "LOT" ? "LOT" : "PIECES";
   const metalType = optionalTrimmedText(value.metal_type ?? value.metalType) ?? "Gold";
   const purityKarat = requiredPositiveInteger(value.purity_karat ?? value.purityKarat, `lines[${index}].purity_karat`, errors);
   const grossWeightMg = requiredPositiveInteger(value.gross_weight_mg ?? value.grossWeightMg, `lines[${index}].gross_weight_mg`, errors);
@@ -2396,17 +2560,24 @@ function validateCommercialLine(value: unknown, index: number, errors: string[])
     errors.push(`lines[${index}].item_id must be an integer or null.`);
   }
 
+  if (quantity !== undefined && quantity > 500) {
+    errors.push(`lines[${index}].quantity cannot exceed 500.`);
+  }
+
   if (grossWeightMg !== undefined && netWeightMg !== undefined && netWeightMg > grossWeightMg) {
     errors.push(`lines[${index}].net_weight_mg cannot exceed gross_weight_mg.`);
   }
 
-  if (!description || purityKarat === undefined || grossWeightMg === undefined || netWeightMg === undefined || metalRatePaisePerGram === undefined || lineTotalPaise === undefined) {
+  if (!description || purityKarat === undefined || quantity === undefined || grossWeightMg === undefined || netWeightMg === undefined || metalRatePaisePerGram === undefined || lineTotalPaise === undefined) {
     return undefined;
   }
 
   return {
     itemId: itemId as number | null,
     description,
+    category,
+    quantity,
+    stockMode,
     metalType,
     purityKarat,
     grossWeightMg,
