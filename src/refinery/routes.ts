@@ -9,8 +9,20 @@ import {
   refineryTransfers
 } from "../db/schema.js";
 import { paiseToRupees, milligramsToGrams } from "../utils/decimal.js";
+import { postBalancedVoucher } from "../accounts/posting.js";
 
 export const refineryRouter = Router();
+
+// Cash/bank ledger a refining charge is paid out of, by payment mode.
+function refiningSettlementLedger(mode: string): { ledgerName: string; accountType: "CASH" | "BANK" } {
+  const normalized = mode.trim().toUpperCase();
+  if (normalized === "UPI") return { ledgerName: "UPI Bank", accountType: "BANK" };
+  if (normalized === "CARD") return { ledgerName: "Card Bank", accountType: "BANK" };
+  if (normalized === "BANK" || normalized === "NEFT" || normalized === "RTGS" || normalized === "CHEQUE") {
+    return { ledgerName: "Bank", accountType: "BANK" };
+  }
+  return { ledgerName: "Cash", accountType: "CASH" };
+}
 
 // Protect all refinery routes to ADMIN and MANAGER
 refineryRouter.use(requireAuth);
@@ -251,6 +263,37 @@ refineryRouter.post("/receipts", (request, response) => {
           })
           .returning()
           .get();
+      }
+
+      // Post the refining charge to the shop ledger so it reaches the Day Book and
+      // the end-of-day cash tally — DEBIT Refining Charges (expense) / CREDIT the
+      // cash/bank account it was paid from. (The refinery's own cash_balance above is
+      // a separate per-refinery tracker, not the shop's books.) Skip when no charge.
+      if (chargesPaise > 0) {
+        const settlement = refiningSettlementLedger(paymentMode);
+        postBalancedVoucher(tx, {
+          voucherType: "REFINERY_CHARGE",
+          referenceType: "REFINERY_RECEIPT",
+          referenceId: receipt.id,
+          narration: `Refining charges paid to ${refinery.name}`,
+          createdBy: userId,
+          lines: [
+            {
+              ledgerName: "Refining Charges",
+              accountType: "EXPENSE",
+              transactionType: "DEBIT",
+              amountPaise: chargesPaise,
+              description: `Refining charge (${refinery.name})`
+            },
+            {
+              ledgerName: settlement.ledgerName,
+              accountType: settlement.accountType,
+              transactionType: "CREDIT",
+              amountPaise: chargesPaise,
+              description: `Refining charge paid (${paymentMode})`
+            }
+          ]
+        });
       }
 
       return { receipt, bullionItem };
