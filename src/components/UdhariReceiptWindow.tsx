@@ -69,7 +69,10 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
   const balanceAfterPaise = selectedCustomer ? selectedCustomer.balance_paise - amountPaise : 0;
   const isAdvanceCredit = selectedCustomer !== null && balanceAfterPaise < 0;
   const isFullyCleared = selectedCustomer !== null && amountPaise > 0 && balanceAfterPaise === 0;
-  const canSave = Boolean(selectedCustomer && amountPaise > 0 && !saving);
+  // Gate only on customer selection + not-saving (not on amount) so a zero/blank
+  // amount produces a visible "enter a positive amount" error on click instead of a
+  // silently disabled button.
+  const canSave = Boolean(selectedCustomer && !saving);
 
   useEffect(() => {
     const id = window.setTimeout(() => { void loadCustomers(search); }, 180);

@@ -793,7 +793,9 @@ accountsRouter.get("/ledger-report", requireAdmin, (request, response) => {
           )
         )
         .all();
-      counterparts = mates.map(m => m.ledgerName).filter((name): name is string => name !== null);
+      // Dedupe: entries that share a reference_id (e.g. several udhari receipts keyed
+      // by customer id) would otherwise repeat the same counterpart ledger name N times.
+      counterparts = [...new Set(mates.map(m => m.ledgerName).filter((name): name is string => name !== null))];
     }
 
     return {
@@ -921,7 +923,8 @@ accountsRouter.get("/ledger-report/pdf", requireAdmin, async (request, response)
         .leftJoin(ledgers, eq(journalEntries.ledger_id, ledgers.id))
         .where(and(eq(journalEntries.reference_type, entry.reference_type), eq(journalEntries.reference_id, entry.reference_id), eq(journalEntries.transaction_type, entry.transaction_type === "DEBIT" ? "CREDIT" : "DEBIT")))
         .all();
-      counterparts = mates.map(m => m.ledgerName).filter((name): name is string => name !== null);
+      // Dedupe repeated counterpart names from entries sharing a reference_id.
+      counterparts = [...new Set(mates.map(m => m.ledgerName).filter((name): name is string => name !== null))];
     }
 
     return {
