@@ -98,6 +98,8 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
   const [devices, setDevices] = useState<Device[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertFilter, setAlertFilter] = useState<"OPEN" | "ACKNOWLEDGED" | "RESOLVED" | "ALL">("OPEN");
+  const alertFilterRef = useRef(alertFilter);
   const [sessions, setSessions] = useState<TraySession[]>([]);
   const [selectedTrayItems, setSelectedTrayItems] = useState<TrayItem[]>([]);
 
@@ -230,10 +232,18 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
   }
 
   async function loadAlerts() {
-    const response = await fetch(`${apiBaseUrl}/api/hardware/anti-theft/alerts?status=OPEN`, { headers: authHeaders });
+    const response = await fetch(`${apiBaseUrl}/api/hardware/anti-theft/alerts?status=${alertFilterRef.current}`, { headers: authHeaders });
     const result = (await response.json().catch(() => null)) as { alerts?: Alert[] } | null;
     if (response.ok && result?.alerts) setAlerts(result.alerts);
   }
+
+  // Reload the alert list whenever the status filter changes (ref keeps the live
+  // WebSocket-driven reloads honouring the current filter too).
+  useEffect(() => {
+    alertFilterRef.current = alertFilter;
+    void loadAlerts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alertFilter]);
 
   async function loadSessions() {
     const response = await fetch(`${apiBaseUrl}/api/hardware/trays/sessions/open`, { headers: authHeaders });
@@ -830,36 +840,17 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                   </button>
                 </div>
 
-                {/* Add barcode manual simulator inside tray */}
+                {/* Add a barcode/HUID to the open tray (scanner gun types here too). */}
                 {activeTrayId && (
                   <form onSubmit={addTrayItem} className="mt-4 flex gap-3 border-b border-slate-800 pb-4">
                     <input
                       placeholder="Add barcode/HUID to tray..."
                       value={trayItemCode}
-                      onChange={(e) => setSimulatorBarcode(e.target.value.toUpperCase())} // helper duplicate
+                      onChange={(e) => setTrayItemCode(e.target.value.toUpperCase())}
                       className="h-8 w-64 border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none rounded font-mono focus:border-emerald-500"
-                    />
-                    <input
-                      type="hidden"
-                      value={trayItemCode} // sync
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // Quick scan trigger helper
-                        if (simulatorBarcode.trim()) {
-                          setTrayItemCode(simulatorBarcode.trim());
-                        }
-                      }}
-                      className="hidden"
                     />
                     <button
                       type="submit"
-                      onClick={() => {
-                        if (simulatorBarcode.trim()) {
-                          setTrayItemCode(simulatorBarcode.trim().toUpperCase());
-                        }
-                      }}
                       className="h-8 bg-slate-800 border border-slate-700 hover:bg-slate-700 font-bold px-4 rounded text-xs text-slate-200"
                     >
                       Scan into Tray
@@ -911,12 +902,26 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
           {/* Tab 3: Anti-Theft Response Center */}
           {activeTab === "alerts" && (
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-              <h2 className="text-sm font-semibold uppercase text-slate-50 mb-4">Active Security Alarms & Theft Alerts</h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase text-slate-50">Security Alarms & Theft Alerts</h2>
+                <div className="flex gap-1">
+                  {(["OPEN", "ACKNOWLEDGED", "RESOLVED", "ALL"] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setAlertFilter(s)}
+                      className={`h-7 rounded px-2.5 text-[10px] font-bold uppercase border transition ${alertFilter === s ? "border-emerald-500 bg-emerald-500 text-slate-50" : "border-slate-700 text-slate-400 hover:border-slate-500"}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="overflow-auto min-h-[400px]">
                 {alerts.length === 0 ? (
                   <div className="text-center py-16 text-slate-500 space-y-2">
                     <ShieldCheck className="h-10 w-10 text-emerald-500 mx-auto" />
-                    <p className="text-xs">No active alerts. Showroom security status is SECURE.</p>
+                    <p className="text-xs">No {alertFilter === "ALL" ? "" : alertFilter.toLowerCase() + " "}alerts.</p>
                   </div>
                 ) : (
                   <table className="w-full text-left text-xs text-slate-300">
@@ -941,18 +946,25 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                           </td>
                           <td className="py-3">{alert.description}</td>
                           <td className="py-3 text-right">
-                            <button
-                              onClick={() => updateAlert(alert.id, "ACKNOWLEDGED")}
-                              className="h-6 px-3 bg-slate-950 hover:bg-amber-950 border border-slate-800 hover:border-amber-800 text-amber-300 font-semibold rounded text-[10px] uppercase transition mr-2"
-                            >
-                              Ack
-                            </button>
-                            <button
-                              onClick={() => updateAlert(alert.id, "RESOLVED")}
-                              className="h-6 px-3 bg-slate-950 hover:bg-emerald-950 border border-slate-800 hover:border-emerald-800 text-emerald-400 font-semibold rounded text-[10px] uppercase transition"
-                            >
-                              Resolve
-                            </button>
+                            {alert.status === "OPEN" && (
+                              <button
+                                onClick={() => updateAlert(alert.id, "ACKNOWLEDGED")}
+                                className="h-6 px-3 bg-slate-950 hover:bg-amber-950 border border-slate-800 hover:border-amber-800 text-amber-300 font-semibold rounded text-[10px] uppercase transition mr-2"
+                              >
+                                Ack
+                              </button>
+                            )}
+                            {(alert.status === "OPEN" || alert.status === "ACKNOWLEDGED") && (
+                              <button
+                                onClick={() => updateAlert(alert.id, "RESOLVED")}
+                                className="h-6 px-3 bg-slate-950 hover:bg-emerald-950 border border-slate-800 hover:border-emerald-800 text-emerald-400 font-semibold rounded text-[10px] uppercase transition"
+                              >
+                                Resolve
+                              </button>
+                            )}
+                            {alert.status === "RESOLVED" && (
+                              <span className="text-[10px] uppercase text-emerald-400 font-semibold">Resolved</span>
+                            )}
                           </td>
                         </tr>
                       ))}
