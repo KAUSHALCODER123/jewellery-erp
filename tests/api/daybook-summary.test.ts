@@ -57,6 +57,35 @@ describe("Reports day-book summary", () => {
     expect(recon.cash_received_paise).toBeGreaterThanOrEqual(6000000);
   });
 
+  it("reports cash-in-hand as of the viewed date, not the live balance", async () => {
+    // Take cash today.
+    const itemTotalPaise = 6000000;
+    const checkout = await request(app)
+      .post("/api/pos/checkout")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        customer_id: null,
+        cartItems: [
+          { itemId: 1, barcode: "ITEM-001", metalType: "Gold", purityKarat: 22, grossWeightMg: 10000, netWeightMg: 10000, stoneWeightMg: 0, metalRatePaisePerGram: 600000, makingChargePaise: 0, wastageChargePaise: 0, gstPaise: 0, itemTotalPaise }
+        ],
+        urdItems: [],
+        totals: { grossTotalPaise: itemTotalPaise, discountPaise: 0, urdDeductionPaise: 0, netPayablePaise: itemTotalPaise, gstPaise: 0 },
+        payments: { cash: itemTotalPaise, upi: 0, card: 0, udhari: 0, gssCredit: 0 },
+        paymentReferences: { cash: null, upi: null, card: null, cheque: null, dd: null, neft: null, bankName: null },
+        invoice: { billPrefix: null, manualNumber: null, dueDate: null, salesmanName: "Test", gstNotRequired: false, placeOfSupplyStateCode: null, gstSupplyType: null },
+        kyc: { panNumber: null, aadhaarNumber: null, documentImagePath: null }
+      });
+    expect(checkout.status).toBe(201);
+
+    // A far-past date predates that cash, so cash-in-hand must read 0 there.
+    const past = await request(app)
+      .get("/api/reports/daybook-summary?date=2020-01-01")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(past.status).toBe(200);
+    expect(past.body.cash_in_hand_paise).toBe(0);
+    expect(past.body.bank_balance_paise).toBe(0);
+  });
+
   it("records an expense and reflects it in day-book cash reconciliation", async () => {
     const create = await request(app)
       .post("/api/accounts/expenses")

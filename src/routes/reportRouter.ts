@@ -79,17 +79,6 @@ reportRouter.get("/daybook-summary", (request, response) => {
       .where(eq(jobReceipts.receive_date, date))
   );
 
-  const cashInHandPaise = scalar(
-    db.select({ total: sql<number>`COALESCE(SUM(${ledgers.balance_paise}), 0)` })
-      .from(ledgers)
-      .where(eq(ledgers.account_type, "CASH"))
-  );
-  const bankBalancePaise = scalar(
-    db.select({ total: sql<number>`COALESCE(SUM(${ledgers.balance_paise}), 0)` })
-      .from(ledgers)
-      .where(eq(ledgers.account_type, "BANK"))
-  );
-
   // Day's money movement split by till type, from journal postings on CASH vs BANK ledgers.
   // DEBIT = money in (receipts), CREDIT = money out (payments). UPI/Card/Cheque all post to BANK.
   const tillFlow = (accountType: "CASH" | "BANK", direction: "DEBIT" | "CREDIT") =>
@@ -116,6 +105,17 @@ reportRouter.get("/daybook-summary", (request, response) => {
   const cashOpeningPaise = cashNetBefore("DEBIT") - cashNetBefore("CREDIT");
   const cashClosingPaise = cashOpeningPaise + cashReceivedPaise - cashPaidPaise;
 
+  // Bank balance as of the viewed date (same reconstruction as cash) so the card
+  // reflects the selected day rather than the live current balance.
+  const bankNetBefore = (direction: "DEBIT" | "CREDIT") =>
+    scalar(
+      db.select({ total: sql<number>`COALESCE(SUM(${journalEntries.amount_paise}), 0)` })
+        .from(journalEntries)
+        .innerJoin(ledgers, eq(journalEntries.ledger_id, ledgers.id))
+        .where(sql`${ledgers.account_type} = 'BANK' AND ${journalEntries.transaction_type} = ${direction} AND ${journalEntries.created_at} < ${start}`)
+    );
+  const bankClosingPaise = (bankNetBefore("DEBIT") - bankNetBefore("CREDIT")) + bankReceivedPaise - bankPaidPaise;
+
   const totalExpensesPaise = scalar(
     db.select({ total: sql<number>`COALESCE(SUM(${expenses.amount_paise}), 0)` })
       .from(expenses)
@@ -135,8 +135,8 @@ reportRouter.get("/daybook-summary", (request, response) => {
     total_expenses_paise: totalExpensesPaise,
     karigar_issued_fine_mg: karigarIssuedFineMg,
     karigar_received_fine_mg: karigarReceivedFineMg,
-    cash_in_hand_paise: cashInHandPaise,
-    bank_balance_paise: bankBalancePaise,
+    cash_in_hand_paise: cashClosingPaise,
+    bank_balance_paise: bankClosingPaise,
     payment_modes: {
       cash_received_paise: cashReceivedPaise,
       cash_paid_paise: cashPaidPaise,

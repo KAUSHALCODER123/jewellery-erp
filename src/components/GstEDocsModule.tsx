@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileCheck2, QrCode, Search, Truck, X } from "lucide-react";
+import { FileCheck2, Printer, QrCode, Search, Truck, X } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { withDocumentToken } from "../utils/documentAuth.js";
 
 type Props = { apiBaseUrl?: string };
 
@@ -238,6 +239,20 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
               <div>
                 <h2 className="font-mono text-lg font-semibold text-slate-50">{selected.invoice_number}</h2>
                 <p className="text-[11px] text-slate-400">{selected.customer_name} · Rs {selected.total_rupees} · {selected.customer_gstin ? `GSTIN ${selected.customer_gstin}` : "B2C (no buyer GSTIN)"}</p>
+              </div>
+              {/* Reprint the invoice PDF outside the POS checkout moment. */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase text-slate-500">Reprint</span>
+                {(["a4", "a5", "thermal"] as const).map((fmt) => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    onClick={() => window.open(withDocumentToken(`${apiBaseUrl}/api/documents/invoice/${selected.id}/${fmt}`), "_blank", "noopener,noreferrer")}
+                    className="flex h-8 items-center gap-1 rounded border border-slate-700 px-2 text-[11px] font-semibold uppercase text-slate-300 hover:border-emerald-400 hover:text-emerald-300"
+                  >
+                    <Printer size={12} /> {fmt}
+                  </button>
+                ))}
               </div>
             </div>
 

@@ -151,11 +151,21 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
         aggregate: groupBy && aggregateField ? { field: aggregateField, type: "SUM" } : undefined
       };
 
-      const res = await fetch(`${apiBaseUrl}/api/reports/builder/query`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify(payload)
-      });
+      // Guard against a build that never returns: abort after 20s so the button can
+      // never lock the page in "Calculating…" forever, and surface a clear message.
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 20000);
+      let res: Response;
+      try {
+        res = await fetch(`${apiBaseUrl}/api/reports/builder/query`, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
       const data = await res.json();
 
       if (!res.ok) {
@@ -171,7 +181,8 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
         sumPaidPaise: 0
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error executing custom query.");
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      setError(aborted ? "Report timed out — try narrowing the date range or filters." : (err instanceof Error ? err.message : "Error executing custom query."));
       setRows([]);
     } finally {
       setLoading(false);
@@ -215,9 +226,21 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
     }
   }
 
+  // CSV-friendly value: currency in rupees, weight in grams (plain numbers, no symbols),
+  // so Excel users see ₹/g amounts rather than raw paise/mg integers.
+  function formatCsvValue(val: any, colKey: string) {
+    if (val === null || val === undefined) return "";
+    const def = columnMap[dataSource].find((c) => c.key === colKey);
+    if (def?.type === "currency") return (Number(val) / 100).toFixed(2);
+    if (def?.type === "weight") return (Number(val) / 1000).toFixed(3);
+    if (def?.type === "date") return String(val).slice(0, 10);
+    return String(val);
+  }
+
   function exportCSV() {
     if (rows.length === 0) return;
-    
+
+    const quote = (v: any) => `"${String(v).replace(/"/g, '""')}"`;
     let csvContent = "";
     // If grouped
     if (groupBy) {
@@ -226,14 +249,14 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
         headers.push(`Sum of ${aggregateField}`);
       }
       csvContent += headers.join(",") + "\n";
-      
+
       for (const row of rows) {
         const line = [
-          `"${row.group_value || ""}"`,
+          quote(row.group_value || ""),
           row.count
         ];
         if (aggregateField) {
-          line.push(row[aggregateField]);
+          line.push(quote(formatCsvValue(row[aggregateField], aggregateField)));
         }
         csvContent += line.join(",") + "\n";
       }
@@ -246,11 +269,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
 
       // Rows
       for (const row of rows) {
-        const line = selectedColumns.map((colKey) => {
-          let val = row[colKey];
-          if (val === null || val === undefined) return '""';
-          return `"${String(val).replace(/"/g, '""')}"`;
-        });
+        const line = selectedColumns.map((colKey) => quote(formatCsvValue(row[colKey], colKey)));
         csvContent += line.join(",") + "\n";
       }
     }
