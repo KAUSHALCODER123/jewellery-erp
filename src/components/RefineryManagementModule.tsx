@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import { Toaster, useToasts } from "./ui.js";
 
 type RefineryManagementModuleProps = {
   apiBaseUrl?: string;
@@ -102,6 +103,17 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
   const [message, setMessage] = useState("");
   const [lastChallanTransferId, setLastChallanTransferId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const { toasts, push, dismiss } = useToasts();
+
+  // Mirror every error/success into a fixed-position toast so feedback is always
+  // visible — the inline banner sits at the top of the page, far from the forms,
+  // so blocked actions (over-balance, duplicate barcode, bad input) looked silent.
+  useEffect(() => {
+    if (error) push(error, "bad");
+  }, [error, push]);
+  useEffect(() => {
+    if (message) push(message, "good");
+  }, [message, push]);
 
   // URD Melting Integration State
   const [issueMode, setIssueMode] = useState<"manual" | "urd">("manual");
@@ -309,9 +321,31 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
 
     const fineGoldReceivedMg = gramsToMg(receiveForm.fineGoldReceivedGrams);
     const chargesPaise = rupeesToPaise(receiveForm.chargesRupees);
+    const chargesRaw = receiveForm.chargesRupees.trim();
+    const chargesNum = Number(chargesRaw);
+    const selectedRefinery = refineriesList.find((r) => String(r.id) === receiveForm.refineryId);
 
-    if (!receiveForm.refineryId || fineGoldReceivedMg < 0 || chargesPaise < 0) {
-      setError("Refinery, valid received weight, and charges are required.");
+    if (!receiveForm.refineryId || !selectedRefinery) {
+      setError("Select a refinery.");
+      return;
+    }
+    // F7: reject negative charges instead of silently coercing them to zero.
+    if (chargesRaw !== "" && (!Number.isFinite(chargesNum) || chargesNum < 0)) {
+      setError("Refining charges cannot be negative.");
+      return;
+    }
+    if (fineGoldReceivedMg < 0) {
+      setError("Enter a valid received weight.");
+      return;
+    }
+    // F9: don't post an empty receipt with nothing to record.
+    if (fineGoldReceivedMg === 0 && chargesPaise === 0) {
+      setError("Enter the fine gold received and/or the refining charges.");
+      return;
+    }
+    // F6: never let a receipt drive the refinery's fine-gold balance negative.
+    if (fineGoldReceivedMg > selectedRefinery.fine_gold_balance_mg) {
+      setError(`Cannot receive more than the refinery's outstanding balance (${formatMg(selectedRefinery.fine_gold_balance_mg)}).`);
       return;
     }
 
@@ -801,6 +835,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                         <th className="px-2 py-2 text-right">Cash Delta</th>
                         <th className="px-2 py-2 text-right">Fine Gold Balance</th>
                         <th className="px-2 py-2 text-right">Cash Balance</th>
+                        <th className="px-2 py-2 text-center">Challan</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -813,7 +848,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                             </span>
                           </td>
                           <td className="px-2 py-2.5 text-slate-200 font-sans truncate max-w-[200px]" title={event.description}>{event.description}</td>
-                          <td className={`px-2 py-2.5 text-right font-semibold ${event.fine_gold_delta_mg > 0 ? "text-red-400" : event.fine_gold_delta_mg < 0 ? "text-emerald-400" : "text-slate-400"}`}>
+                          <td className={`px-2 py-2.5 text-right font-semibold ${event.fine_gold_delta_mg > 0 ? "text-emerald-400" : event.fine_gold_delta_mg < 0 ? "text-rose-400" : "text-slate-400"}`}>
                             {event.fine_gold_delta_mg > 0 ? "+" : ""}{event.fine_gold_delta_grams} g
                           </td>
                           <td className={`px-2 py-2.5 text-right font-semibold ${event.cash_delta_paise > 0 ? "text-amber-400" : "text-slate-400"}`}>
@@ -821,6 +856,19 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                           </td>
                           <td className="px-2 py-2.5 text-right text-slate-300 font-bold">{event.running_fine_gold_grams} g</td>
                           <td className="px-2 py-2.5 text-right text-slate-300 font-bold">{event.running_cash_rupees}</td>
+                          <td className="px-2 py-2.5 text-center font-sans">
+                            {event.type === "TRANSFER" ? (
+                              <button
+                                type="button"
+                                className="rounded border border-blue-900 bg-blue-950/60 px-2 py-0.5 text-[10px] font-bold text-blue-300 hover:bg-blue-900/60"
+                                onClick={() => window.open(withDocumentToken(`${apiBaseUrl}/api/documents/refinery/transfer/${event.ref_id}/challan`), "_blank", "noopener,noreferrer")}
+                              >
+                                Challan
+                              </button>
+                            ) : (
+                              <span className="text-slate-600">—</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -831,6 +879,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
           </div>
         )}
       </main>
+      <Toaster toasts={toasts} onDismiss={dismiss} />
     </section>
   );
 }
