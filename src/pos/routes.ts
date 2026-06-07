@@ -1848,7 +1848,11 @@ function validateStandaloneUrdVoucherPayload(body: unknown): StandaloneUrdVouche
       paymentReference,
       panNumber,
       aadhaarNumber,
-      kycVerified: Boolean(panNumber && aadhaarNumber)
+      // KYC always starts UNVERIFIED — capturing PAN/Aadhaar is not the same as
+      // verifying them. An explicit verify step (POST /urd-vouchers/:id/verify-kyc)
+      // is required before stock ingestion, so the ingest-before-verify gate is
+      // always enforced (and testable) regardless of which documents were supplied.
+      kycVerified: false
     }
   };
 }
