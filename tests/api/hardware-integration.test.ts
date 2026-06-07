@@ -371,6 +371,15 @@ describe("Hardware Integration and Security Workflows API", () => {
       );
       expect(trayAlert).toBeDefined();
       expect(trayAlert.barcode).toBe("ITEM-002");
+
+      // Tray return + close are now written to the scan-audit history.
+      const auditRes = await request(app)
+        .get("/api/hardware/scans/audit?limit=200")
+        .set("Authorization", `Bearer ${staffToken}`);
+      expect(auditRes.status).toBe(200);
+      const results = auditRes.body.logs.map((l: { result: string }) => l.result);
+      expect(results).toContain("RETURNED_TO_TRAY");
+      expect(results.some((r: string) => r.startsWith("TRAY_CLOSED"))).toBe(true);
     });
   });
 

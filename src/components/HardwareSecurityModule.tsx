@@ -100,6 +100,9 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertFilter, setAlertFilter] = useState<"OPEN" | "ACKNOWLEDGED" | "RESOLVED" | "ALL">("OPEN");
   const alertFilterRef = useRef(alertFilter);
+  const [manualAlertDesc, setManualAlertDesc] = useState("");
+  const [manualAlertSeverity, setManualAlertSeverity] = useState("HIGH");
+  const [manualAlertBarcode, setManualAlertBarcode] = useState("");
   const [sessions, setSessions] = useState<TraySession[]>([]);
   const [selectedTrayItems, setSelectedTrayItems] = useState<TrayItem[]>([]);
 
@@ -329,9 +332,12 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
   // Exit Gate Simulator print scan
   async function simulateExitGateScan(e: FormEvent) {
     e.preventDefault();
-    if (!simulatorBarcode.trim()) return;
     setSimulatorSuccess(null);
     setSimulatorError(null);
+    if (!simulatorBarcode.trim()) {
+      setSimulatorError("Enter a barcode/tag to scan at the gate.");
+      return;
+    }
 
     const activeGate = devices.find(d => d.id === simulatorDevice) || {
       id: 0,
@@ -555,6 +561,33 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
     }
   }
 
+  async function raiseManualAlert(e: FormEvent) {
+    e.preventDefault();
+    setMessage("");
+    setError("");
+    if (!manualAlertDesc.trim()) { setError("Enter a description for the manual alert."); return; }
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/hardware/anti-theft/alerts`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alert_type: "MANUAL_ALERT",
+          description: manualAlertDesc.trim(),
+          severity: manualAlertSeverity,
+          barcode: manualAlertBarcode.trim() || undefined
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.errors?.join(" ") || "Could not raise alert.");
+      setMessage("Manual alert raised.");
+      setManualAlertDesc("");
+      setManualAlertBarcode("");
+      await loadAlerts();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not raise alert.");
+    }
+  }
+
   // Acknowledge or Resolve Alert
   async function updateAlert(alertId: number, status: "ACKNOWLEDGED" | "RESOLVED") {
     setMessage("");
@@ -608,7 +641,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
       const result = await response.json();
       if (!response.ok) throw new Error(result.errors?.join(" ") || "Failed to trigger print job.");
       
-      setMessage(`Barcode print job dispatched successfully. Status: ${result.job.status}`);
+      setMessage(`Barcode print job dispatched. Status: ${result.job.status}${result.job.dispatch_mode ? ` · ${result.job.dispatch_mode === "CONFIGURED_DEVICE" ? "sent to device" : "browser print"}` : ""}`);
       await loadLogs();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to print label.");
@@ -917,6 +950,28 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                   ))}
                 </div>
               </div>
+              <form onSubmit={raiseManualAlert} className="mb-4 flex flex-wrap items-end gap-2 rounded border border-slate-800 bg-slate-950 p-2">
+                <input
+                  placeholder="Manual alert description…"
+                  value={manualAlertDesc}
+                  onChange={(e) => setManualAlertDesc(e.target.value)}
+                  className="h-8 min-w-[220px] flex-1 border border-slate-700 bg-slate-900 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
+                />
+                <input
+                  placeholder="Barcode (optional)"
+                  value={manualAlertBarcode}
+                  onChange={(e) => setManualAlertBarcode(e.target.value.toUpperCase())}
+                  className="h-8 w-40 border border-slate-700 bg-slate-900 px-2 text-xs font-mono text-slate-50 rounded outline-none focus:border-emerald-500"
+                />
+                <select
+                  value={manualAlertSeverity}
+                  onChange={(e) => setManualAlertSeverity(e.target.value)}
+                  className="h-8 border border-slate-700 bg-slate-900 px-2 text-xs text-slate-50 rounded outline-none"
+                >
+                  {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <button type="submit" className="h-8 rounded bg-emerald-500 px-3 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-600">Raise Alert</button>
+              </form>
               <div className="overflow-auto min-h-[400px]">
                 {alerts.length === 0 ? (
                   <div className="text-center py-16 text-slate-500 space-y-2">

@@ -279,6 +279,7 @@ hardwareRouter.post("/trays/sessions/:id/items", requireAuth, (request, response
 });
 
 hardwareRouter.post("/trays/sessions/:id/return", requireAuth, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
   const sessionId = parsePositiveInteger(request.params.id);
   if (!sessionId) return response.status(400).json({ errors: ["Tray session id must be a positive integer."] });
 
@@ -300,6 +301,17 @@ hardwareRouter.post("/trays/sessions/:id/return", requireAuth, (request, respons
     .where(eq(smartTrayItems.id, trayItem.id))
     .returning()
     .get();
+
+  const session = db.query.smartTraySessions.findFirst({ where: eq(smartTraySessions.id, sessionId) }).sync();
+  db.insert(scannerAuditLogs).values({
+    event_type: "TRAY_SCAN",
+    source_device_id: session?.device_id ?? null,
+    barcode: returned.barcode,
+    item_id: returned.item_id,
+    result: "RETURNED_TO_TRAY",
+    context: session ? `TRAY:${session.tray_code}` : null,
+    user_id: authUser.id
+  }).run();
 
   return response.json({ tray_item: returned });
 });
@@ -332,6 +344,15 @@ hardwareRouter.post("/trays/sessions/:id/close", requireAuth, (request, response
     .where(eq(smartTraySessions.id, sessionId))
     .returning()
     .get();
+
+  db.insert(scannerAuditLogs).values({
+    event_type: "TRAY_SCAN",
+    source_device_id: session.device_id,
+    barcode: null,
+    result: outstanding.length > 0 ? `TRAY_CLOSED_${outstanding.length}_OUTSTANDING` : "TRAY_CLOSED_CLEAN",
+    context: `TRAY:${session.tray_code}`,
+    user_id: authUser.id
+  }).run();
 
   return response.json({ session: closed, outstanding_items: outstanding });
 });
