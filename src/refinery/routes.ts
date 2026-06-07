@@ -198,6 +198,14 @@ refineryRouter.post("/receipts", (request, response) => {
     return response.status(404).json({ errors: ["Refinery not found."] });
   }
 
+  // A receipt can never return more fine gold than the refinery is holding —
+  // that would drive its outstanding balance negative.
+  if (fineGoldReceivedMg > refinery.fine_gold_balance_mg) {
+    return response.status(400).json({
+      errors: [`Cannot receive ${milligramsToGrams(fineGoldReceivedMg)} g; only ${milligramsToGrams(refinery.fine_gold_balance_mg)} g is outstanding at this refinery.`]
+    });
+  }
+
   // A custom barcode must be unique across the stock catalog.
   if (customBarcode) {
     const duplicate = db.query.items.findFirst({ where: eq(items.barcode, customBarcode) }).sync();

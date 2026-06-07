@@ -53,10 +53,22 @@ describe("refinery receipt posts refining charges to accounting", () => {
     const receipt = await request(app)
       .post("/api/refineries/receipts")
       .set("Authorization", `Bearer ${adminToken}`)
-      .send({ refinery_id: refineryId, fine_gold_received_mg: 1000, charges_paise: 0, payment_mode: "CASH", add_to_stock: false });
+      .send({ refinery_id: refineryId, fine_gold_received_mg: 0, charges_paise: 0, payment_mode: "CASH", add_to_stock: false });
     expect(receipt.status).toBe(201);
 
     const voucher = db.select().from(voucherHeaders).where(eq(voucherHeaders.reference_id, receipt.body.receipt.id)).get();
     expect(voucher).toBeUndefined();
+  });
+
+  it("rejects a receipt that exceeds the refinery's outstanding fine-gold balance", async () => {
+    const refineryId = await createRefinery("Test Refinery C"); // starts at 0 g balance
+
+    const receipt = await request(app)
+      .post("/api/refineries/receipts")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ refinery_id: refineryId, fine_gold_received_mg: 1000, charges_paise: 0, payment_mode: "CASH", add_to_stock: false });
+
+    expect(receipt.status).toBe(400);
+    expect(receipt.body.errors.join(" ")).toMatch(/only .* g is outstanding/i);
   });
 });
