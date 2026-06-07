@@ -337,6 +337,13 @@
       "when": 1780902080000,
       "tag": "0047_einvoice_ewaybill",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1780902190000,
+      "tag": "0048_udhari_ledger_merge",
+      "breakpoints": true
     }
   ]
 }
