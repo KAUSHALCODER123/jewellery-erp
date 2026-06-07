@@ -141,9 +141,9 @@ metalLoanRouter.post("/", (req, res) => {
     fineWeightMg = Math.round((grossWeightMg * purityBasisPoints) / 10000);
   }
 
-  if (!Number.isInteger(supplierId) || supplierId <= 0) errors.push("supplier_id is required.");
-  if (purityBasisPoints <= 0 || purityBasisPoints > 10000) errors.push("purity_basis_points must be between 1 and 10000.");
-  if (fineWeightMg <= 0) errors.push("Provide fine_weight_mg, or gross_weight_mg with purity to derive it.");
+  if (!Number.isInteger(supplierId) || supplierId <= 0) errors.push("Select a supplier.");
+  if (purityBasisPoints <= 0 || purityBasisPoints > 10000) errors.push("Purity must be between 0.01% and 100%.");
+  if (fineWeightMg <= 0) errors.push("Enter a gross weight and purity (or the fine weight) for the loan.");
 
   if (errors.length === 0) {
     const supplier = db.query.suppliers.findFirst({ where: eq(suppliers.id, supplierId) }).sync();
@@ -202,9 +202,9 @@ metalLoanRouter.post("/:id/fix", (req, res) => {
   let fineWeightFixedMg = Number.isInteger(Number(body.fine_weight_fixed_mg)) ? Number(body.fine_weight_fixed_mg) : 0;
   if (fixAll) fineWeightFixedMg = loan.fine_outstanding_mg;
 
-  if (!Number.isInteger(ratePaisePerGram) || ratePaisePerGram <= 0) errors.push("rate_paise_per_gram must be a positive integer.");
-  if (!Number.isInteger(fineWeightFixedMg) || fineWeightFixedMg <= 0) errors.push("fine_weight_fixed_mg must be a positive integer.");
-  if (fineWeightFixedMg > loan.fine_outstanding_mg) errors.push(`Cannot fix ${fineWeightFixedMg} mg; only ${loan.fine_outstanding_mg} mg outstanding.`);
+  if (!Number.isInteger(ratePaisePerGram) || ratePaisePerGram <= 0) errors.push("Enter the rate per gram (in rupees).");
+  if (!Number.isInteger(fineWeightFixedMg) || fineWeightFixedMg <= 0) errors.push("Enter the fine weight to fix (in grams).");
+  if (fineWeightFixedMg > loan.fine_outstanding_mg) errors.push(`Cannot fix ${milligramsToGrams(fineWeightFixedMg)} g; only ${milligramsToGrams(loan.fine_outstanding_mg)} g outstanding.`);
 
   if (errors.length > 0) {
     return res.status(400).json({ errors });

@@ -76,4 +76,41 @@ describe("metal loan rate fix posts to accounting", () => {
     // Sum of the two fixings, not a blended average: 26,000,000 + 39,593,400 = 65,593,400
     expect(vendorLedger?.balance_paise).toBe(-65593400);
   });
+
+  // Test 09 polish: validation messages must read in human terms, not leak raw
+  // backend field names (purity_basis_points, fine_weight_fixed_mg, ... mg).
+  it("returns human-readable validation messages (no raw field names)", async () => {
+    const badPurity = await request(app)
+      .post("/api/metal-loans")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ supplier_id: supplierId, gross_weight_mg: 100000, purity_basis_points: 20000 });
+    expect(badPurity.status).toBe(400);
+    expect(badPurity.body.errors).toContain("Purity must be between 0.01% and 100%.");
+    expect(JSON.stringify(badPurity.body.errors)).not.toContain("purity_basis_points");
+
+    const loanId = await createLoan(); // 99.990 g outstanding
+
+    const noRate = await request(app)
+      .post(`/api/metal-loans/${loanId}/fix`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ fine_weight_fixed_mg: 40000 });
+    expect(noRate.status).toBe(400);
+    expect(noRate.body.errors).toContain("Enter the rate per gram (in rupees).");
+
+    const noFine = await request(app)
+      .post(`/api/metal-loans/${loanId}/fix`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ rate_paise_per_gram: 650000 });
+    expect(noFine.status).toBe(400);
+    expect(noFine.body.errors).toContain("Enter the fine weight to fix (in grams).");
+    expect(JSON.stringify(noFine.body.errors)).not.toContain("fine_weight_fixed_mg");
+
+    const overFix = await request(app)
+      .post(`/api/metal-loans/${loanId}/fix`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ fine_weight_fixed_mg: 200000, rate_paise_per_gram: 650000 });
+    expect(overFix.status).toBe(400);
+    // Reported in grams, not raw milligrams.
+    expect(overFix.body.errors.join(" ")).toMatch(/Cannot fix 200\.000 g; only 99\.990 g outstanding\./);
+  });
 });
