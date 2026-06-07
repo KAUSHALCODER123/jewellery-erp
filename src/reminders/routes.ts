@@ -80,40 +80,52 @@ remindersRouter.get("/due", (request, response) => {
 
   const reminders: Reminder[] = [];
 
-  // 1) Overdue udhari — oldest unpaid lot beyond the threshold.
-  const udhariRows = db
+  // 1) Overdue udhari — NET balance per customer beyond the threshold. Advances net
+  //    against dues (consistent with the ageing report), so a customer who has overpaid
+  //    is not chased and split ledgers are combined.
+  const udhariLedgerRows = db
     .select({
       ledger_id: ledgers.id,
-      customer_id: customers.id,
+      entity_id: ledgers.entity_id,
       customer_name: customers.name,
       phone: customers.phone,
       balance_paise: ledgers.balance_paise
     })
     .from(ledgers)
     .leftJoin(customers, eq(ledgers.entity_id, customers.id))
-    .where(and(eq(ledgers.account_type, "CUSTOMER_UDHARI"), gt(ledgers.balance_paise, 0)))
+    .where(eq(ledgers.account_type, "CUSTOMER_UDHARI"))
     .all();
 
-  for (const row of udhariRows) {
-    const age = oldestUnpaidDays(row.ledger_id, todayMs);
+  const udhariByCustomer = new Map<string, { entity_id: number | null; customer_name: string | null; phone: string | null; balance_paise: number; ledger_ids: number[] }>();
+  for (const row of udhariLedgerRows) {
+    const key = row.entity_id !== null ? `c${row.entity_id}` : `l${row.ledger_id}`;
+    const agg = udhariByCustomer.get(key) ?? { entity_id: row.entity_id, customer_name: row.customer_name, phone: row.phone, balance_paise: 0, ledger_ids: [] };
+    agg.balance_paise += row.balance_paise;
+    agg.ledger_ids.push(row.ledger_id);
+    udhariByCustomer.set(key, agg);
+  }
+
+  for (const agg of udhariByCustomer.values()) {
+    if (agg.balance_paise <= 0) continue; // net debtors only
+    const age = Math.max(0, ...agg.ledger_ids.map((id) => oldestUnpaidDays(id, todayMs)));
     if (age < overdueDays) continue;
-    const amount = paiseToRupees(row.balance_paise);
-    const name = row.customer_name ?? "Customer";
-    const log = row.customer_id && row.phone
-      ? triggerMessage("UDHARI_BALANCE_REMINDER", row.customer_id, row.phone, { customer_name: name, amount })
+    const amount = paiseToRupees(agg.balance_paise);
+    const name = agg.customer_name ?? "Customer";
+    const log = agg.entity_id && agg.phone
+      ? triggerMessage("UDHARI_BALANCE_REMINDER", agg.entity_id, agg.phone, { customer_name: name, amount })
       : null;
     const message = log?.message_body ?? `Dear ${name}, our records show an outstanding balance of Rs ${amount}. Kindly clear it at your convenience. Thank you.`;
     reminders.push({
       type: "UDHARI_OVERDUE",
-      customer_id: row.customer_id,
+      customer_id: agg.entity_id,
       customer_name: name,
-      phone: row.phone,
+      phone: agg.phone,
       detail: `Outstanding ${age} days`,
       amount_rupees: amount,
       reference: null,
       template: "UDHARI_BALANCE_REMINDER",
       message,
-      whatsapp_link: row.phone ? getWhatsAppLink(row.phone, message) : null
+      whatsapp_link: agg.phone ? getWhatsAppLink(agg.phone, message) : null
     });
   }
 

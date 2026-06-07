@@ -132,8 +132,10 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
       });
       const result = (await res.json().catch(() => null)) as { log?: { status?: string }; whatsapp_link?: string; errors?: string[] } | null;
       if (!res.ok) throw new Error(result?.errors?.join(" ") || "Could not send message.");
-      setMessage(result?.log?.status === "FAILED" ? "Logged, but the phone number looked invalid." : "Message logged/sent.");
-      if (result?.whatsapp_link) setComposeWhatsAppLink(result.whatsapp_link);
+      const failed = result?.log?.status === "FAILED";
+      setMessage(failed ? "Logged, but the phone number looked invalid." : "Message logged/sent.");
+      // Don't offer an "Open in WhatsApp" link for an invalid number (FAILED send).
+      setComposeWhatsAppLink(failed ? "" : (result?.whatsapp_link ?? ""));
       setComposeBody("");
       void loadLogs();
     } catch (caught) {

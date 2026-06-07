@@ -86,4 +86,26 @@ describe("Udhari Ageing & Reminders API", () => {
     expect(item.whatsapp_link).toContain("wa.me/919090909090");
     expect(res.body.counts.udhari_overdue).toBeGreaterThanOrEqual(1);
   });
+
+  test("reminders digest skips a customer whose advance nets off their overdue due", async () => {
+    const customer = db.insert(customers).values({ name: "Netted Neha", phone: "9080706050" }).returning().get();
+    const dueLedger = db.insert(ledgers).values({
+      account_name: `Udhari ${customer.name}`, account_type: "CUSTOMER_UDHARI", entity_id: customer.id, balance_paise: 300000
+    }).returning().get();
+    db.insert(journalEntries).values({
+      ledger_id: dueLedger.id, transaction_type: "DEBIT", amount_paise: 300000, reference_type: "MANUAL", reference_id: 0, created_at: daysAgoIso(60)
+    }).run();
+    // A separate advance-credit ledger for the same customer fully offsets the due.
+    db.insert(ledgers).values({
+      account_name: `Udhari Advance ${customer.name}`, account_type: "CUSTOMER_UDHARI", entity_id: customer.id, balance_paise: -300000
+    }).run();
+
+    const res = await request(app)
+      .get("/api/reminders/due?overdue_days=30")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    const item = res.body.reminders.find((r: any) => r.type === "UDHARI_OVERDUE" && r.customer_id === customer.id);
+    expect(item).toBeUndefined();
+  });
 });
