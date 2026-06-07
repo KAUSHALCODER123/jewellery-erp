@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { isProtectedApiUrl, requestUrl } from "../utils/apiAuthUrl.js";
 
 export type AuthRole = "ADMIN" | "MANAGER" | "ACCOUNTANT" | "COUNTER_STAFF";
 
@@ -129,21 +130,10 @@ export function AuthProvider({ children, apiBaseUrl = "" }: { children: ReactNod
   useEffect(() => {
     const originalFetch = window.fetch.bind(window);
 
-    const requestUrl = (input: RequestInfo | URL) => {
-      if (typeof input === "string") return input;
-      if (input instanceof URL) return input.toString();
-      return input.url;
-    };
-
-    // Protected API lives under /api/ but NOT /api/auth/. Auth endpoints (login,
-    // and verify-password for the unlock screen) return 401 by design and are
-    // handled by their callers, so they must never trigger an auto-logout.
-    const isProtectedApi = (url: string) => url.includes("/api/") && !url.includes("/api/auth/");
-
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const response = await originalFetch(input, init);
 
-      if (response.status === 401 && sessionRef.current && isProtectedApi(requestUrl(input))) {
+      if (response.status === 401 && sessionRef.current && isProtectedApiUrl(requestUrl(input))) {
         try {
           sessionStorage.setItem(SESSION_EXPIRED_STORAGE_KEY, "1");
         } catch {

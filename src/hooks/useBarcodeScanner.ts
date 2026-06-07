@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { isEditableTarget } from "../utils/scannerInput.js";
 
 const SCANNER_INTERVAL_MS = 50;
 const BUFFER_TIMEOUT_MS = 120;
@@ -31,18 +32,6 @@ export function useBarcodeScanner(onScanCallback: (barcode: string) => void) {
       }
 
       clearTimerRef.current = window.setTimeout(clearBuffer, BUFFER_TIMEOUT_MS);
-    };
-
-    const isEditableTarget = (target: EventTarget | null) => {
-      const element = target as HTMLElement | null;
-      if (!element) {
-        return false;
-      }
-      if (element.isContentEditable) {
-        return true;
-      }
-      const tagName = element.tagName;
-      return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
