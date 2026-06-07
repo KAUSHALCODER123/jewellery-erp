@@ -120,4 +120,37 @@ describe("GST e-Invoice & e-Way Bill API", () => {
       .send({ transport_mode: "ROAD" });
     expect(gen.status).toBe(400);
   });
+
+  test("a generated e-way bill can be cancelled with a reason", async () => {
+    await request(app)
+      .post(`/api/eway-bills/${highValueInvoiceId}/generate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ transport_mode: "ROAD", vehicle_number: "MH12AB1234", distance_km: 12 });
+    await request(app)
+      .post(`/api/eway-bills/${highValueInvoiceId}/record`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ eway_bill_number: "171000123456" });
+
+    const cancel = await request(app)
+      .post(`/api/eway-bills/${highValueInvoiceId}/cancel`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ cancel_reason: "Vehicle breakdown" });
+
+    expect(cancel.status).toBe(200);
+    expect(cancel.body.ewaybill.status).toBe("CANCELLED");
+    expect(cancel.body.ewaybill.cancel_reason).toBe("Vehicle breakdown");
+  });
+
+  test("a prepared e-invoice can be cancelled with a reason", async () => {
+    await request(app).post(`/api/einvoice/${b2bInvoiceId}/generate`).set("Authorization", `Bearer ${adminToken}`);
+
+    const cancel = await request(app)
+      .post(`/api/einvoice/${b2bInvoiceId}/cancel`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ cancel_reason: "Duplicate invoice" });
+
+    expect(cancel.status).toBe(200);
+    expect(cancel.body.einvoice.status).toBe("CANCELLED");
+    expect(cancel.body.einvoice.cancel_reason).toBe("Duplicate invoice");
+  });
 });

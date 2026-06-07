@@ -146,12 +146,17 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
     await loadList();
   });
 
-  const cancelEinvoice = () => selected && run(async () => {
-    const data = await post(`/api/einvoice/${selected.id}/cancel`, { cancel_reason: "Cancelled from GST e-Docs" });
-    setEinvoice(data.einvoice);
-    setMessage("E-invoice cancelled.");
-    await loadList();
-  });
+  const cancelEinvoice = () => {
+    if (!selected) return;
+    const reason = window.prompt("Reason for cancelling this e-invoice?", "");
+    if (reason === null) return; // dismissed
+    void run(async () => {
+      const data = await post(`/api/einvoice/${selected.id}/cancel`, { cancel_reason: reason.trim() || "Cancelled from GST e-Docs" });
+      setEinvoice(data.einvoice);
+      setMessage("E-invoice cancelled.");
+      await loadList();
+    });
+  };
 
   const prepareEway = () => selected && run(async () => {
     const data = await post(`/api/eway-bills/${selected.id}/generate`, {
@@ -170,6 +175,18 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
     await loadDocs(selected.id);
     await loadList();
   });
+
+  const cancelEway = () => {
+    if (!selected) return;
+    const reason = window.prompt("Reason for cancelling this e-way bill?", "");
+    if (reason === null) return; // dismissed
+    void run(async () => {
+      await post(`/api/eway-bills/${selected.id}/cancel`, { cancel_reason: reason.trim() || "Cancelled from GST e-Docs" });
+      setMessage("E-way bill cancelled.");
+      await loadDocs(selected.id);
+      await loadList();
+    });
+  };
 
   return (
     <section className="grid h-screen grid-cols-[360px_1fr] overflow-hidden bg-slate-950 text-slate-100 font-sans">
@@ -305,6 +322,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
                         <button type="button" disabled={busy} onClick={recordEway} className="mt-2 h-8 w-full rounded bg-blue-600 text-[11px] font-bold uppercase text-white hover:bg-blue-500 disabled:opacity-50">Record EWB Number</button>
                       </div>
                     )}
+                    <button type="button" disabled={busy} onClick={cancelEway} className="mt-1 flex h-8 items-center justify-center gap-1 rounded border border-red-900/60 text-[11px] font-semibold uppercase text-red-300 hover:bg-red-950/40 disabled:opacity-50"><X size={12} /> Cancel e-Way Bill</button>
                   </div>
                 ) : (
                   <div className="grid gap-2">
