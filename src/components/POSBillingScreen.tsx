@@ -273,6 +273,11 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
 
         const item = result.items.find((candidate) => candidate.barcode === barcode || candidate.huid === barcode) ?? result.items[0];
 
+        if (item.status && item.status !== "IN_STOCK") {
+          setError(`${item.barcode} is ${String(item.status).toLowerCase()} and cannot be added to the cart.`);
+          return;
+        }
+
         if (cart.some((line) => line.id === item.id)) {
           setMessage(`${item.barcode} is already in cart.`);
           return;
@@ -407,10 +412,12 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         },
         body: JSON.stringify(payload)
       });
-      const result = (await response.json().catch(() => null)) as { invoice_id?: number; invoice?: { id?: number; invoice_number?: string }; errors?: string[] } | null;
+      const result = (await response.json().catch(() => null)) as { invoice_id?: number; invoice?: { id?: number; invoice_number?: string }; errors?: string[]; message?: string; error?: string } | null;
 
       if (!response.ok) {
-        throw new Error(result?.errors?.join(" ") || "Checkout failed.");
+        // The server reports the specific reason under errors[]/message/error
+        // (e.g. item already sold, not hallmarked) — surface it instead of a generic failure.
+        throw new Error(result?.errors?.join(" ") || result?.message || result?.error || "Checkout failed.");
       }
 
       const invoiceId = result?.invoice_id ?? result?.invoice?.id ?? null;

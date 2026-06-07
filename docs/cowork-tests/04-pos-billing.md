@@ -25,9 +25,14 @@ This is the core revenue flow — test it carefully.
 8. Open/print the invoice (A4) from Documents to confirm it renders.
 
 ## B. Loyalty earn + redeem
+> ℹ️ **Enrollment gates earning.** A customer only earns/redeems if `loyalty_enrolled` is true.
+> The backend persists this flag correctly on both create and edit (covered by
+> `tests/api/crm-loyalty-udhari.test.ts`). The **seeded** customers (Anita, Rahul) have points but
+> the flag is **off**, so they read "Not enrolled" — that's seed data, not a bug. Enroll a customer
+> (tick "Enroll in loyalty points program" on create/edit) before testing earn/redeem.
 1. Settings → confirm loyalty mode (per ₹100 or per gram gold).
-2. Do a sale for **Anita Desai** (she has 480 points). Confirm points **earned** are added.
-3. On a new sale for Anita, **redeem** some points → confirm discount applied and balance reduced.
+2. Enroll a customer (or create one with the toggle on), then do a sale → confirm points **earned** are added.
+3. On a new sale for that customer, **redeem** some points → confirm discount applied and balance reduced.
 
 ## C. Split / non-cash payment
 1. New sale → pay part **Cash**, part **UPI/Card** (seeded ledgers: Cash, UPI Bank, Card Bank).
@@ -37,15 +42,15 @@ This is the core revenue flow — test it carefully.
 1. Sale for **Vikram Singh** → pay less than total, leave balance on **credit/udhari**.
 2. **Expected:** outstanding recorded against Vikram (he already has ₹15,000); credit-limit check may trigger.
 
-## E. Quotation — ⚠️ NO UI IN CURRENT BUILD
-The backend supports quotations (`POST /api/pos/quotations`) but there is **no UI** to create one.
-**Skip this flow** and record it as a known gap (see `00-UI-GAPS.md`). Test once UI is added:
-create a quotation (no stock movement) → retrieve → convert to sale; stock not decremented until sold.
+## E. Quotation — UI now present
+POS has a **Save as Quotation** button (and the backend `POST /api/pos/quotations`).
+Test: build a cart → **Save as Quotation** (no stock movement) → retrieve it → convert to a sale.
+**Expected:** stock is **not** decremented until the quotation is converted and sold.
 
-## F. Sales return — ⚠️ NO UI IN CURRENT BUILD
-The backend supports sales returns (`POST /api/pos/sales-returns`) but there is **no UI** to trigger
-a return. **Skip this flow**; record as a known gap. Test once UI is added: return an item → item back
-to stock, refund/credit recorded, original invoice linked. (Purchase returns are also backend-only.)
+## F. Sales return — UI now present (Returns page)
+The sidebar has a **Returns** page (Sales + Purchase tabs) backed by `POST /api/pos/sales-returns`
+and `POST /api/pos/purchase-returns`. Test a sales return: return a sold item → **Expected:** item
+goes back to stock, a refund/credit is recorded, and the original invoice is linked.
 
 ---
 
@@ -55,7 +60,7 @@ to stock, refund/credit recorded, original invoice linked. (Purchase returns are
 |---|----------------|----------|
 | G1 | Checkout with **no items** | Blocked — can't bill an empty cart |
 | G2 | Checkout with **no customer** | Either blocked or allows "walk-in" — record which |
-| G3 | Sell the **same item twice** (already SOLD barcode `A1B2C3`) | Second attempt blocked — item not available |
+| G3 | Sell the **same item twice** (already SOLD barcode `A1B2C3`) | Now blocked **at scan** — a SOLD item can't be added to the cart ("… is sold and cannot be added"). If it does reach checkout, the server's specific reason is shown (no more generic "Checkout failed."). |
 | G4 | Payment **less than** total with no udhari selected | Blocked or forces credit selection |
 | G5 | Payment **more than** total (cash tendered) | Shows change / rejects overpay — record |
 | G6 | Negative or zero quantity/weight override | Rejected |
@@ -63,7 +68,7 @@ to stock, refund/credit recorded, original invoice linked. (Purchase returns are
 | G8 | Redeem points making total negative | Blocked — total floored at 0 |
 | G9 | Manual discount > item value | Blocked / clamped |
 | G10 | Udhari sale that **exceeds customer credit limit** | Warned/blocked per limit |
-| G11 | Change metal rate to 0 then bill | Rejected or produces ₹0 metal value — record (should reject) |
+| G11 | Change metal rate to 0 then bill | **Rejected** — "metal rate per gram cannot be zero for a weight-based item." (Quantity-wise / flat unit-price items are exempt.) |
 | G12 | Double-click Checkout | Exactly **one** invoice, not two |
 | G13 | Sale return of an item that was never sold | Blocked |
 | G14 | Return more than was sold | Blocked |
@@ -73,7 +78,7 @@ to stock, refund/credit recorded, original invoice linked. (Purchase returns are
 | # | Check | Expected |
 |---|-------|----------|
 | H1 | After a cash sale, open **Day Book / Accounts** | Sale + cash receipt appear |
-| H2 | After udhari sale, open **Accounts → Udhari** | Vikram's outstanding increased |
+| H2 | After udhari sale, open **Accounts → Udhari** | The customer's outstanding increases in a **single** debtor row (the opening-balance ledger and the POS credit-sale ledger are now one ledger per customer — keyed on entity, not name). Debtor count must not double-count the same customer. |
 | H3 | After loyalty earn | Customer 360 shows new points balance |
 | H4 | Stock count after sale | Sold item removed from available stock |
 

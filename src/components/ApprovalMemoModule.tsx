@@ -426,6 +426,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                                   <th className="px-2 py-1 text-right">Gross</th>
                                   <th className="px-2 py-1 text-right">Est. Value</th>
                                   <th className="px-2 py-1 text-center">Status</th>
+                                  <th className="px-2 py-1 text-center">Actions</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -439,6 +440,16 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                                       <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${line.line_status === "OUT" ? "bg-amber-950/60 text-amber-300" : line.line_status === "SOLD" ? "bg-emerald-950/60 text-emerald-300" : "bg-slate-800 text-slate-400"}`}>
                                         {line.line_status}
                                       </span>
+                                    </td>
+                                    <td className="px-2 py-1.5 text-center">
+                                      {line.line_status === "OUT" ? (
+                                        <div className="flex justify-center gap-1">
+                                          <button type="button" disabled={busy} onClick={() => returnLines(memo, [line.id])} title="Return this item to stock" className="rounded border border-slate-700 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-slate-200 hover:bg-slate-800 disabled:opacity-50">Return</button>
+                                          <button type="button" disabled={busy} onClick={() => convertLines(memo, [line.id])} title="Mark this item sold" className="rounded bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:opacity-50">Sold</button>
+                                        </div>
+                                      ) : (
+                                        <span className="text-slate-600">—</span>
+                                      )}
                                     </td>
                                   </tr>
                                 ))}

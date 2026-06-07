@@ -123,9 +123,13 @@ export function postBalancedVoucher(tx: PostingTx, input: VoucherPostingInput) {
 }
 
 export function getOrCreateLedger(tx: PostingTx, accountName: string, accountType: LedgerAccountType, entityId: number | null) {
+  // Entity-scoped ledgers (e.g. CUSTOMER_UDHARI, VENDOR) are unique per (account_type, entity_id) —
+  // match on those alone, ignoring account_name. Different callers name the same customer's udhari
+  // ledger differently ("Udhari - <name>" vs "Customer Udhari <id>"), and keying on the name too
+  // would create a second ledger for the same customer. Non-entity ledgers still match by name.
   const existingLedger = entityId === null
     ? tx.select().from(ledgers).where(and(eq(ledgers.account_name, accountName), eq(ledgers.account_type, accountType as never))).get()
-    : tx.select().from(ledgers).where(and(eq(ledgers.account_name, accountName), eq(ledgers.account_type, accountType as never), eq(ledgers.entity_id, entityId))).get();
+    : tx.select().from(ledgers).where(and(eq(ledgers.account_type, accountType as never), eq(ledgers.entity_id, entityId))).get();
 
   if (existingLedger) {
     return existingLedger;

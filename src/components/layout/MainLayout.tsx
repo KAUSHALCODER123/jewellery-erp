@@ -112,7 +112,7 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
   const isAdminOrManager = session?.user.role === "ADMIN" || session?.user.role === "MANAGER";
 
   // App lock: auto-locks after idle, requiring the user's password to resume (protects ledgers when owner steps away).
-  const IDLE_LOCK_MS = 5 * 60 * 1000;
+  const IDLE_LOCK_MS = 15 * 60 * 1000;
   const [locked, setLocked] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState("");
   const [unlockError, setUnlockError] = useState("");

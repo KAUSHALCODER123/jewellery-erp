@@ -125,6 +125,7 @@ db.transaction((tx) => {
     taluka: "Haveli",
     district: "Pune",
     birthday_date: "1988-04-12",
+    loyalty_enrolled: true,
     loyalty_points_balance: 120
   }).returning().get();
 
@@ -141,6 +142,7 @@ db.transaction((tx) => {
     birthday_date: "1985-08-05",
     ring_size: "14",
     spouse_name: "Nikhil Desai",
+    loyalty_enrolled: true,
     loyalty_points_balance: 480
   }).returning().get();
 

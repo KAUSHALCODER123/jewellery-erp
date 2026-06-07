@@ -104,6 +104,13 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
           throw new ItemAlreadySoldError(`Item ${line.barcode} is not available in stock.`);
         }
 
+        // A weight-based item billed at a zero per-gram metal rate is almost always an error
+        // (the live rate failed to load). Quantity-wise items sell at a flat unit price and
+        // legitimately carry no metal rate, so they are exempt.
+        if (item.sale_mode === "WEIGHT_WISE" && item.net_weight_mg > 0 && line.metalRatePaisePerGram <= 0) {
+          throw new CheckoutConflictError(`Item ${item.barcode}: metal rate per gram cannot be zero for a weight-based item.`);
+        }
+
         if (item.metal_type.toLowerCase() === "gold") {
           // Recycled URD gold purchased from customers is exempt from HUID validation at POS.
           // BIS hallmarking is applied during the next refinery/assay cycle.

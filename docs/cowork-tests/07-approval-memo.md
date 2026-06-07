@@ -47,7 +47,7 @@ exhibition) without selling them — then either **returning** them to stock or 
 |---|----------------|----------|
 | E1 | Try to return a line that is already RETURNED/SOLD | Blocked — only OUT lines can be returned |
 | E2 | Try to convert a line already RETURNED/SOLD | Blocked — only OUT lines convert |
-| E3 | Return part, then check status | Record — UI only offers "all" actions (per-line is a known gap); after partial state, status should read **PARTIAL** |
+| E3 | **Per-line** action: on a multi-item memo, use the row-level **Return** or **Sold** button on just one OUT line | That one line changes; the rest stay OUT → memo status becomes **PARTIAL**. (Per-line buttons are now in the line table, alongside the footer "Return All / Mark All Sold".) |
 | E4 | After Return All, sell the item normally in POS | Allowed — item is back IN_STOCK |
 | E5 | After Mark All Sold, try to sell the same item in POS | Blocked — item already SOLD |
 
@@ -55,7 +55,7 @@ exhibition) without selling them — then either **returning** them to stock or 
 | # | Check | Expected |
 |---|-------|----------|
 | F1 | Status derivation: all OUT | OPEN |
-| F2 | Some OUT + some SOLD/RETURNED | PARTIAL |
+| F2 | Some OUT + some SOLD/RETURNED | PARTIAL (now reachable via the per-line Return/Sold buttons — E3) |
 | F3 | No OUT, all RETURNED | CLOSED |
 | F4 | No OUT, ≥1 SOLD | CONVERTED |
 | F5 | Inventory / Barcode Desk while items are out | Reserved items show ON_APPROVAL, not available to sell |
@@ -63,5 +63,4 @@ exhibition) without selling them — then either **returning** them to stock or 
 ## G. What to report
 - PASS/FAIL per row + exact error text.
 - Confirm stock is genuinely reserved on issue (D3/D4/F5) and freed on return (E4).
-- Confirm the four status states derive correctly (F1–F4).
-- Note the known gap: only "Return All / Mark All Sold" — no per-line return/convert in the UI (E3).
+- Confirm the four status states derive correctly (F1–F4), including **PARTIAL** via a per-line action (E3).
