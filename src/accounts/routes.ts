@@ -2,7 +2,7 @@ import { and, desc, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { Router } from "express";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
-import { customers, expenses, journalEntries, ledgers, organizationSettings, voucherHeaders, type JournalTransactionType } from "../db/schema.js";
+import { customers, expenses, journalEntries, ledgers, organizationSettings, voucherHeaders, voucherLines, type JournalTransactionType } from "../db/schema.js";
 import { paiseToRupees } from "../utils/decimal.js";
 import { postBalancedVoucher, NORMAL_DEBIT_ACCOUNT_TYPES } from "./posting.js";
 import { triggerMessage, getWhatsAppLink } from "../utils/messageService.js";
@@ -812,6 +812,7 @@ accountsRouter.get("/ledger-report", requireAdmin, (request, response) => {
   let runningBalance = openingBalancePaise;
   let totalDebitsPaise = 0;
   let totalCreditsPaise = 0;
+  const referenceLabels = buildReferenceLabels(entries);
 
   const entriesWithRunningBalance = entries.map((entry) => {
     if (entry.transaction_type === "DEBIT") {
@@ -846,7 +847,8 @@ accountsRouter.get("/ledger-report", requireAdmin, (request, response) => {
       amount_rupees: paiseToRupees(entry.amount_paise),
       running_balance_paise: runningBalance,
       running_balance_rupees: paiseToRupees(runningBalance),
-      particulars: counterparts.length > 0 ? counterparts.join(", ") : "-"
+      particulars: counterparts.length > 0 ? counterparts.join(", ") : "-",
+      reference_label: referenceLabels.get(entry.id) ?? null
     };
   });
 
@@ -1084,6 +1086,7 @@ function createDaybookResponse(
     .reduce((total, entry) => total + entry.amount_paise, 0);
   const closingBalancePaise = openingBalancePaise + totalReceiptsPaise - totalPaymentsPaise;
   const ledgerById = new Map(cashBankLedgers.map((ledger) => [ledger.id, ledger]));
+  const referenceLabels = buildReferenceLabels(dayEntries);
 
   return {
     date,
@@ -1098,9 +1101,33 @@ function createDaybookResponse(
     entries: dayEntries.map((entry) => ({
       ...entry,
       ledger_name: ledgerById.get(entry.ledger_id)?.account_name ?? null,
-      amount_rupees: paiseToRupees(entry.amount_paise)
+      amount_rupees: paiseToRupees(entry.amount_paise),
+      reference_label: referenceLabels.get(entry.id) ?? null
     }))
   };
+}
+
+// Map journal entries to their voucher number (via voucher lines) so the UI can show a
+// unique per-document reference (e.g. RECEIPT-20260607-001) instead of "UDHARI_RECEIPT
+// #<customerId>", which repeats for every receipt of the same customer.
+function buildReferenceLabels(entries: Array<{ id: number }>): Map<number, string> {
+  const ids = entries.map((entry) => entry.id);
+  const labels = new Map<number, string>();
+  if (ids.length === 0) {
+    return labels;
+  }
+  const rows = db
+    .select({ journal_entry_id: voucherLines.journal_entry_id, voucher_number: voucherHeaders.voucher_number })
+    .from(voucherLines)
+    .innerJoin(voucherHeaders, eq(voucherLines.voucher_id, voucherHeaders.id))
+    .where(inArray(voucherLines.journal_entry_id, ids))
+    .all();
+  for (const row of rows) {
+    if (row.journal_entry_id !== null) {
+      labels.set(row.journal_entry_id, row.voucher_number);
+    }
+  }
+  return labels;
 }
 
 function calculateEntryNetPaise(entries: Array<typeof journalEntries.$inferSelect>) {

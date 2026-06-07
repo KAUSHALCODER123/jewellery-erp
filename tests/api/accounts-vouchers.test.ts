@@ -257,6 +257,35 @@ describe("Voucher accounting and ledger reports API", () => {
     );
   });
 
+  it("labels a udhari receipt entry with its unique voucher number in the statement", async () => {
+    const customer = db.insert(customers).values({ name: "RefLabel Cust", phone: "9000099887" }).returning().get();
+    const udhariLedger = db.insert(ledgers).values({
+      account_name: `Udhari - ${customer.name}`,
+      account_type: "CUSTOMER_UDHARI",
+      entity_id: customer.id,
+      balance_paise: 500000
+    }).returning().get();
+
+    const receipt = await request(app)
+      .post("/api/accounts/receipts/udhari")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ customer_id: customer.id, amount_paise: 200000, payment_mode: "CASH", receipt_date: "2026-06-07" });
+    expect(receipt.status).toBe(201);
+    const voucherNumber = receipt.body.voucher.voucher_number;
+    expect(typeof voucherNumber).toBe("string");
+
+    const statement = await request(app)
+      .get("/api/accounts/ledger-report")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .query({ ledger_id: udhariLedger.id, from_date: "2026-06-01", to_date: "2026-06-30" });
+    expect(statement.status).toBe(200);
+
+    const receiptEntry = statement.body.entries.find((e: { reference_type: string }) => e.reference_type === "UDHARI_RECEIPT");
+    expect(receiptEntry).toBeDefined();
+    // The unique receipt voucher number is shown, not "UDHARI_RECEIPT #<customerId>".
+    expect(receiptEntry.reference_label).toBe(voucherNumber);
+  });
+
   it("produces P&L, balance sheet and a balanced trial balance", async () => {
     // A cash expense: DEBIT Expense, CREDIT Cash.
     const exp = await request(app)

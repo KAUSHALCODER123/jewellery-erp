@@ -45,6 +45,7 @@ type DaybookEntry = {
   amount_paise: number;
   reference_type: string;
   reference_id: number | null;
+  reference_label?: string | null;
   description: string | null;
 };
 
@@ -91,6 +92,7 @@ type LedgerReportEntry = {
   amount_rupees: string;
   reference_type: string;
   reference_id: number | null;
+  reference_label?: string | null;
   description: string | null;
   running_balance_paise: number;
   running_balance_rupees: string;
@@ -429,12 +431,12 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
   function exportToCSV() {
     if (!reportData) return;
 
-    const headers = ["Date", "Particulars", "Reference Type", "Reference ID", "Debit (Rs)", "Credit (Rs)", "Running Balance (Rs)", "Narration"];
+    const headers = ["Date", "Particulars", "Reference Type", "Reference No", "Debit (Rs)", "Credit (Rs)", "Running Balance (Rs)", "Narration"];
     const rows = reportData.entries.map((entry) => [
       entry.created_at ? new Date(entry.created_at).toLocaleDateString() : "-",
       entry.particulars,
       entry.reference_type,
-      entry.reference_id ?? "-",
+      entry.reference_label ?? entry.reference_id ?? "-",
       entry.transaction_type === "DEBIT" ? (entry.amount_paise / 100).toFixed(2) : "0.00",
       entry.transaction_type === "CREDIT" ? (entry.amount_paise / 100).toFixed(2) : "0.00",
       (entry.running_balance_paise / 100).toFixed(2),
@@ -642,7 +644,7 @@ function DaybookView({
                 <td className="px-2 py-2">{entry.ledger_name ?? "Unknown Ledger"}</td>
                 <td className={`px-2 py-2 font-semibold ${entry.transaction_type === "DEBIT" ? "text-emerald-300" : "text-red-300"}`}>{entry.transaction_type}</td>
                 <td className="px-2 py-2 font-mono">{formatPaise(entry.amount_paise)}</td>
-                <td className="px-2 py-2 font-mono">{entry.reference_type}{entry.reference_id ? ` #${entry.reference_id}` : ""}</td>
+                <td className="px-2 py-2 font-mono">{entry.reference_label ?? `${entry.reference_type}${entry.reference_id ? ` #${entry.reference_id}` : ""}`}</td>
                 <td className="px-2 py-2 text-slate-300">{entry.description ?? "-"}</td>
               </tr>
             ))}
@@ -1032,7 +1034,7 @@ function LedgerReportView({
                     </td>
                     <td className="px-3 py-2 font-semibold text-slate-200">{entry.particulars}</td>
                     <td className="px-3 py-2 font-mono text-slate-400">
-                      {entry.reference_type} #{entry.reference_id}
+                      {entry.reference_label ?? `${entry.reference_type} #${entry.reference_id}`}
                     </td>
                     <td className="px-3 py-2 text-right font-mono font-semibold text-emerald-400">
                       {entry.transaction_type === "DEBIT" ? formatPaise(entry.amount_paise) : "-"}
