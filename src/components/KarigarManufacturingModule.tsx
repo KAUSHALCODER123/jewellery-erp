@@ -26,6 +26,8 @@ type JobOrder = {
   design_image_path?: string | null;
   target_purity: number;
   target_weight_mg: number;
+  issued_fine_mg?: number;
+  issued_gross_mg?: number;
   status: "PENDING" | "WIP" | "COMPLETED" | "CANCELLED";
 };
 
@@ -356,8 +358,35 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
       setReceiveForm(initialReceiveForm);
       void loadWipJobs();
       void loadKarigars();
+      // Refresh the open ledger so the new entries appear without re-selecting.
+      if (ledgerKarigarId) void loadLedger(ledgerKarigarId);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not receive job.");
+    }
+  }
+
+  async function cancelJob(job: JobOrder) {
+    const reason = window.prompt(`Cancel ${job.order_number}? The issued metal returns to the vault.\n\nReason:`);
+    if (reason === null) return; // dismissed
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/karigar/jobs/${job.id}/cancel`, {
+        method: "PATCH",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ cancellation_reason: reason.trim() || "Cancelled from receive desk." })
+      });
+      const result = (await response.json().catch(() => null)) as { errors?: string[] } | null;
+      if (!response.ok) {
+        throw new Error(result?.errors?.join(" ") || "Could not cancel job.");
+      }
+      setMessage(`${job.order_number} cancelled — issued metal returned to vault.`);
+      setReceiveForm(initialReceiveForm);
+      void loadWipJobs();
+      void loadKarigars();
+      if (ledgerKarigarId) void loadLedger(ledgerKarigarId);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not cancel job.");
     }
   }
 
@@ -546,6 +575,16 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
               </Field>
               <MetricBox label="Target Purity" value={selectedReceiveJob ? formatTunch(selectedReceiveJob.target_purity) : "-"} />
               <MetricBox label="Target Weight" value={selectedReceiveJob ? formatMg(selectedReceiveJob.target_weight_mg) : "-"} />
+              <MetricBox label="Issued Fine Gold" value={selectedReceiveJob ? formatMg(selectedReceiveJob.issued_fine_mg ?? 0) : "-"} tone="ok" />
+              {selectedReceiveJob && (
+                <button
+                  type="button"
+                  onClick={() => cancelJob(selectedReceiveJob)}
+                  className="h-9 border border-rose-800 bg-rose-950/40 text-xs font-semibold uppercase text-rose-300 hover:bg-rose-900/50"
+                >
+                  Cancel Job (return metal)
+                </button>
+              )}
             </aside>
 
             <section className="grid min-h-0 grid-rows-[auto_1fr]">
@@ -771,16 +810,19 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
 }
 
 function calculateReconciliationPreview(form: ReceiveForm, job: JobOrder | null) {
-  // Approximates issued fine gold with the job target; the server reconciles against actual issues.
-  const issuedFineMg = job?.target_weight_mg ?? 0;
+  // Reconcile against the actual issued fine gold (server provides issued_fine_mg /
+  // issued_gross_mg per job) — NOT the target finished weight, which over-states the
+  // base and produces a phantom loss/excess. Mirrors the server's receive-job math.
+  const issuedFineMg = job?.issued_fine_mg ?? 0;
+  const issuedGrossMg = job?.issued_gross_mg ?? 0;
   const netWeightMg = Math.max(0, gramsToMg(form.finalGrossWeightGrams) - gramsToMg(form.stoneWeightGrams));
   const finalFineMg = calculateFineGoldMg(netWeightMg, job?.target_purity ?? 0);
   const scrapFineMg = calculateFineGoldMg(gramsToMg(form.scrapReturnedGrams), tunchToBasisPoints(form.scrapPurityTunch));
   const totalFineGoldRecoveredMg = finalFineMg + scrapFineMg;
   const actualLossMg = Math.max(issuedFineMg - totalFineGoldRecoveredMg, 0);
-  // PER_GRAM: mg of loss per gram of issued metal. PERCENTAGE: % of issued fine gold.
+  // PER_GRAM: mg of loss per gram of issued gross metal. PERCENTAGE: basis points of issued fine gold.
   const acceptableLossMg = form.wastageMode === "PER_GRAM"
-    ? Math.floor((gramsToMg(form.wastageValue) * issuedFineMg) / 1000)
+    ? Math.floor((gramsToMg(form.wastageValue) * issuedGrossMg) / 1000)
     : Math.floor((issuedFineMg * tunchToBasisPoints(form.wastageValue)) / 10000);
   const excessLossMg = Math.max(0, actualLossMg - acceptableLossMg);
 

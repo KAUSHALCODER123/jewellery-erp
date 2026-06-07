@@ -74,10 +74,24 @@ export default function RepairDeskModule({ apiBaseUrl = "" }: RepairDeskModulePr
   const advance = async (repair: Repair) => {
     const next = STATUS_FLOW[repair.status];
     if (!next) return;
+
+    const body: Record<string, unknown> = { status: next };
+    if (next === "DELIVERED") {
+      // Capture the actual charge at delivery (defaulting to the estimate) rather
+      // than silently storing the estimate — the two often differ.
+      const estimateRupees = (repair.estimated_charge_paise / 100).toFixed(2);
+      const entered = window.prompt(`Actual charge collected for delivery (Rs):`, estimateRupees);
+      if (entered === null) return; // dismissed — don't deliver
+      const amount = Number(entered);
+      if (!Number.isFinite(amount) || amount < 0) {
+        push("Enter a valid, non-negative charge.", "bad");
+        return;
+      }
+      body.actual_charge_paise = Math.round(amount * 100);
+    }
+
     setBusyId(repair.id);
     try {
-      const body: Record<string, unknown> = { status: next };
-      if (next === "DELIVERED") body.actual_charge_paise = repair.estimated_charge_paise;
       const res = await fetch(`${apiBaseUrl}/api/karigar/repairs/${repair.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders },

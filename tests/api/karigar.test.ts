@@ -282,4 +282,29 @@ describe("API Hostile Math & Input Constraints", () => {
     // Liability fully settled: issued 10000 mg, debited 10000 mg => balance 0.
     expect(db.select().from(karigars).where(eq(karigars.id, 1)).get()?.fine_gold_balance_mg).toBe(0);
   });
+
+  // The receive preview must reconcile against issued fine gold, not the target
+  // finished weight — so the jobs list exposes the aggregated issued amounts.
+  test("GET /api/karigar/jobs exposes issued fine and gross gold per job", async () => {
+    const job = db
+      .insert(jobOrders)
+      .values({ order_number: "JOB-ISSUED-AGG", karigar_id: 1, target_purity: 9160, target_weight_mg: 48000, status: "PENDING" })
+      .returning()
+      .get();
+
+    // Issue 50 g gross at 91.60% => floor(50000 * 9160 / 10000) = 45800 mg fine.
+    await request(app)
+      .post("/api/karigar/issue-metal")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ job_id: job.id, gross_weight_mg: 50000, purity_tunch: "91.60", issue_date: "2026-06-01", metal_type: "GOLD" });
+
+    const res = await request(app)
+      .get("/api/karigar/jobs")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    const listed = res.body.jobs.find((j: { id: number }) => j.id === job.id);
+    expect(listed.issued_fine_mg).toBe(45800);
+    expect(listed.issued_gross_mg).toBe(50000);
+  });
 });

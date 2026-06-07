@@ -120,12 +120,31 @@ karigarRouter.get("/jobs", requireAuth, requireAdmin, (request, response) => {
     ? db.select().from(jobOrders).where(eq(jobOrders.status, status)).all()
     : db.select().from(jobOrders).all();
 
+  // Aggregate issued metal per job so the client can reconcile against the actual
+  // issued fine gold (not the target finished weight).
+  const jobIds = rows.map((job) => job.id);
+  const issues = jobIds.length
+    ? db.select().from(materialIssues).where(inArray(materialIssues.job_id, jobIds)).all()
+    : [];
+  const issuedByJob = new Map<number, { fine: number; gross: number }>();
+  for (const issue of issues) {
+    const agg = issuedByJob.get(issue.job_id) ?? { fine: 0, gross: 0 };
+    agg.fine += issue.fine_gold_mg;
+    agg.gross += issue.gross_weight_mg;
+    issuedByJob.set(issue.job_id, agg);
+  }
+
   return response.json({
-    jobs: rows.map((job) => ({
-      ...job,
-      target_purity_display: formatBasisPoints(job.target_purity),
-      target_weight_grams: milligramsToGrams(job.target_weight_mg)
-    }))
+    jobs: rows.map((job) => {
+      const issued = issuedByJob.get(job.id) ?? { fine: 0, gross: 0 };
+      return {
+        ...job,
+        target_purity_display: formatBasisPoints(job.target_purity),
+        target_weight_grams: milligramsToGrams(job.target_weight_mg),
+        issued_fine_mg: issued.fine,
+        issued_gross_mg: issued.gross
+      };
+    })
   });
 });
 
