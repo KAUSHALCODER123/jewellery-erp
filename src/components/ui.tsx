@@ -1,5 +1,14 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, FocusEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+/**
+ * Select a field's contents on focus so the first keystroke replaces a pre-filled
+ * or default value (e.g. purity "99.99", qty "1") instead of appending to it.
+ * Use as `onFocus={selectOnFocus}` on numeric/text inputs that start with a value.
+ */
+export function selectOnFocus(event: FocusEvent<HTMLInputElement>) {
+  event.currentTarget.select();
+}
 
 /** Inline loading spinner. */
 export function Spinner({ className = "h-4 w-4" }: { className?: string }) {

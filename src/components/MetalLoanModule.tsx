@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Coins, Plus, Scale, TrendingUp } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { selectOnFocus } from "./ui.js";
 
 type MetalLoanModuleProps = { apiBaseUrl?: string };
 
@@ -269,12 +270,12 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
               </label>
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                 Purity %
-                <input value={purityPercent} onChange={(e) => setPurityPercent(e.target.value.replace(/[^\d.]/g, ""))} className={controlClassName} inputMode="decimal" placeholder="99.99" />
+                <input value={purityPercent} onChange={(e) => setPurityPercent(e.target.value.replace(/[^\d.]/g, ""))} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" placeholder="99.99" />
               </label>
             </div>
             <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
               Gross Weight (grams)
-              <input value={grossGrams} onChange={(e) => setGrossGrams(e.target.value.replace(/[^\d.]/g, ""))} className={controlClassName} inputMode="decimal" placeholder="0.000" />
+              <input value={grossGrams} onChange={(e) => setGrossGrams(e.target.value.replace(/[^\d.]/g, ""))} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" placeholder="0.000" />
             </label>
             <div className="rounded border border-amber-900/50 bg-amber-950/10 px-3 py-2 text-[11px] text-amber-300">
               Fine gold owed ≈ <strong>{(gramsToMg(grossGrams) * (Number(purityPercent) || 0) / 100 / 1000).toFixed(3)} g</strong> (gross × purity). This is the gram liability until you fix the rate.
@@ -338,11 +339,11 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
                               </label>
                               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                                 Fine grams to fix
-                                <input value={fixGrams} onChange={(e) => setFixGrams(e.target.value.replace(/[^\d.]/g, ""))} disabled={fixAll} className={controlClassName} inputMode="decimal" />
+                                <input value={fixGrams} onChange={(e) => setFixGrams(e.target.value.replace(/[^\d.]/g, ""))} onFocus={selectOnFocus} disabled={fixAll} className={controlClassName} inputMode="decimal" />
                               </label>
                               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                                 Rate / gram (Rs)
-                                <input value={fixRate} onChange={(e) => setFixRate(e.target.value.replace(/[^\d.]/g, ""))} className={controlClassName} inputMode="decimal" placeholder="e.g. 7250" />
+                                <input value={fixRate} onChange={(e) => setFixRate(e.target.value.replace(/[^\d.]/g, ""))} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" placeholder="e.g. 7250" />
                               </label>
                               <button type="button" disabled={busy} onClick={() => submitFix(loan)} className="h-8 rounded bg-emerald-500 px-3 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:opacity-50">
                                 Confirm

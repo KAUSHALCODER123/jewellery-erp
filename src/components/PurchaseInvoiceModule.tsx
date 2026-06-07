@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { selectOnFocus } from "./ui.js";
 
 type PurchaseInvoiceModuleProps = {
   apiBaseUrl?: string;
@@ -275,7 +276,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
                         <option value="SILVER">Silver</option>
                       </select>
                     </Field>
-                    <Field label="Purity (K)"><input value={line.purityKarat} onChange={(event) => updateLine(line.key, { purityKarat: event.target.value })} className={controlClassName} inputMode="decimal" /></Field>
+                    <Field label="Purity (K)"><input value={line.purityKarat} onChange={(event) => updateLine(line.key, { purityKarat: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
                   </div>
                   <div className="grid grid-cols-5 gap-2">
                     <Field label="Stock As">
@@ -284,15 +285,15 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
                         <option value="LOT">Lot (1 tag, total wt)</option>
                       </select>
                     </Field>
-                    <Field label="Qty (pieces)"><input value={line.quantity} disabled={line.stockMode === "LOT"} onChange={(event) => updateLine(line.key, { quantity: event.target.value })} className={`${controlClassName} disabled:bg-slate-900 disabled:text-slate-600`} inputMode="numeric" /></Field>
-                    <Field label="Gross Wt (g)"><input value={line.grossGrams} onChange={(event) => updateLine(line.key, { grossGrams: event.target.value })} className={controlClassName} inputMode="decimal" /></Field>
-                    <Field label="Stone/Less (g)"><input value={line.stoneGrams} onChange={(event) => updateLine(line.key, { stoneGrams: event.target.value })} className={controlClassName} inputMode="decimal" /></Field>
+                    <Field label="Qty (pieces)"><input value={line.quantity} disabled={line.stockMode === "LOT"} onChange={(event) => updateLine(line.key, { quantity: event.target.value })} onFocus={selectOnFocus} className={`${controlClassName} disabled:bg-slate-900 disabled:text-slate-600`} inputMode="numeric" /></Field>
+                    <Field label="Gross Wt (g)"><input value={line.grossGrams} onChange={(event) => updateLine(line.key, { grossGrams: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                    <Field label="Stone/Less (g)"><input value={line.stoneGrams} onChange={(event) => updateLine(line.key, { stoneGrams: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
                     <Field label="Net Wt (g)"><input value={(c.netWeightMg / 1000).toFixed(3)} readOnly tabIndex={-1} className={`${controlClassName} bg-slate-900 text-slate-300`} /></Field>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
-                    <Field label="Rate / g (Rs)"><input value={line.ratePerGramRupees} onChange={(event) => updateLine(line.key, { ratePerGramRupees: event.target.value })} className={controlClassName} inputMode="decimal" /></Field>
-                    <Field label="Making (Rs)"><input value={line.makingRupees} onChange={(event) => updateLine(line.key, { makingRupees: event.target.value })} className={controlClassName} inputMode="decimal" /></Field>
-                    <Field label="GST (Rs)"><input value={line.gstRupees} onChange={(event) => updateLine(line.key, { gstRupees: event.target.value })} className={controlClassName} inputMode="decimal" /></Field>
+                    <Field label="Rate / g (Rs)"><input value={line.ratePerGramRupees} onChange={(event) => updateLine(line.key, { ratePerGramRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                    <Field label="Making (Rs)"><input value={line.makingRupees} onChange={(event) => updateLine(line.key, { makingRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                    <Field label="GST (Rs)"><input value={line.gstRupees} onChange={(event) => updateLine(line.key, { gstRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
                     <MetricBox label="Line Total" value={formatPaise(c.lineTotalPaise)} />
                   </div>
                   <div className="text-[10px] uppercase text-slate-500">Metal amount: {formatPaise(c.metalPaise)} • creates {line.stockMode === "LOT" ? 1 : c.quantity} barcoded item(s)</div>
