@@ -1,6 +1,5 @@
 const TROY_OUNCE_TO_GRAMS = 31.1034768;
 const APISED_GOLD_URL = "https://gold.g.apised.com/v1/latest?metals=XAU,XAG&base_currency=INR&weight_unit=gram";
-const DEFAULT_GOLD_API_KEY = "sk_d27C3565d926F708b112501492f3241e4A331C1Cbc9d22c1";
 const REQUEST_TIMEOUT_MS = 10000;
 
 export type LiveMetalRates = {
@@ -35,7 +34,10 @@ type ApisedLatestResponse = {
 };
 
 export async function fetchLiveMetalRates(): Promise<LiveMetalRates> {
-  const apiKey = process.env.GOLD_API_KEY ?? DEFAULT_GOLD_API_KEY;
+  // No baked-in key: the provider key must come from the environment so it is
+  // never committed to source. Missing key -> clear, recoverable error (the caller
+  // surfaces it and the shop falls back to manual rate entry).
+  const apiKey = process.env.GOLD_API_KEY;
 
   if (!apiKey) {
     throw new Error("Live sync failed, please enter rates manually. GOLD_API_KEY is not configured.");
