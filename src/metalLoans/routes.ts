@@ -4,6 +4,7 @@ import { logAction } from "../audit/logAction.js";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
 import { metalLoanFixings, metalLoans, suppliers } from "../db/schema.js";
+import { postBalancedVoucher } from "../accounts/posting.js";
 import { milligramsToGrams, paiseToRupees } from "../utils/decimal.js";
 
 export const metalLoanRouter = Router();
@@ -214,6 +215,8 @@ metalLoanRouter.post("/:id/fix", (req, res) => {
   const newOutstanding = loan.fine_outstanding_mg - fineWeightFixedMg;
   const newStatus = deriveStatus(loan.fine_weight_mg, newOutstanding);
   const userId = (req as unknown as AuthenticatedRequest).user.id;
+  const supplierRow = db.select({ name: suppliers.name }).from(suppliers).where(eq(suppliers.id, loan.supplier_id)).get();
+  const supplierName = supplierRow?.name ?? `Supplier ${loan.supplier_id}`;
 
   try {
     const result = db.transaction((tx) => {
@@ -233,13 +236,42 @@ metalLoanRouter.post("/:id/fix", (req, res) => {
         status: newStatus
       }).where(eq(metalLoans.id, id)).returning().get();
 
+      // Fixing a rate crystallises a rupee payable to the supplier. Post it the same
+      // way a credit purchase does — DEBIT the metal taken on loan (as stock), CREDIT
+      // the shared "Vendor {name}" ledger — so the metal-loan payable shows up in the
+      // same supplier-outstanding figure as purchase invoices. Posted in this tx so it
+      // is atomic with the loan update. (Nothing posts at loan creation: until a rate is
+      // fixed the debt is in grams of gold, not rupees.)
+      postBalancedVoucher(tx, {
+        voucherType: "METAL_LOAN_FIX",
+        referenceType: "METAL_LOAN",
+        referenceId: id,
+        narration: `Metal loan rate fix ${loan.loan_number}`,
+        createdBy: userId,
+        lines: [
+          {
+            ledgerName: "Gold Metal Loan Stock",
+            accountType: "STOCK",
+            transactionType: "DEBIT",
+            amountPaise,
+            description: `Fixed ${fineWeightFixedMg} mg fine for ${loan.loan_number}`
+          },
+          {
+            ledgerName: `Vendor ${supplierName}`,
+            accountType: "VENDOR",
+            transactionType: "CREDIT",
+            amountPaise,
+            description: `Metal loan payable ${loan.loan_number}`
+          }
+        ]
+      });
+
       const allFixings = tx.select().from(metalLoanFixings).where(eq(metalLoanFixings.loan_id, id)).all();
       return { fixing, updatedLoan, allFixings };
     });
 
     logAction(userId, "FIX_METAL_LOAN_RATE", "metal_loans", id, null, { fine_weight_fixed_mg: fineWeightFixedMg, rate_paise_per_gram: ratePaisePerGram, amount_paise: amountPaise });
-    const supplier = db.select({ name: suppliers.name }).from(suppliers).where(eq(suppliers.id, loan.supplier_id)).get();
-    return res.status(201).json({ loan: formatLoan(result.updatedLoan, supplier?.name ?? null, result.allFixings) });
+    return res.status(201).json({ loan: formatLoan(result.updatedLoan, supplierName, result.allFixings) });
   } catch (err: any) {
     return res.status(500).json({ errors: [err.message || "Failed to fix metal loan rate."] });
   }
