@@ -229,7 +229,12 @@ describe("GSS Reporting, Defaulter Automation, and POS Maturity Conversion", () 
       });
       expect(res.body.receipts).toHaveLength(3);
       expect(res.body.summary.calculated_bonus_paise).toBe(100000);
+      // Accrued so far: 3 x 1,000 paid + 1,000 fixed bonus.
       expect(res.body.summary.expected_maturity_value_paise).toBe(400000);
+      expect(res.body.summary.accrued_value_paise).toBe(400000);
+      // Projected full term: 12 x 1,000 contributions + 1,000 fixed bonus.
+      expect(res.body.summary.projected_bonus_paise).toBe(100000);
+      expect(res.body.summary.projected_maturity_value_paise).toBe(1300000);
     });
 
     it("returns pending/overdue report for accounts with missed installments", async () => {

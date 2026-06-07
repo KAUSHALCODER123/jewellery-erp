@@ -555,6 +555,36 @@ gssRouter.post("/merge", requireAuth, requireAdmin, (request, response) => {
   });
 });
 
+// Compute a GSS account's accrued value (paid + bonus earned so far) and its
+// projected full-term maturity value (all scheduled installments + bonus at maturity).
+// Bonus rule: PERCENTAGE_OF_INSTALLMENT scales with the contribution base (basis points);
+// otherwise it is a flat amount. For variable schemes monthly_amount_paise is the nominal
+// installment, so the projection is an estimate.
+function computeGssValues(input: {
+  total_paid_paise: number;
+  monthly_amount_paise: number;
+  duration_months: number;
+  bonus_rule_type: string;
+  bonus_value_paise: number;
+}) {
+  const isPercentage = input.bonus_rule_type === "PERCENTAGE_OF_INSTALLMENT";
+  const fullContributionsPaise = input.monthly_amount_paise * input.duration_months;
+
+  const accruedBonusPaise = isPercentage
+    ? Math.round((input.total_paid_paise * input.bonus_value_paise) / 10000)
+    : input.bonus_value_paise;
+  const projectedBonusPaise = isPercentage
+    ? Math.round((fullContributionsPaise * input.bonus_value_paise) / 10000)
+    : input.bonus_value_paise;
+
+  return {
+    accruedBonusPaise,
+    accruedValuePaise: input.total_paid_paise + accruedBonusPaise,
+    projectedBonusPaise,
+    projectedMaturityValuePaise: fullContributionsPaise + projectedBonusPaise
+  };
+}
+
 gssRouter.get("/reports/statements", requireAuth, (request, response) => {
   const accountIdStr = request.query.account_id;
   const accountId = Number(accountIdStr);
@@ -602,13 +632,8 @@ gssRouter.get("/reports/statements", requireAuth, (request, response) => {
     .orderBy(gssReceipts.installment_number)
     .all();
 
-  // Calculate current expected due amount and bonus
-  let calculatedBonusPaise = 0;
-  if (account.bonus_rule_type === "PERCENTAGE_OF_INSTALLMENT") {
-    calculatedBonusPaise = Math.round((account.total_paid_paise * account.bonus_value_paise) / 10000);
-  } else {
-    calculatedBonusPaise = account.bonus_value_paise;
-  }
+  // Accrued value = paid + bonus earned so far; projected = full-term maturity value.
+  const values = computeGssValues(account);
 
   // If it is a Gold scheme, calculate current cash value of accumulated gold (for information)
   const settings = db.select().from(organizationSettings).get();
@@ -619,8 +644,13 @@ gssRouter.get("/reports/statements", requireAuth, (request, response) => {
     account,
     receipts,
     summary: {
-      calculated_bonus_paise: calculatedBonusPaise,
-      expected_maturity_value_paise: account.total_paid_paise + calculatedBonusPaise,
+      // Accrued so far (kept under the original keys for backward compatibility).
+      calculated_bonus_paise: values.accruedBonusPaise,
+      expected_maturity_value_paise: values.accruedValuePaise,
+      accrued_value_paise: values.accruedValuePaise,
+      // Projected full-term values.
+      projected_bonus_paise: values.projectedBonusPaise,
+      projected_maturity_value_paise: values.projectedMaturityValuePaise,
       current_gold_value_paise: currentGoldValuePaise,
       current_gold_rate_paise: currentGoldRate22k
     }
@@ -759,19 +789,15 @@ gssRouter.get("/reports/maturity", requireAuth, (request, response) => {
     ))
     .all()
     .map((acc) => {
-      let bonusPaise = 0;
-      if (acc.bonus_rule_type === "PERCENTAGE_OF_INSTALLMENT") {
-        bonusPaise = Math.round((acc.total_paid_paise * acc.bonus_value_paise) / 10000);
-      } else {
-        bonusPaise = acc.bonus_value_paise;
-      }
-
+      const values = computeGssValues(acc);
       const isMatured = acc.status === "MATURED" || acc.maturity_date <= todayStr;
 
       return {
         ...acc,
-        bonus_paise: bonusPaise,
-        maturity_value_paise: acc.total_paid_paise + bonusPaise,
+        bonus_paise: values.accruedBonusPaise,
+        accrued_value_paise: values.accruedValuePaise,
+        // Maturity Value is the projected full-term value — the point of a maturity tracker.
+        maturity_value_paise: values.projectedMaturityValuePaise,
         is_matured: isMatured
       };
     });

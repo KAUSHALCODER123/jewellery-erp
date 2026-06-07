@@ -70,6 +70,9 @@ type StatementData = {
   summary: {
     calculated_bonus_paise: number;
     expected_maturity_value_paise: number;
+    accrued_value_paise: number;
+    projected_bonus_paise: number;
+    projected_maturity_value_paise: number;
     current_gold_value_paise: number;
     current_gold_rate_paise: number;
   };
@@ -821,12 +824,13 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                   </div>
                   {statementData && (
                     <div className="grid gap-3">
-                      <div className="grid grid-cols-5 gap-2">
+                      <div className="grid grid-cols-6 gap-2">
                         <MetricBox label="Card Number" value={statementData.account.card_number} />
                         <MetricBox label="Member" value={statementData.account.customer_name ?? "Masked"} />
                         <MetricBox label="Status" value={statementData.account.status} tone={statementData.account.status === "MATURED" ? "ok" : statementData.account.status === "DEFAULTER" ? "danger" : "neutral"} />
                         <MetricBox label="Total Paid" value={formatIndianCurrency(statementData.account.total_paid_paise)} tone="ok" />
-                        <MetricBox label="Maturity Value" value={formatIndianCurrency(statementData.summary.expected_maturity_value_paise)} tone="ok" />
+                        <MetricBox label="Accrued Value" value={formatIndianCurrency(statementData.summary.accrued_value_paise)} tone="neutral" />
+                        <MetricBox label="Maturity Value" value={formatIndianCurrency(statementData.summary.projected_maturity_value_paise)} tone="ok" />
                       </div>
                       {statementData.account.gold_weight_accumulated_mg != null && statementData.account.gold_weight_accumulated_mg > 0 && (
                         <div className="grid grid-cols-3 gap-2">
