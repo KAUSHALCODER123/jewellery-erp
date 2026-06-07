@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useAuthSession, type AuthSession } from "../auth/AuthSessionContext.js";
+import { SESSION_EXPIRED_STORAGE_KEY } from "../context/AuthContext.js";
 
 type AuthGatewayProps = {
   apiBaseUrl?: string;
@@ -65,6 +66,24 @@ export default function AuthGateway({
   const [loginErrors, setLoginErrors] = useState<string[]>([]);
   const [setupSubmitState, setSetupSubmitState] = useState<SubmitState>("idle");
   const [loginSubmitState, setLoginSubmitState] = useState<SubmitState>("idle");
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+
+  // Surface why the user landed back here when the global 401 interceptor cleared
+  // a dead/expired session. Read-and-clear so it shows exactly once.
+  useEffect(() => {
+    let expired = false;
+    try {
+      expired = sessionStorage.getItem(SESSION_EXPIRED_STORAGE_KEY) === "1";
+      if (expired) {
+        sessionStorage.removeItem(SESSION_EXPIRED_STORAGE_KEY);
+      }
+    } catch {
+      expired = false;
+    }
+    if (expired) {
+      setSessionNotice("Your session expired. Please sign in again.");
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -264,6 +283,12 @@ export default function AuthGateway({
         </aside>
 
         <main className="p-5">
+          {sessionNotice && bootState === "login" && (
+            <div className="mb-4 border border-amber-700 bg-amber-950/50 px-3 py-2 text-sm text-amber-200">
+              {sessionNotice}
+            </div>
+          )}
+
           {activeErrors.length > 0 && (
             <div className="mb-4 border border-red-800 bg-red-950/60 px-3 py-2 text-sm text-red-200">
               {activeErrors.join(" ")}

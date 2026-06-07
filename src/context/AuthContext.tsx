@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 export type AuthRole = "ADMIN" | "MANAGER" | "ACCOUNTANT" | "COUNTER_STAFF";
 
@@ -39,6 +39,12 @@ type AuthContextValue = {
 
 const AUTH_TOKEN_KEY = "jewelry_erp_jwt";
 const AUTH_USER_KEY = "jewelry_erp_user";
+
+// Set by the global 401 interceptor when it auto-clears a dead session, read once
+// by the login screen so it can explain why the user was bounced back. sessionStorage
+// (not state/events) survives the AuthGateway unmount→remount that clearing triggers.
+export const SESSION_EXPIRED_STORAGE_KEY = "jewelry_erp_session_expired";
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children, apiBaseUrl = "" }: { children: ReactNode; apiBaseUrl?: string }) {
@@ -106,6 +112,54 @@ export function AuthProvider({ children, apiBaseUrl = "" }: { children: ReactNod
 
     return fetch(url, { ...init, headers });
   }, [apiBaseUrl, session?.token]);
+
+  // Keep a ref to the live session so the long-lived fetch wrapper below always
+  // sees the current value without being re-installed on every token change.
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  // Global 401 recovery. Any 401 from our own protected API means the stored token
+  // can no longer be used; clear the session so the app falls back to the login
+  // screen instead of leaving the user stuck with silently-failing actions (and,
+  // previously, no way back). Patching window.fetch — rather than migrating the
+  // ~30 hand-built `fetch(..., { headers: authHeaders })` call sites onto authFetch —
+  // covers every request path with one change.
+  useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+
+    const requestUrl = (input: RequestInfo | URL) => {
+      if (typeof input === "string") return input;
+      if (input instanceof URL) return input.toString();
+      return input.url;
+    };
+
+    // Protected API lives under /api/ but NOT /api/auth/. Auth endpoints (login,
+    // and verify-password for the unlock screen) return 401 by design and are
+    // handled by their callers, so they must never trigger an auto-logout.
+    const isProtectedApi = (url: string) => url.includes("/api/") && !url.includes("/api/auth/");
+
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await originalFetch(input, init);
+
+      if (response.status === 401 && sessionRef.current && isProtectedApi(requestUrl(input))) {
+        try {
+          sessionStorage.setItem(SESSION_EXPIRED_STORAGE_KEY, "1");
+        } catch {
+          // sessionStorage can throw in locked-down/private modes — the logout
+          // below is what matters; the notice is best-effort.
+        }
+        setSession(null);
+      }
+
+      return response;
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [setSession]);
 
   const value = useMemo<AuthContextValue>(() => ({
     user: session?.user ?? null,
