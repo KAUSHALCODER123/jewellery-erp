@@ -127,7 +127,7 @@ export default function DayBookSummary({ apiBaseUrl = "" }: DayBookSummaryProps)
 
       <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-lg font-bold text-white">Day Book</h1>
+          <h1 className="text-lg font-bold text-slate-50">Day Book</h1>
           <p className="text-xs text-slate-400">End-of-day business summary — sales, purchases, old gold, karigar metal & cash position.</p>
         </div>
         <div className="flex items-end gap-2">
@@ -139,7 +139,7 @@ export default function DayBookSummary({ apiBaseUrl = "" }: DayBookSummaryProps)
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-transparent py-1.5 text-sm text-white outline-none"
+                className="bg-transparent py-1.5 text-sm text-slate-50 outline-none"
               />
             </div>
           </label>
@@ -235,7 +235,7 @@ export default function DayBookSummary({ apiBaseUrl = "" }: DayBookSummaryProps)
                   value={drawerCount}
                   onChange={(e) => setDrawerCount(e.target.value)}
                   placeholder="Enter physical cash count"
-                  className="h-9 rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none focus:border-emerald-500"
+                  className="h-9 rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-slate-50 outline-none focus:border-emerald-500"
                 />
               </label>
               {variance !== null && (
@@ -250,15 +250,15 @@ export default function DayBookSummary({ apiBaseUrl = "" }: DayBookSummaryProps)
         <div className="mt-3 max-w-xl rounded-lg border border-slate-800 bg-slate-900 p-4">
           <h2 className="mb-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">Record Expense (Cash / Bank)</h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <input value={expense.category} onChange={(e) => setExpense({ ...expense, category: e.target.value })} placeholder="Category (Rent…)" className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-500" />
-            <input value={expense.amountRupees} onChange={(e) => setExpense({ ...expense, amountRupees: e.target.value })} type="number" step="0.01" placeholder="Amount (Rs)" className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-500" />
-            <select value={expense.mode} onChange={(e) => setExpense({ ...expense, mode: e.target.value })} className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-500">
+            <input value={expense.category} onChange={(e) => setExpense({ ...expense, category: e.target.value })} placeholder="Category (Rent…)" className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-500" />
+            <input value={expense.amountRupees} onChange={(e) => setExpense({ ...expense, amountRupees: e.target.value })} type="number" step="0.01" placeholder="Amount (Rs)" className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-500" />
+            <select value={expense.mode} onChange={(e) => setExpense({ ...expense, mode: e.target.value })} className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-500">
               <option value="CASH">Cash</option>
               <option value="BANK">Bank</option>
             </select>
-            <input value={expense.description} onChange={(e) => setExpense({ ...expense, description: e.target.value })} placeholder="Note (optional)" className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-500" />
+            <input value={expense.description} onChange={(e) => setExpense({ ...expense, description: e.target.value })} placeholder="Note (optional)" className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-500" />
           </div>
-          <button onClick={() => void addExpense()} className="mt-3 h-8 rounded-md bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-600">
+          <button onClick={() => void addExpense()} className="mt-3 h-8 rounded-md bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-600">
             Add Expense
           </button>
         </div>
@@ -310,8 +310,8 @@ export default function DayBookSummary({ apiBaseUrl = "" }: DayBookSummaryProps)
 function ReconRow({ label, value, tone, bold }: { label: string; value: string; tone?: "pos" | "neg"; bold?: boolean }) {
   return (
     <div className="flex items-center justify-between">
-      <span className={`${bold ? "font-bold text-white" : "text-slate-400"}`}>{label}</span>
-      <span className={`font-mono ${bold ? "font-bold text-white" : tone === "pos" ? "text-emerald-300" : tone === "neg" ? "text-rose-300" : "text-slate-200"}`}>{value}</span>
+      <span className={`${bold ? "font-bold text-slate-50" : "text-slate-400"}`}>{label}</span>
+      <span className={`font-mono ${bold ? "font-bold text-slate-50" : tone === "pos" ? "text-emerald-300" : tone === "neg" ? "text-rose-300" : "text-slate-200"}`}>{value}</span>
     </div>
   );
 }

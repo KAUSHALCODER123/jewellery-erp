@@ -194,7 +194,7 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
 
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-sm border border-slate-700 px-3 py-1 text-sm text-slate-300 hover:bg-slate-800">Cancel</button>
-          <button type="submit" disabled={saving} className="rounded-sm bg-amber-600 px-4 py-1 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-50">
+          <button type="submit" disabled={saving} className="rounded-sm bg-amber-600 px-4 py-1 text-sm font-semibold text-slate-50 hover:bg-amber-500 disabled:opacity-50">
             {saving ? "Saving…" : isEdit ? "Update" : "Save Customer"}
           </button>
         </div>

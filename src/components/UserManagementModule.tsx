@@ -81,13 +81,13 @@ export default function UserManagementModule({ apiBaseUrl = "" }: UserManagement
     }
   }
 
-  const inputClass = "h-9 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded";
+  const inputClass = "h-9 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded";
   const labelClass = "grid gap-1 text-[10px] font-semibold uppercase text-slate-400";
 
   return (
     <section className="grid min-h-full content-start gap-3 bg-slate-950 p-4 text-slate-100 max-w-3xl">
       <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-        <h2 className="text-sm font-semibold uppercase text-white">Staff User Management</h2>
+        <h2 className="text-sm font-semibold uppercase text-slate-50">Staff User Management</h2>
         <p className="mt-1 text-xs text-slate-400">Create login accounts for staff. Only administrators can add users.</p>
       </div>
 
@@ -124,7 +124,7 @@ export default function UserManagementModule({ apiBaseUrl = "" }: UserManagement
           </label>
         </div>
         <div className="flex justify-end">
-          <button type="submit" disabled={submitting || !isAdmin} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
+          <button type="submit" disabled={submitting || !isAdmin} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
             {submitting ? "Creating…" : "Create User"}
           </button>
         </div>

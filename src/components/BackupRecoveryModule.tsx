@@ -298,7 +298,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
         <div className="flex items-center gap-2">
           <Database className="h-5 w-5 text-emerald-400" />
           <div>
-            <h2 className="text-sm font-semibold uppercase text-white">Backup & Recovery</h2>
+            <h2 className="text-sm font-semibold uppercase text-slate-50">Backup & Recovery</h2>
             <p className="text-[11px] text-slate-500">Encrypted snapshots · USB / cloud targets · crash tools</p>
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex h-8 items-center gap-1 px-3 text-xs font-semibold uppercase ${
-                activeTab === tab.id ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"
+                activeTab === tab.id ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"
               }`}
             >
               <tab.icon className="h-3.5 w-3.5" />
@@ -356,7 +356,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                     onClick={() => setTarget(opt.id)}
                     className={`flex flex-col items-center gap-1 border p-3 text-xs font-semibold uppercase ${
                       target === opt.id
-                        ? "border-emerald-500 bg-emerald-950/30 text-white"
+                        ? "border-emerald-500 bg-emerald-950/30 text-slate-50"
                         : "border-slate-800 bg-slate-950 text-slate-400"
                     }`}
                   >
@@ -371,14 +371,14 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
                 disabled={!isAdmin}
-                className="h-9 border border-slate-800 bg-slate-950 px-3 text-sm text-white"
+                className="h-9 border border-slate-800 bg-slate-950 px-3 text-sm text-slate-50"
                 placeholder="AES-256-GCM — not stored in DB"
               />
               <button
                 type="button"
                 disabled={!isAdmin || loading}
                 onClick={() => void runBackup()}
-                className="h-9 bg-emerald-500 text-sm font-semibold uppercase text-slate-950 disabled:opacity-50"
+                className="h-9 bg-emerald-500 text-sm font-semibold uppercase text-slate-50 disabled:opacity-50"
               >
                 {loading ? "Creating backup…" : "Run backup now"}
               </button>
@@ -501,7 +501,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                   onChange={(e) =>
                     setScheduleDraft((d) => ({ ...d, interval_hours: Number(e.target.value) }))
                   }
-                  className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-white"
+                  className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-slate-50"
                 />
               </div>
               <div>
@@ -514,7 +514,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                   onChange={(e) =>
                     setScheduleDraft((d) => ({ ...d, max_retained_backups: Number(e.target.value) }))
                   }
-                  className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-white"
+                  className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-slate-50"
                 />
               </div>
             </div>
@@ -526,7 +526,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 onChange={(e) =>
                   setScheduleDraft((d) => ({ ...d, target: e.target.value as BackupTarget }))
                 }
-                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-white text-sm"
+                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-slate-50 text-sm"
               >
                 <option value="LOCAL">LOCAL</option>
                 <option value="USB">USB</option>
@@ -540,7 +540,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 disabled={!isAdmin}
                 onChange={(e) => setScheduleDraft((d) => ({ ...d, local_backup_dir: e.target.value }))}
                 placeholder={defaultLocalDir}
-                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-white text-sm"
+                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-slate-50 text-sm"
               />
             </div>
             <div>
@@ -549,7 +549,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 value={scheduleDraft.usb_backup_dir}
                 disabled={!isAdmin}
                 onChange={(e) => setScheduleDraft((d) => ({ ...d, usb_backup_dir: e.target.value }))}
-                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-white text-sm"
+                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-slate-50 text-sm"
               />
             </div>
             <div>
@@ -559,7 +559,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 disabled={!isAdmin}
                 onChange={(e) => setScheduleDraft((d) => ({ ...d, cloud_upload_url: e.target.value }))}
                 placeholder="https://storage.googleapis.com/bucket/object?X-Goog-Signature=..."
-                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-white text-sm"
+                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-slate-50 text-sm"
               />
               <p className="mt-1 text-[11px] text-slate-500">
                 Compatible with S3, GCS, Azure Blob pre-signed uploads. Google Drive / iCloud require a
@@ -575,7 +575,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 value={scheduleDraft.passphrase}
                 disabled={!isAdmin}
                 onChange={(e) => setScheduleDraft((d) => ({ ...d, passphrase: e.target.value }))}
-                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-white text-sm"
+                className="mt-1 w-full h-8 border border-slate-800 bg-slate-950 px-2 text-slate-50 text-sm"
                 placeholder="SHA-256 hash stored only"
               />
               <label className="mt-2 flex items-center gap-2 text-xs text-slate-400">
@@ -595,7 +595,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
               type="button"
               disabled={!isAdmin || loading}
               onClick={() => void saveSchedule()}
-              className="h-9 bg-emerald-500 text-sm font-semibold uppercase text-slate-950 disabled:opacity-50"
+              className="h-9 bg-emerald-500 text-sm font-semibold uppercase text-slate-50 disabled:opacity-50"
             >
               Save configuration
             </button>
@@ -609,7 +609,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
               <select
                 value={selectedLogId ?? ""}
                 onChange={(e) => setSelectedLogId(e.target.value ? Number(e.target.value) : null)}
-                className="h-8 border border-slate-800 bg-slate-950 px-2 text-sm text-white"
+                className="h-8 border border-slate-800 bg-slate-950 px-2 text-sm text-slate-50"
               >
                 <option value="">Select backup…</option>
                 {logs
@@ -625,7 +625,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 value={restorePassphrase}
                 onChange={(e) => setRestorePassphrase(e.target.value)}
                 placeholder="Passphrase if encrypted"
-                className="h-8 border border-slate-800 bg-slate-950 px-2 text-sm text-white"
+                className="h-8 border border-slate-800 bg-slate-950 px-2 text-sm text-slate-50"
               />
               <div className="flex gap-2">
                 <button
@@ -653,7 +653,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                 <button
                   type="button"
                   onClick={() => void loadCrashRecovery()}
-                  className="p-1 text-slate-400 hover:text-white"
+                  className="p-1 text-slate-400 hover:text-slate-50"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </button>

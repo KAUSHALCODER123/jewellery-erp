@@ -550,7 +550,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Gold Saving Scheme</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Gold Saving Scheme</h1>
           <p className="text-xs text-slate-400">Enrollment, installment collection, maturity credit</p>
         </div>
         <nav className="flex border border-slate-700 text-xs">
@@ -633,7 +633,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                 />
               </Field>
               <MetricBox label="Validation" value={enrollmentCardValid ? "Alphanumeric OK" : "4-32 alphanumeric"} tone={enrollmentCardValid ? "ok" : "warn"} />
-              <button type="submit" disabled={enrollmentDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+              <button type="submit" disabled={enrollmentDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                 Enroll Account
               </button>
             </aside>
@@ -655,7 +655,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                     onClick={() => selectCollectionAccount(account)}
                     className={`mb-2 grid w-full gap-1 border p-2 text-left text-xs ${collection.selectedAccountId === String(account.id) ? "border-emerald-400 bg-emerald-950/30" : "border-slate-800 bg-slate-950"}`}
                   >
-                    <span className="font-mono font-semibold text-white">{account.card_number}</span>
+                    <span className="font-mono font-semibold text-slate-50">{account.card_number}</span>
                     <span className="text-slate-300">{account.customer_name ?? "Masked Customer"} | {maskPhone(account.phone)}</span>
                     <span className="font-mono text-slate-400">{formatIndianCurrency(account.total_paid_paise)} saved</span>
                   </button>
@@ -689,7 +689,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                         return (
                           <label
                             key={row.installment_number}
-                            className={`grid grid-cols-[44px_60px_1fr_1fr] items-center px-2 py-1 text-xs ${row.paid ? "text-emerald-300" : isNextDue ? "bg-slate-900/60 text-white" : "text-slate-500"}`}
+                            className={`grid grid-cols-[44px_60px_1fr_1fr] items-center px-2 py-1 text-xs ${row.paid ? "text-emerald-300" : isNextDue ? "bg-slate-900/60 text-slate-50" : "text-slate-500"}`}
                           >
                             <input
                               type="checkbox"
@@ -721,7 +721,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                     </select>
                   </Field>
                   <div className="grid content-end">
-                    <button type="submit" disabled={collectionDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+                    <button type="submit" disabled={collectionDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Save Installment
                     </button>
                   </div>
@@ -741,7 +741,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
         {activeTab === "ledger" && (
           <section className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
             <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900 p-2">
-              <input value={ledgerFilter} onChange={(event) => setLedgerFilter(event.target.value)} className="h-8 w-80 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400" placeholder="Filter card, customer, phone" />
+              <input value={ledgerFilter} onChange={(event) => setLedgerFilter(event.target.value)} className="h-8 w-80 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400" placeholder="Filter card, customer, phone" />
               <MetricBox label="Rows" value={String(ledgerRows.length)} />
             </div>
             <div className="min-h-0 overflow-auto">
@@ -768,7 +768,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                         <td className={`px-2 py-2 font-semibold ${account.status === "MATURED" ? "text-emerald-300" : "text-slate-300"}`}>{account.status}</td>
                         <td className="px-2 py-2">
                           {account.status === "MATURED" ? (
-                            <button type="button" onClick={() => convertToPosCredit(account)} className="h-8 bg-emerald-500 px-2 text-[11px] font-semibold uppercase text-slate-950">
+                            <button type="button" onClick={() => convertToPosCredit(account)} className="h-8 bg-emerald-500 px-2 text-[11px] font-semibold uppercase text-slate-50">
                               Convert to POS Credit ({formatIndianCurrency(account.total_paid_paise + bonusPaise)})
                             </button>
                           ) : (
@@ -794,7 +794,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                   onClick={() => setReportsSubTab(tab)}
                   className={`h-7 px-3 text-[11px] font-semibold uppercase ${
                     reportsSubTab === tab
-                      ? "bg-cyan-500 text-slate-950"
+                      ? "bg-cyan-500 text-slate-50"
                       : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                   }`}
                 >
@@ -818,7 +818,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                         inputMode="numeric"
                       />
                     </Field>
-                    <button type="button" onClick={() => void loadStatement()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+                    <button type="button" onClick={() => void loadStatement()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Fetch Statement
                     </button>
                   </div>
@@ -871,7 +871,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
               {reportsSubTab === "overdue" && (
                 <div className="grid gap-3">
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => void loadPendingReports()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+                    <button type="button" onClick={() => void loadPendingReports()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Refresh Overdue Ledger
                     </button>
                     <MetricBox label="Overdue Accounts" value={String(pendingReports.length)} tone={pendingReports.length > 0 ? "danger" : "ok"} />
@@ -915,7 +915,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                     <Field label="End Date">
                       <input type="date" value={receivedEndDate} onChange={(e) => setReceivedEndDate(e.target.value)} className={controlClassName} />
                     </Field>
-                    <button type="button" onClick={() => void loadReceivedReports()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+                    <button type="button" onClick={() => void loadReceivedReports()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Generate Report
                     </button>
                   </div>
@@ -962,7 +962,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                     <Field label="Horizon (days)">
                       <input value={maturityDays} onChange={(e) => setMaturityDays(e.target.value)} className={controlClassName} inputMode="numeric" placeholder="30" />
                     </Field>
-                    <button type="button" onClick={() => void loadMaturityReport()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+                    <button type="button" onClick={() => void loadMaturityReport()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Scan Maturity
                     </button>
                     <MetricBox label="Results" value={String(maturityAccounts.length)} />
@@ -990,7 +990,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                               <td className="px-2 py-1.5 font-mono font-semibold text-emerald-300">{formatIndianCurrency(acc.maturity_value_paise)}</td>
                               <td className="px-2 py-1.5">
                                 {acc.is_matured ? (
-                                  <button type="button" onClick={() => convertToPosCredit(acc)} className="h-7 bg-emerald-500 px-2 text-[10px] font-semibold uppercase text-slate-950">
+                                  <button type="button" onClick={() => convertToPosCredit(acc)} className="h-7 bg-emerald-500 px-2 text-[10px] font-semibold uppercase text-slate-50">
                                     POS Credit
                                   </button>
                                 ) : (
@@ -1010,10 +1010,10 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
               {reportsSubTab === "defaulters" && (
                 <div className="grid gap-3">
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => void runDefaulterScan()} disabled={reportsLoading} className="h-8 bg-red-500 px-4 text-xs font-semibold uppercase text-white disabled:bg-slate-700 disabled:text-slate-500">
+                    <button type="button" onClick={() => void runDefaulterScan()} disabled={reportsLoading} className="h-8 bg-red-500 px-4 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Run Defaulter Scan
                     </button>
-                    <button type="button" onClick={() => void loadDefaulters()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+                    <button type="button" onClick={() => void loadDefaulters()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Refresh List
                     </button>
                     <MetricBox label="Defaulters" value={String(defaulterAccounts.length)} tone={defaulterAccounts.length > 0 ? "danger" : "ok"} />
@@ -1062,7 +1062,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                       <select
                         value={mergeSourceId}
                         onChange={(e) => { setMergeSourceId(e.target.value); setMergeTargetId(""); }}
-                        className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-cyan-400 rounded"
+                        className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none focus:border-cyan-400 rounded"
                       >
                         <option value="">— Select source —</option>
                         {accounts.map((a) => (
@@ -1076,7 +1076,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                         value={mergeTargetId}
                         onChange={(e) => setMergeTargetId(e.target.value)}
                         disabled={!mergeSourceId}
-                        className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-cyan-400 rounded disabled:text-slate-600"
+                        className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none focus:border-cyan-400 rounded disabled:text-slate-600"
                       >
                         <option value="">— Select target —</option>
                         {accounts
@@ -1095,7 +1095,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                       type="button"
                       onClick={() => void mergeAccounts()}
                       disabled={merging || !mergeSourceId || !mergeTargetId}
-                      className="h-9 bg-cyan-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-cyan-400 disabled:bg-slate-700 disabled:text-slate-500 rounded"
+                      className="h-9 bg-cyan-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-cyan-400 disabled:bg-slate-700 disabled:text-slate-500 rounded"
                     >
                       {merging ? "Merging…" : "Merge Accounts"}
                     </button>
@@ -1109,7 +1109,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
 
       {receiptModal && (
         <div className="fixed inset-0 grid place-items-center bg-slate-950/80 p-4">
-          <div className="w-[320px] border border-slate-700 bg-white p-3 text-slate-950">
+          <div className="w-[320px] border border-slate-700 bg-white p-3 text-slate-50">
             <div className="border-b border-slate-300 pb-2 text-center text-xs font-bold uppercase">GSS Thermal Receipt</div>
             <div className="grid gap-1 py-3 text-xs">
               <ReceiptLine label="Receipt" value={receiptModal.receiptNumber} />
@@ -1130,7 +1130,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
               >
                 PDF
               </button>
-              <button type="button" onClick={() => setMessage(`WhatsApp confirmation queued for ${maskPhone(receiptModal.account.phone)}.`)} className="h-8 bg-emerald-500 text-xs font-semibold uppercase text-white">WhatsApp</button>
+              <button type="button" onClick={() => setMessage(`WhatsApp confirmation queued for ${maskPhone(receiptModal.account.phone)}.`)} className="h-8 bg-emerald-500 text-xs font-semibold uppercase text-slate-50">WhatsApp</button>
             </div>
             <button type="button" onClick={() => setReceiptModal(null)} className="mt-2 h-8 w-full border border-slate-300 text-xs font-semibold uppercase">Close</button>
           </div>
@@ -1149,7 +1149,7 @@ function DurationTracker({ account, template }: { account: GssAccount | null; te
     <div className="border border-slate-800 bg-slate-900 p-3">
       <div className="mb-2 flex justify-between text-xs">
         <span className="font-semibold uppercase text-slate-400">Duration Tracker</span>
-        <span className="font-mono text-white">Installment {paid} of {duration} Paid</span>
+        <span className="font-mono text-slate-50">Installment {paid} of {duration} Paid</span>
       </div>
       <div className="h-3 bg-slate-800">
         <div className="h-3 bg-emerald-500" style={{ width: `${percent}%` }} />
@@ -1257,7 +1257,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}
+      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}
     >
       {children}
     </button>
@@ -1267,19 +1267,19 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function PanelHeader({ title, note }: { title: string; note: string }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
-      <h2 className="text-xs font-semibold uppercase text-white">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase text-slate-50">{title}</h2>
       <span className="text-[11px] text-slate-500">{note}</span>
     </div>
   );
 }
 
 function PanelTitle({ title }: { title: string }) {
-  return <h2 className="text-xs font-semibold uppercase text-white">{title}</h2>;
+  return <h2 className="text-xs font-semibold uppercase text-slate-50">{title}</h2>;
 }
 
 function MetricBox({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "ok" | "warn" | "danger" }) {
   const toneClassName =
-    tone === "ok" ? "text-emerald-300" : tone === "warn" ? "text-amber-300" : tone === "danger" ? "text-red-300" : "text-white";
+    tone === "ok" ? "text-emerald-300" : tone === "warn" ? "text-amber-300" : tone === "danger" ? "text-red-300" : "text-slate-50";
 
   return (
     <div className="border border-slate-800 bg-slate-950 px-3 py-2">
@@ -1299,6 +1299,6 @@ function ReceiptLine({ label, value }: { label: string; value: string }) {
 }
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400";
 const dangerControlClassName =
-  "h-8 w-full border border-red-500 bg-red-950/40 px-2 text-xs text-white outline-none focus:border-red-300";
+  "h-8 w-full border border-red-500 bg-red-950/40 px-2 text-xs text-slate-50 outline-none focus:border-red-300";

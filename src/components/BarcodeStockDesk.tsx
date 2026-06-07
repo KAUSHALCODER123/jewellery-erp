@@ -386,7 +386,7 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
       <div className="border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="mr-auto">
-            <h1 className="text-sm font-semibold uppercase text-white">Barcode Desk</h1>
+            <h1 className="text-sm font-semibold uppercase text-slate-50">Barcode Desk</h1>
             <p className="text-xs text-slate-400">Tag creation, label data, and stock verification</p>
           </div>
           <TabButton active={activeTab === "create"} onClick={() => setActiveTab("create")}>Create Tags</TabButton>
@@ -512,7 +512,7 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
               </Field>
             </div>
 
-            <button type="submit" className="h-9 bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400">
+            <button type="submit" className="h-9 bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400">
               Create Barcode Tags
             </button>
           </form>
@@ -552,7 +552,7 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
       ) : (
         <main className="grid min-h-0 grid-rows-[auto_auto_1fr] gap-3 overflow-auto p-3">
           <div className="flex flex-wrap items-end gap-2 border border-slate-800 bg-slate-900 p-3">
-            <button type="button" onClick={startVerification} className="h-9 bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-950">
+            <button type="button" onClick={startVerification} className="h-9 bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-50">
               Start Verification
             </button>
             <form onSubmit={scanBarcode} className="flex flex-1 gap-2">
@@ -562,7 +562,7 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
                 disabled={!summary || summary.session.status !== "OPEN"}
                 onChange={(event) => setScanValue(event.target.value)}
                 placeholder="Scan barcode or HUID"
-                className="h-9 min-w-64 flex-1 border border-slate-700 bg-slate-950 px-3 font-mono text-sm text-white outline-none focus:border-emerald-400 disabled:text-slate-600"
+                className="h-9 min-w-64 flex-1 border border-slate-700 bg-slate-950 px-3 font-mono text-sm text-slate-50 outline-none focus:border-emerald-400 disabled:text-slate-600"
               />
               <button type="submit" disabled={!summary || summary.session.status !== "OPEN"} className="h-9 border border-slate-700 px-4 text-xs font-bold uppercase text-slate-200 disabled:text-slate-600">
                 Scan
@@ -592,7 +592,7 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
           <div className="grid min-h-0 grid-cols-2 gap-3">
             <VerificationTable title="Missing Tags" items={summary?.missing_items ?? []} tone="missing" />
             <div className="min-h-0 overflow-auto border border-slate-800">
-              <div className="sticky top-0 border-b border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase text-white">Scan Log</div>
+              <div className="sticky top-0 border-b border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase text-slate-50">Scan Log</div>
               <table className="w-full text-left text-xs">
                 <tbody>
                   {(summary?.scans ?? []).map((scan) => (
@@ -738,7 +738,7 @@ function ItemTemplateModal({
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800">Cancel</button>
-          <button type="submit" disabled={saving} className="rounded bg-amber-500 px-4 py-2 text-xs font-bold uppercase text-slate-950 transition hover:bg-amber-400 active:scale-95 disabled:opacity-50">
+          <button type="submit" disabled={saving} className="rounded bg-amber-500 px-4 py-2 text-xs font-bold uppercase text-slate-50 transition hover:bg-amber-400 active:scale-95 disabled:opacity-50">
             {saving ? "Saving…" : "Save Template"}
           </button>
         </div>
@@ -761,7 +761,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`h-8 border px-3 text-xs font-semibold uppercase ${active ? "border-emerald-500 bg-emerald-500 text-slate-950" : "border-slate-700 text-slate-300"}`}
+      className={`h-8 border px-3 text-xs font-semibold uppercase ${active ? "border-emerald-500 bg-emerald-500 text-slate-50" : "border-slate-700 text-slate-300"}`}
     >
       {children}
     </button>
@@ -769,7 +769,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function Metric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "good" | "bad" | "warn" }) {
-  const toneClassName = tone === "good" ? "text-emerald-300" : tone === "bad" ? "text-red-300" : tone === "warn" ? "text-amber-300" : "text-white";
+  const toneClassName = tone === "good" ? "text-emerald-300" : tone === "bad" ? "text-red-300" : tone === "warn" ? "text-amber-300" : "text-slate-50";
 
   return (
     <div className="border-r border-slate-800 px-3 py-2 last:border-r-0">
@@ -782,7 +782,7 @@ function Metric({ label, value, tone = "neutral" }: { label: string; value: stri
 function VerificationTable({ title, items, tone }: { title: string; items: InventoryItem[]; tone: "missing" }) {
   return (
     <div className="min-h-0 overflow-auto border border-slate-800">
-      <div className="sticky top-0 border-b border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase text-white">{title}</div>
+      <div className="sticky top-0 border-b border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase text-slate-50">{title}</div>
       <table className="w-full text-left text-xs">
         <tbody>
           {items.map((item) => (
@@ -829,4 +829,4 @@ function isVerificationSummary(value: unknown): value is VerificationSummary {
 }
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none transition focus:border-emerald-400 disabled:text-slate-600";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-sm text-slate-50 outline-none transition focus:border-emerald-400 disabled:text-slate-600";

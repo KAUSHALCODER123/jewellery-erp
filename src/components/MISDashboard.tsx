@@ -153,7 +153,7 @@ export default function MISDashboard({ apiBaseUrl = "" }: { apiBaseUrl?: string 
       {/* Header controls */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
         <div>
-          <h1 className="text-base font-bold uppercase text-white tracking-wide">Executive Intelligence Center</h1>
+          <h1 className="text-base font-bold uppercase text-slate-50 tracking-wide">Executive Intelligence Center</h1>
           <p className="text-xs text-slate-500 mt-0.5">Real-time valuation, margins audit, and business diagnostics</p>
         </div>
         <div className="flex items-center gap-2">
@@ -161,7 +161,7 @@ export default function MISDashboard({ apiBaseUrl = "" }: { apiBaseUrl?: string 
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value as any)}
-            className="h-8 border border-slate-700 bg-slate-900 px-3 text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+            className="h-8 border border-slate-700 bg-slate-900 px-3 text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
           >
             <option value="last_30_days">Last 30 Days</option>
             <option value="this_year">This Year</option>
@@ -385,13 +385,13 @@ function KPICard({
       style={{ animationDelay: `${delayMs}ms` }}
     >
       <div className={`grid h-11 w-11 shrink-0 place-items-center rounded transition-transform duration-200 hover:scale-110 ${
-        alert ? "bg-red-500 text-slate-950" : "bg-slate-950 border border-slate-800 text-slate-300"
+        alert ? "bg-red-500 text-slate-50" : "bg-slate-950 border border-slate-800 text-slate-300"
       }`}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
         <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 truncate">{title}</p>
-        <CountUp value={value} format={format} className="mt-1 block truncate font-mono text-lg font-bold leading-none text-white" />
+        <CountUp value={value} format={format} className="mt-1 block truncate font-mono text-lg font-bold leading-none text-slate-50" />
         <p className="text-[11px] text-slate-400 mt-1 truncate">{subtitle}</p>
       </div>
     </div>

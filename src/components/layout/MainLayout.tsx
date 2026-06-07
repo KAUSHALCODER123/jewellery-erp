@@ -175,15 +175,17 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
 
   return (
     <div className="grid h-screen grid-cols-[232px_1fr] overflow-hidden bg-slate-950 text-slate-100">
-      <aside className="grid min-h-0 grid-rows-[auto_1fr_auto] border-r border-slate-800 bg-slate-950">
-        <div className="border-b border-slate-800 px-4 py-3">
+      {/* Charcoal sidebar: explicit dark surface + light text (arbitrary colours so it
+          stays charcoal regardless of the light-theme slate scale). Gold active state. */}
+      <aside className="grid min-h-0 grid-rows-[auto_1fr_auto] border-r border-[#33302B] bg-[#222222]">
+        <div className="border-b border-[#33302B] px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center bg-emerald-500 text-slate-950">
+            <div className="grid h-8 w-8 place-items-center bg-emerald-500 text-slate-50">
               <ShieldCheck className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">Jewelry ERP</p>
-              <p className="truncate text-[11px] uppercase text-slate-500">Offline Desktop</p>
+              <p className="truncate text-sm font-semibold text-[#F5F1E8]">Jewelry ERP</p>
+              <p className="truncate text-[11px] uppercase text-[#9C968A]">Offline Desktop</p>
             </div>
           </div>
         </div>
@@ -198,8 +200,8 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
                   [
                     "flex h-9 items-center gap-2 px-2 text-xs font-semibold uppercase tracking-wide transition",
                     isActive
-                      ? "bg-emerald-500 text-slate-950"
-                      : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                      ? "bg-emerald-500 text-slate-50"
+                      : "text-[#C4BEB0] hover:bg-[#2E2A24] hover:text-[#FFFFFF]"
                   ].join(" ")
                 }
               >
@@ -210,16 +212,16 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
           </div>
         </nav>
 
-        <div className="border-t border-slate-800 p-3 text-xs">
-          <div className="truncate font-medium text-slate-200">{session?.user.username ?? "Not signed in"}</div>
-          <div className="mt-0.5 uppercase text-slate-500">{session?.user.role ?? "Local Access"}</div>
+        <div className="border-t border-[#33302B] p-3 text-xs">
+          <div className="truncate font-medium text-[#E7E2D6]">{session?.user.username ?? "Not signed in"}</div>
+          <div className="mt-0.5 uppercase text-[#9C968A]">{session?.user.role ?? "Local Access"}</div>
           {session?.user.firm_name && (
-            <div className="mt-1.5 truncate rounded bg-slate-800/60 px-1.5 py-1 text-[10px] font-semibold text-emerald-300/80">
+            <div className="mt-1.5 truncate rounded bg-[#2E2A24] px-1.5 py-1 text-[10px] font-semibold text-[#D4AF37]">
               {session.user.firm_name}
             </div>
           )}
           {session?.user.fiscal_year && (
-            <div className="mt-1 text-[10px] text-slate-600 uppercase tracking-wide">
+            <div className="mt-1 text-[10px] text-[#857F72] uppercase tracking-wide">
               FY {session.user.fiscal_year}
             </div>
           )}
@@ -227,7 +229,7 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
             type="button"
             onClick={() => { void logout(); }}
             title="Sign out of this session"
-            className="mt-2.5 flex w-full items-center justify-center gap-1.5 border border-slate-700 px-2 py-1.5 text-[11px] font-semibold uppercase text-slate-300 hover:border-red-500 hover:text-red-300"
+            className="mt-2.5 flex w-full items-center justify-center gap-1.5 border border-[#3A372F] px-2 py-1.5 text-[11px] font-semibold uppercase text-[#C4BEB0] hover:border-red-500 hover:text-[#F08C8C]"
           >
             <LogOut className="h-3.5 w-3.5" /> Logout
           </button>
@@ -237,7 +239,7 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
       <section className="grid min-h-0 grid-rows-[48px_1fr]">
         <header className="flex items-center justify-between gap-4 border-b border-slate-800 bg-slate-900 px-4">
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold uppercase text-white">{title}</h1>
+            <h1 className="truncate text-sm font-semibold uppercase text-slate-50">{title}</h1>
             <p className="truncate text-[11px] text-slate-500">
               {session?.user.firm_name
                 ? `${session.user.firm_name}${session.user.fiscal_year ? ` · FY ${session.user.fiscal_year}` : ""}`
@@ -288,10 +290,10 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
       {locked && (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/95 backdrop-blur">
           <form onSubmit={unlockApp} className="grid w-80 gap-3 border border-slate-700 bg-slate-900 p-6 text-center">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-500 text-slate-950">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-500 text-slate-50">
               <Lock className="h-6 w-6" />
             </div>
-            <h2 className="text-sm font-semibold uppercase text-white">App Locked</h2>
+            <h2 className="text-sm font-semibold uppercase text-slate-50">App Locked</h2>
             <p className="text-[11px] text-slate-400">Enter {session?.user.username ?? "your"} password to resume.</p>
             <input
               type="password"
@@ -299,10 +301,10 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
               value={unlockPassword}
               onChange={(event) => setUnlockPassword(event.target.value)}
               placeholder="Password"
-              className="h-9 border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-emerald-400"
+              className="h-9 border border-slate-700 bg-slate-950 px-3 text-sm text-slate-50 outline-none focus:border-emerald-400"
             />
             {unlockError && <p className="text-[11px] font-semibold text-red-300">{unlockError}</p>}
-            <button type="submit" className="h-9 bg-emerald-500 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-600">Unlock</button>
+            <button type="submit" className="h-9 bg-emerald-500 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-600">Unlock</button>
           </form>
         </div>
       )}

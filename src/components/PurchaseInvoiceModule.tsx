@@ -31,7 +31,7 @@ type LineForm = {
   gstRupees: string;
 };
 
-const controlClassName = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400";
+const controlClassName = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400";
 
 function emptyLine(key: string): LineForm {
   return {
@@ -198,7 +198,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Purchase Invoice (Inward)</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Purchase Invoice (Inward)</h1>
           <p className="text-xs text-slate-400">Wholesale / B2B stock entry — updates live inventory & supplier ledger</p>
         </div>
       </header>
@@ -238,7 +238,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
                 <input value={newSupplier.gstin} onChange={(event) => setNewSupplier({ ...newSupplier, gstin: event.target.value })} className={controlClassName} />
               </Field>
               <div className="flex gap-2">
-                <button type="button" onClick={createSupplier} className="h-8 flex-1 rounded bg-emerald-500 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-600">Save</button>
+                <button type="button" onClick={createSupplier} className="h-8 flex-1 rounded bg-emerald-500 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-600">Save</button>
                 <button type="button" onClick={() => setShowNewSupplier(false)} className="h-8 rounded border border-slate-700 bg-slate-800 px-3 text-[11px] font-bold uppercase hover:bg-slate-700">Cancel</button>
               </div>
             </div>
@@ -255,7 +255,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
 
         <section className="grid min-h-0 grid-rows-[auto_1fr]">
           <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
-            <span className="text-xs font-semibold uppercase text-white">Purchase Items</span>
+            <span className="text-xs font-semibold uppercase text-slate-50">Purchase Items</span>
             <button type="button" onClick={addLine} className="rounded bg-slate-800 px-3 py-1 text-[10px] font-bold uppercase text-emerald-300 hover:bg-slate-700">+ Add Line</button>
           </div>
           <div className="grid content-start gap-2 overflow-auto p-3">
@@ -318,7 +318,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
           {paymentMode === "CREDIT" && selectedSupplier && (
             <p className="border border-amber-600/40 bg-amber-950/30 p-2 text-[10px] text-amber-200">Adds {formatPaise(grossTotalPaise)} to {selectedSupplier.name}'s outstanding balance.</p>
           )}
-          <button type="submit" disabled={saveDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+          <button type="submit" disabled={saveDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
             Save & Add to Stock
           </button>
         </aside>

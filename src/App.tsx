@@ -389,7 +389,7 @@ function SettingsRoute() {
   return (
     <section className="grid min-h-full content-start gap-3 bg-slate-950 p-4 text-slate-100 max-w-4xl">
       <div className="border border-slate-800 bg-slate-900 p-4 rounded-lg">
-        <h2 className="text-sm font-semibold uppercase text-white">Local Settings</h2>
+        <h2 className="text-sm font-semibold uppercase text-slate-50">Local Settings</h2>
         <p className="mt-1 text-xs text-slate-400">Backend settings are available through the rates controls and admin modules.</p>
       </div>
 
@@ -403,7 +403,7 @@ function SettingsRoute() {
 
       <div className="border border-slate-800 bg-slate-900 p-4 rounded-lg flex flex-col gap-3">
         <div>
-          <h2 className="text-sm font-semibold uppercase text-white">E-commerce Sync & Webhook Configuration</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-50">E-commerce Sync & Webhook Configuration</h2>
           <p className="mt-1 text-xs text-slate-400">Connect this offline local ERP database to external storefront endpoints like Shopify, WooCommerce, or custom API endpoints.</p>
         </div>
 
@@ -421,7 +421,7 @@ function SettingsRoute() {
                 placeholder="https://yourstore.com/api/webhooks/erp-sync"
                 value={syncUrl}
                 onChange={(e) => setSyncUrl(e.target.value)}
-                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
               />
             </label>
 
@@ -432,7 +432,7 @@ function SettingsRoute() {
                 placeholder={secretConfigured ? "•••••• configured — leave blank to keep" : "Enter webhook secret or API key"}
                 value={secretKey}
                 onChange={(e) => setSecretKey(e.target.value)}
-                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
               />
               {secretConfigured && <span className="text-[9px] normal-case text-emerald-400/80">A secret is currently configured (hidden for security).</span>}
             </label>
@@ -449,7 +449,7 @@ function SettingsRoute() {
               <button
                 type="submit"
                 disabled={saving}
-                className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold px-4 rounded uppercase text-[11px] disabled:bg-slate-700 disabled:text-slate-400 transition"
+                className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-50 font-bold px-4 rounded uppercase text-[11px] disabled:bg-slate-700 disabled:text-slate-400 transition"
               >
                 {saving ? "Saving..." : "Save Configuration"}
               </button>
@@ -460,7 +460,7 @@ function SettingsRoute() {
 
       <div className="border border-slate-800 bg-slate-900 p-4 rounded-lg flex flex-col gap-3">
         <div>
-          <h2 className="text-sm font-semibold uppercase text-white">Loyalty Earning Rules</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-50">Loyalty Earning Rules</h2>
           <p className="mt-1 text-xs text-slate-400">Choose whether enrolled customers earn by invoice value or gold net weight.</p>
         </div>
 
@@ -473,7 +473,7 @@ function SettingsRoute() {
               <select
                 value={loyaltyEarnMode}
                 onChange={(e) => setLoyaltyEarnMode(e.target.value === "PER_GRAM_GOLD" ? "PER_GRAM_GOLD" : "PER_HUNDRED_RUPEES")}
-                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
               >
                 <option value="PER_HUNDRED_RUPEES">Per Rs 100 of net payable</option>
                 <option value="PER_GRAM_GOLD">Per gram of gold</option>
@@ -486,7 +486,7 @@ function SettingsRoute() {
                 <input
                   value={loyaltyPointsPerHundred}
                   onChange={(e) => setLoyaltyPointsPerHundred(e.target.value.replace(/[^\d]/g, ""))}
-                  className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                  className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
                   inputMode="numeric"
                 />
               </label>
@@ -495,7 +495,7 @@ function SettingsRoute() {
                 <input
                   value={loyaltyPointsPerGramGold}
                   onChange={(e) => setLoyaltyPointsPerGramGold(e.target.value.replace(/[^\d]/g, ""))}
-                  className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                  className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
                   inputMode="numeric"
                 />
               </label>
@@ -505,7 +505,7 @@ function SettingsRoute() {
               <button
                 type="submit"
                 disabled={loyaltySaving}
-                className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold px-4 rounded uppercase text-[11px] disabled:bg-slate-700 disabled:text-slate-400 transition"
+                className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-50 font-bold px-4 rounded uppercase text-[11px] disabled:bg-slate-700 disabled:text-slate-400 transition"
               >
                 {loyaltySaving ? "Saving..." : "Save Loyalty Rules"}
               </button>
@@ -516,7 +516,7 @@ function SettingsRoute() {
 
       <div className="border border-slate-800 bg-slate-900 p-4 rounded-lg flex flex-col gap-3">
         <div>
-          <h2 className="text-sm font-semibold uppercase text-white">Print Language / मुद्रण भाषा / છાપ ભાષા</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-50">Print Language / मुद्रण भाषा / છાપ ભાષા</h2>
           <p className="mt-1 text-xs text-slate-400">
             Choose the language for field headers on printed invoices and receipts (Pavati). The software UI stays in English — only the printout changes.
           </p>
@@ -565,7 +565,7 @@ function SettingsRoute() {
 
       <div className="border border-slate-800 bg-slate-900 p-4 rounded-lg flex flex-col gap-3">
         <div>
-          <h2 className="text-sm font-semibold uppercase text-white">Tally Prime XML Gateway Synchronization</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-50">Tally Prime XML Gateway Synchronization</h2>
           <p className="mt-1 text-xs text-slate-400">Stream transaction vouchers (sales, purchases, receipts, returns) automatically to your local running Tally Prime accounting instance.</p>
         </div>
 
@@ -590,7 +590,7 @@ function SettingsRoute() {
                 placeholder="http://localhost:9000"
                 value={tallyGatewayUrl}
                 onChange={(e) => setTallyGatewayUrl(e.target.value)}
-                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
               />
             </label>
 
@@ -601,7 +601,7 @@ function SettingsRoute() {
                 placeholder="e.g., Shree Jewellers"
                 value={tallyCompanyName}
                 onChange={(e) => setTallyCompanyName(e.target.value)}
-                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
               />
             </label>
 
@@ -609,7 +609,7 @@ function SettingsRoute() {
               <button
                 type="submit"
                 disabled={tallySaving}
-                className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold px-4 rounded uppercase text-[11px] disabled:bg-slate-700 disabled:text-slate-400 transition"
+                className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-50 font-bold px-4 rounded uppercase text-[11px] disabled:bg-slate-700 disabled:text-slate-400 transition"
               >
                 {tallySaving ? "Saving..." : "Save Tally Configuration"}
               </button>

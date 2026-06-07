@@ -175,7 +175,7 @@ export default function FirmsManager() {
     <div className="border border-slate-800 bg-slate-900 p-4 rounded-lg flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase text-white">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase text-slate-50">
             <Building2 size={16} className="text-emerald-400" />
             Firms & Company Entities
           </h2>
@@ -187,7 +187,7 @@ export default function FirmsManager() {
           <button
             type="button"
             onClick={() => { setCreating(true); setCreateForm(EMPTY_FORM); setError(""); setMessage(""); }}
-            className="flex shrink-0 items-center gap-1.5 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-400 transition"
+            className="flex shrink-0 items-center gap-1.5 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400 transition"
           >
             <Plus size={14} /> Add Firm
           </button>
@@ -217,7 +217,7 @@ export default function FirmsManager() {
               type="button"
               disabled={busyId === "new"}
               onClick={() => void handleCreate()}
-              className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 transition"
+              className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 transition"
             >
               <Check size={13} /> {busyId === "new" ? "Saving..." : "Create Firm"}
             </button>
@@ -262,7 +262,7 @@ export default function FirmsManager() {
                         type="button"
                         disabled={busy}
                         onClick={() => void handleUpdate(firm)}
-                        className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 transition"
+                        className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 transition"
                       >
                         <Check size={13} /> {busy ? "Saving..." : "Save"}
                       </button>
@@ -272,7 +272,7 @@ export default function FirmsManager() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-white">{firm.display_name}</span>
+                        <span className="truncate text-sm font-semibold text-slate-50">{firm.display_name}</span>
                         <span
                           className={[
                             "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
@@ -295,7 +295,7 @@ export default function FirmsManager() {
                           type="button"
                           onClick={() => startEdit(firm)}
                           title="Edit firm"
-                          className="grid h-7 w-7 place-items-center rounded border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                          className="grid h-7 w-7 place-items-center rounded border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-slate-50 transition"
                         >
                           <Pencil size={13} />
                         </button>
@@ -338,7 +338,7 @@ function FirmField({ label, value, onChange, placeholder }: { label: string; val
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-8 rounded border border-slate-700 bg-slate-950 px-2.5 text-xs font-normal text-white outline-none focus:border-emerald-500 transition"
+        className="h-8 rounded border border-slate-700 bg-slate-950 px-2.5 text-xs font-normal text-slate-50 outline-none focus:border-emerald-500 transition"
       />
     </label>
   );

@@ -469,7 +469,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Karigar Manufacturing</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Karigar Manufacturing</h1>
           <p className="text-xs text-slate-400">Metal accountability, wastage, labor balances</p>
         </div>
         <nav className="flex border border-slate-700 text-xs">
@@ -554,7 +554,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
               <MetricBox label="Formula" value="floor(W x P / 100)" />
               <MetricBox label="Fine Gold Mg" value={`${issuePreview} mg`} tone="ok" />
               <MetricBox label="Design Image" value={issueForm.designImagePath ? "Uploaded" : "Pending"} />
-              <button type="submit" className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+              <button type="submit" className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                 Issue Raw Metal
               </button>
             </aside>
@@ -643,7 +643,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
               <MetricBox label="Actual Loss" value={formatMg(receivePreview.actualLossMg)} tone={receivePreview.excessLossMg > 0 ? "danger" : "neutral"} />
               <MetricBox label="Acceptable Allowance" value={formatMg(receivePreview.acceptableLossMg)} />
               <MetricBox label="Labor Payload" value={`${rupeesToPaise(receiveForm.laborChargeRupees)} paise`} />
-              <button type="submit" disabled={!selectedReceiveJob} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+              <button type="submit" disabled={!selectedReceiveJob} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                 Receive Finished Job
               </button>
             </aside>
@@ -709,11 +709,11 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
           <div className="w-full max-w-md border border-slate-800 bg-slate-900 p-4 text-slate-100 shadow-2xl rounded-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-2">
-              <h3 className="text-sm font-semibold uppercase text-white">Transfer to Barcode Stock</h3>
+              <h3 className="text-sm font-semibold uppercase text-slate-50">Transfer to Barcode Stock</h3>
               <button
                 type="button"
                 onClick={() => setTransferModal((prev) => ({ ...prev, isOpen: false }))}
-                className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                className="text-slate-400 hover:text-slate-50 text-xs cursor-pointer"
               >
                 ✕
               </button>
@@ -796,7 +796,7 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-semibold uppercase cursor-pointer"
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-50 text-xs font-semibold uppercase cursor-pointer"
                 >
                   Confirm Transfer
                 </button>
@@ -908,7 +908,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}
+      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}
     >
       {children}
     </button>
@@ -918,19 +918,19 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function PanelHeader({ title, note }: { title: string; note: string }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
-      <h2 className="text-xs font-semibold uppercase text-white">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase text-slate-50">{title}</h2>
       <span className="text-[11px] text-slate-500">{note}</span>
     </div>
   );
 }
 
 function PanelTitle({ title }: { title: string }) {
-  return <h2 className="text-xs font-semibold uppercase text-white">{title}</h2>;
+  return <h2 className="text-xs font-semibold uppercase text-slate-50">{title}</h2>;
 }
 
 function MetricBox({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "ok" | "warn" | "danger" }) {
   const toneClassName =
-    tone === "ok" ? "text-emerald-300" : tone === "warn" ? "text-amber-300" : tone === "danger" ? "text-red-300" : "text-white";
+    tone === "ok" ? "text-emerald-300" : tone === "warn" ? "text-amber-300" : tone === "danger" ? "text-red-300" : "text-slate-50";
 
   return (
     <div className="border border-slate-800 bg-slate-950 px-3 py-2">
@@ -1004,7 +1004,7 @@ function LedgerPane({
                     <button
                       type="button"
                       onClick={() => onTransferClick(row.jobId!, row.grossWeightGrams!, row.netWeightGrams!)}
-                      className="mt-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer transition-colors shadow-sm"
+                      className="mt-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-50 text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer transition-colors shadow-sm"
                     >
                       Transfer to Barcode
                     </button>
@@ -1020,6 +1020,6 @@ function LedgerPane({
 }
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400";
 const fileControlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white file:mr-2 file:border-0 file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-white";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-50 file:mr-2 file:border-0 file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-slate-50";

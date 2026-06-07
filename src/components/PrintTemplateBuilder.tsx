@@ -131,7 +131,7 @@ export default function PrintTemplateBuilder({ apiBaseUrl = "" }: PrintTemplateB
       <header className="border-b border-slate-800 bg-slate-900 px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="mr-auto">
-            <h1 className="text-sm font-semibold uppercase text-white">Print Template Builder</h1>
+            <h1 className="text-sm font-semibold uppercase text-slate-50">Print Template Builder</h1>
             <p className="text-xs text-slate-400">A4, A5, thermal, and label layouts — drag to reorder, pick colors, generate real PDFs</p>
           </div>
           <select value={String(selectedId)} onChange={(e) => selectTemplate(e.target.value)} className={ctrl}>
@@ -270,14 +270,14 @@ export default function PrintTemplateBuilder({ apiBaseUrl = "" }: PrintTemplateB
               />
               Set as default
             </label>
-            <button type="submit" className="ml-auto h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-600">
+            <button type="submit" className="ml-auto h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-600">
               Save Template
             </button>
           </div>
         </form>
 
         {/* Right: live preview */}
-        <div className="min-h-0 overflow-auto bg-slate-200 p-6">
+        <div className="min-h-0 overflow-auto bg-slate-800 p-6">
           <Preview draft={draft} />
         </div>
       </main>
@@ -478,7 +478,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 border border-slate-800 px-2 py-2 text-xs text-slate-400 hover:text-white">
+    <label className="flex cursor-pointer items-center gap-2 border border-slate-800 px-2 py-2 text-xs text-slate-400 hover:text-slate-50">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
@@ -534,4 +534,4 @@ function colLabel(col: string): string {
   return map[col] ?? col;
 }
 
-const ctrl = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400";
+const ctrl = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400";

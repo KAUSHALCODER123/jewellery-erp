@@ -51,7 +51,7 @@ function formatPurity(tunch: number): string {
   return preset ? preset.label : `${(tunch / 100).toFixed(2)}%`;
 }
 
-const ctrl = "h-9 w-full border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none focus:border-emerald-400";
+const ctrl = "h-9 w-full border border-slate-700 bg-slate-950 px-2 text-sm text-slate-50 outline-none focus:border-emerald-400";
 
 export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: CustomerOrderBookingModuleProps) {
   const { session } = useAuthSession();
@@ -196,13 +196,13 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
     <section className="grid h-screen grid-rows-[auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Customer Order Booking</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Customer Order Booking</h1>
           <p className="text-xs text-slate-400">Book custom orders before assigning a karigar</p>
         </div>
         <button
           type="button"
           onClick={openNew}
-          className="flex h-8 items-center gap-1.5 bg-emerald-500 px-3 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400"
+          className="flex h-8 items-center gap-1.5 bg-emerald-500 px-3 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400"
         >
           <Plus className="h-3.5 w-3.5" /> New Order
         </button>
@@ -252,7 +252,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                       {order.status.replace("_", " ")}
                     </span>
                   </div>
-                  <div className="truncate text-sm font-semibold text-white">{order.item_description}</div>
+                  <div className="truncate text-sm font-semibold text-slate-50">{order.item_description}</div>
                   <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500">
                     <span className="truncate">{order.customer_name}</span>
                     <span className="shrink-0 font-mono">{order.created_at?.slice(0, 10) ?? ""}</span>
@@ -268,8 +268,8 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
           {rightView === "new" ? (
             <form onSubmit={saveOrder} className="grid content-start gap-4 p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold uppercase text-white">New Customer Order</h2>
-                <button type="button" onClick={() => setRightView("detail")} className="text-slate-500 hover:text-white">
+                <h2 className="text-sm font-bold uppercase text-slate-50">New Customer Order</h2>
+                <button type="button" onClick={() => setRightView("detail")} className="text-slate-500 hover:text-slate-50">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -280,7 +280,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                 {selectedCustomer ? (
                   <div className="flex items-center justify-between border border-emerald-700 bg-emerald-950/20 px-3 py-2">
                     <div>
-                      <div className="text-sm font-semibold text-white">{selectedCustomer.name}</div>
+                      <div className="text-sm font-semibold text-slate-50">{selectedCustomer.name}</div>
                       <div className="font-mono text-xs text-slate-400">{selectedCustomer.phone ?? "No phone"}</div>
                     </div>
                     <button type="button" onClick={() => setSelectedCustomer(null)} className="text-slate-500 hover:text-red-400">
@@ -295,7 +295,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                         value={customerSearch}
                         onChange={(e) => setCustomerSearch(e.target.value)}
                         placeholder="Search by name or phone"
-                        className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none"
+                        className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm text-slate-50 outline-none"
                       />
                     </div>
                     {customerOptions.length > 0 && (
@@ -307,7 +307,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                             onClick={() => { setSelectedCustomer(c); setCustomerSearch(""); }}
                             className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-800"
                           >
-                            <span className="font-semibold text-white">{c.name}</span>
+                            <span className="font-semibold text-slate-50">{c.name}</span>
                             <span className="font-mono text-xs text-slate-400">{c.phone ?? ""}</span>
                           </button>
                         ))}
@@ -420,7 +420,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                 <button
                   type="submit"
                   disabled={saving || !selectedCustomer}
-                  className="h-9 bg-emerald-500 px-6 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                  className="h-9 bg-emerald-500 px-6 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
                 >
                   {saving ? "Saving..." : "Book Order"}
                 </button>

@@ -124,7 +124,7 @@ export default function RepairDeskModule({ apiBaseUrl = "" }: RepairDeskModulePr
         <div className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-md bg-sky-600/20 text-sky-300"><Wrench className="h-5 w-5" /></div>
           <div>
-            <h1 className="text-lg font-bold text-white">Repair & Order Desk</h1>
+            <h1 className="text-lg font-bold text-slate-50">Repair & Order Desk</h1>
             <p className="text-xs text-slate-400">Intake customer repairs / custom orders and track them to delivery.</p>
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function RepairDeskModule({ apiBaseUrl = "" }: RepairDeskModulePr
                 style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-sm font-semibold text-white">
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-50">
                     <User className="h-3.5 w-3.5 text-slate-500" /> {customerName(r.customer_id)}
                   </div>
                   <StatusBadge tone={STATUS_TONE[r.status]}>{r.status}</StatusBadge>

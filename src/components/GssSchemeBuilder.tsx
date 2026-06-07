@@ -119,7 +119,7 @@ export default function GssSchemeBuilder({ apiBaseUrl = "" }: GssSchemeBuilderPr
       <header className="mb-4 flex items-center gap-2">
         <div className="grid h-9 w-9 place-items-center rounded-md bg-amber-600/20 text-amber-300"><Gem className="h-5 w-5" /></div>
         <div>
-          <h1 className="text-lg font-bold text-white">Gold Scheme Builder</h1>
+          <h1 className="text-lg font-bold text-slate-50">Gold Scheme Builder</h1>
           <p className="text-xs text-slate-400">Design saving schemes (incl. "pay 11, get the 12th") with a live installment preview.</p>
         </div>
       </header>
@@ -214,7 +214,7 @@ export default function GssSchemeBuilder({ apiBaseUrl = "" }: GssSchemeBuilderPr
                 <span className="font-mono text-xs text-amber-300">{t.scheme_code}</span>
                 <StatusBadge tone={t.is_active ? "good" : "neutral"}>{t.is_active ? "Active" : "Inactive"}</StatusBadge>
               </div>
-              <p className="mt-1 truncate text-sm font-semibold text-white">{t.scheme_name}</p>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-50">{t.scheme_name}</p>
               <p className="mt-1 text-[11px] text-slate-400">
                 {rupees(t.monthly_amount_paise)}/mo · {t.customer_months ?? t.duration_months} pay
                 {t.maturity_months ? ` + ${t.maturity_months} free` : ""} · {t.scheme_type}

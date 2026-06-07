@@ -204,7 +204,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
   }
 
   const inputClass =
-    "h-9 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded";
+    "h-9 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded";
   const labelClass = "grid gap-1 text-[10px] font-semibold uppercase text-slate-400";
 
   return (
@@ -213,14 +213,14 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
         <button
           type="button"
           onClick={() => switchTab("sales")}
-          className={`h-9 px-4 text-xs font-bold uppercase rounded ${activeTab === "sales" ? "bg-emerald-500 text-slate-950" : "border border-slate-700 text-slate-300 hover:border-slate-500"}`}
+          className={`h-9 px-4 text-xs font-bold uppercase rounded ${activeTab === "sales" ? "bg-emerald-500 text-slate-50" : "border border-slate-700 text-slate-300 hover:border-slate-500"}`}
         >
           Sales Return
         </button>
         <button
           type="button"
           onClick={() => switchTab("purchase")}
-          className={`h-9 px-4 text-xs font-bold uppercase rounded ${activeTab === "purchase" ? "bg-emerald-500 text-slate-950" : "border border-slate-700 text-slate-300 hover:border-slate-500"}`}
+          className={`h-9 px-4 text-xs font-bold uppercase rounded ${activeTab === "purchase" ? "bg-emerald-500 text-slate-50" : "border border-slate-700 text-slate-300 hover:border-slate-500"}`}
         >
           Purchase Return
         </button>
@@ -318,7 +318,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
           <div className="flex items-center gap-4 text-xs">
             <span className="text-slate-400">GST reversal: <span className="font-mono text-slate-200">{formatPaise(gstReversalPaise)}</span></span>
             <span className="text-slate-300 font-semibold">Total refund: <span className="font-mono text-emerald-300">{formatPaise(grossTotalPaise)}</span></span>
-            <button type="submit" disabled={submitting} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
+            <button type="submit" disabled={submitting} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
               {submitting ? "Saving…" : `Save ${activeTab === "sales" ? "Sales" : "Purchase"} Return`}
             </button>
           </div>

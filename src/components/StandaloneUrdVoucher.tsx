@@ -407,7 +407,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
     <section className="grid min-h-screen grid-rows-[auto_1fr] bg-slate-950 text-slate-100 font-sans">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-3">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-white">URD Old-Gold Workspace</h1>
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-slate-50">URD Old-Gold Workspace</h1>
           <p className="text-xs text-slate-400">Manage customer old-gold purchases, stock ingestion, melting, and KYC</p>
         </div>
         <nav className="flex border border-slate-700 text-xs">
@@ -428,7 +428,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
           <div className="grid grid-cols-[520px_1fr] gap-4 items-start">
             <form onSubmit={saveVoucher} className="grid content-start gap-4 border border-slate-800 bg-slate-900 p-4 rounded shadow-md">
               <header className="border-b border-slate-800 pb-2">
-                <h2 className="text-xs font-bold uppercase text-white tracking-wide">Purchase Details</h2>
+                <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">Purchase Details</h2>
               </header>
 
               <div className="grid grid-cols-2 gap-3">
@@ -447,7 +447,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
               </div>
 
               <header className="border-b border-slate-800 pb-2 pt-2">
-                <h2 className="text-xs font-bold uppercase text-white tracking-wide">Stronger KYC Details</h2>
+                <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">Stronger KYC Details</h2>
               </header>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="PAN Number (10-char Alphanumeric)"><input placeholder="ABCDE1234F" value={form.panNumber} onChange={(event) => setField("panNumber", event.target.value.toUpperCase())} className={controlClassName} /></Field>
@@ -469,13 +469,13 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
                 <Metric label="Purchase Value" value={formatNumber(weights.total, "Rs")} />
               </div>
 
-              <button type="submit" className="h-10 bg-emerald-500 hover:bg-emerald-400 text-xs font-bold uppercase text-slate-950 transition-colors shadow">
+              <button type="submit" className="h-10 bg-emerald-500 hover:bg-emerald-400 text-xs font-bold uppercase text-slate-50 transition-colors shadow">
                 Save URD Voucher
               </button>
             </form>
 
             <div className="border border-slate-800 bg-slate-900 p-4 rounded shadow-md h-full">
-              <h2 className="text-xs font-semibold uppercase text-white border-b border-slate-800 pb-2 tracking-wide">KYC & Compliance Guidance</h2>
+              <h2 className="text-xs font-semibold uppercase text-slate-50 border-b border-slate-800 pb-2 tracking-wide">KYC & Compliance Guidance</h2>
               <p className="mt-3 text-xs text-slate-300 leading-relaxed">
                 Under GST Section 31(3)(f) and RCM rules, unregistered purchase of gold requires the jeweler to print a purchase voucher.
               </p>
@@ -491,7 +491,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
         {activeTab === "vouchers" && (
           <div className="border border-slate-800 bg-slate-900 rounded shadow-md overflow-hidden">
             <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-800">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-white">Standalone Purchases Registry</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-50">Standalone Purchases Registry</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
@@ -565,7 +565,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
         {activeTab === "pos-purchases" && (
           <div className="border border-slate-800 bg-slate-900 rounded shadow-md overflow-hidden">
             <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-800">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-white">POS Old-Gold Exchanges Registry</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-50">POS Old-Gold Exchanges Registry</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
@@ -627,7 +627,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
           <div className="grid w-full max-w-sm gap-3 border border-slate-700 bg-slate-950 p-4 shadow-xl rounded">
             <div className="border-b border-slate-800 pb-2">
-              <h3 className="text-sm font-semibold uppercase text-white">Ingest Old Gold into Stock</h3>
+              <h3 className="text-sm font-semibold uppercase text-slate-50">Ingest Old Gold into Stock</h3>
               <p className="mt-1 text-xs text-slate-400">This creates an active stock item in inventory from this unregistered purchase.</p>
             </div>
             <div className="grid gap-3">
@@ -639,8 +639,8 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
               </Field>
             </div>
             <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
-              <button type="button" onClick={() => setActiveModal(null)} className="h-8 text-xs font-semibold px-3 border border-slate-750 text-slate-400 hover:text-white rounded">Cancel</button>
-              <button type="button" onClick={submitIngest} className="h-8 text-xs font-semibold px-4 bg-blue-500 hover:bg-blue-600 text-slate-950 rounded">Confirm Ingest</button>
+              <button type="button" onClick={() => setActiveModal(null)} className="h-8 text-xs font-semibold px-3 border border-slate-750 text-slate-400 hover:text-slate-50 rounded">Cancel</button>
+              <button type="button" onClick={submitIngest} className="h-8 text-xs font-semibold px-4 bg-blue-500 hover:bg-blue-600 text-slate-50 rounded">Confirm Ingest</button>
             </div>
           </div>
         </div>
@@ -651,7 +651,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
           <div className="grid w-full max-w-sm gap-3 border border-slate-700 bg-slate-950 p-4 shadow-xl rounded">
             <div className="border-b border-slate-800 pb-2">
-              <h3 className="text-sm font-semibold uppercase text-white">Send to Refinery / Melting</h3>
+              <h3 className="text-sm font-semibold uppercase text-slate-50">Send to Refinery / Melting</h3>
               <p className="mt-1 text-xs text-slate-400">Records outward smelting transfer and increases refinery metal liability.</p>
             </div>
             <div className="grid gap-3">
@@ -668,8 +668,8 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
               </Field>
             </div>
             <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
-              <button type="button" onClick={() => setActiveModal(null)} className="h-8 text-xs font-semibold px-3 border border-slate-750 text-slate-400 hover:text-white rounded">Cancel</button>
-              <button type="button" onClick={submitTransfer} className="h-8 text-xs font-semibold px-4 bg-purple-500 hover:bg-purple-650 text-white rounded">Send to Refinery</button>
+              <button type="button" onClick={() => setActiveModal(null)} className="h-8 text-xs font-semibold px-3 border border-slate-750 text-slate-400 hover:text-slate-50 rounded">Cancel</button>
+              <button type="button" onClick={submitTransfer} className="h-8 text-xs font-semibold px-4 bg-purple-500 hover:bg-purple-650 text-slate-50 rounded">Send to Refinery</button>
             </div>
           </div>
         </div>
@@ -689,7 +689,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="border-r border-slate-800 px-3 py-2 last:border-r-0"><div className="text-[10px] uppercase text-slate-500">{label}</div><div className="font-mono text-sm font-bold text-white">{value}</div></div>;
+  return <div className="border-r border-slate-800 px-3 py-2 last:border-r-0"><div className="text-[10px] uppercase text-slate-500">{label}</div><div className="font-mono text-sm font-bold text-slate-50">{value}</div></div>;
 }
 
 function ActionButton({ onClick, tone = "slate", disabled = false, children, title }: { onClick: () => void; tone?: "slate" | "emerald" | "blue" | "purple"; disabled?: boolean; children: ReactNode; title?: string }) {
@@ -717,7 +717,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-950 font-bold" : "bg-slate-950 text-slate-400 hover:text-white"}`}
+      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-50 font-bold" : "bg-slate-950 text-slate-400 hover:text-slate-50"}`}
     >
       {children}
     </button>
@@ -742,4 +742,4 @@ function formatNumber(value: number | undefined, suffix: string) {
   return suffix === "Rs" ? `Rs ${value.toFixed(2)}` : `${value.toFixed(3)} ${suffix}`;
 }
 
-const controlClassName = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded-sm";
+const controlClassName = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded-sm";

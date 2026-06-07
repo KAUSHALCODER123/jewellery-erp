@@ -194,20 +194,20 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-3">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Messenger & CRM Automation</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Messenger & CRM Automation</h1>
           <p className="text-xs text-slate-400">Manage transaction alerts, due reminders, and customer wishes</p>
         </div>
         <nav className="flex border border-slate-700 text-xs">
-          <button onClick={() => setActiveTab("templates")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "templates" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+          <button onClick={() => setActiveTab("templates")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "templates" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
             Event Templates
           </button>
-          <button onClick={() => setActiveTab("compose")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "compose" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+          <button onClick={() => setActiveTab("compose")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "compose" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
             Send Message
           </button>
-          <button onClick={() => setActiveTab("reminders")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "reminders" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+          <button onClick={() => setActiveTab("reminders")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "reminders" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
             Wishes & Reminders
           </button>
-          <button onClick={() => setActiveTab("logs")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "logs" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+          <button onClick={() => setActiveTab("logs")} className={`h-8 px-4 font-semibold uppercase ${activeTab === "logs" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
             Message Logs
           </button>
         </nav>
@@ -223,18 +223,18 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
         {activeTab === "compose" && (
           <div className="grid max-w-2xl gap-3 p-4">
             <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-              <h2 className="text-xs font-bold uppercase text-white">Send a Manual Message</h2>
+              <h2 className="text-xs font-bold uppercase text-slate-50">Send a Manual Message</h2>
               <p className="mt-1 text-[11px] text-slate-400">Compose a one-off WhatsApp/SMS message to any number. It is recorded in Message Logs.</p>
             </div>
             <div className="grid gap-3 rounded-lg border border-slate-800 bg-slate-900 p-4">
               <div className="grid grid-cols-2 gap-3">
                 <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
                   Recipient Phone
-                  <input value={composeRecipient} onChange={(e) => setComposeRecipient(e.target.value)} placeholder="10-digit mobile" className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded" />
+                  <input value={composeRecipient} onChange={(e) => setComposeRecipient(e.target.value)} placeholder="10-digit mobile" className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded" />
                 </label>
                 <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
                   Channel
-                  <select value={composeChannel} onChange={(e) => setComposeChannel(e.target.value === "SMS" ? "SMS" : "WHATSAPP")} className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded">
+                  <select value={composeChannel} onChange={(e) => setComposeChannel(e.target.value === "SMS" ? "SMS" : "WHATSAPP")} className="h-9 border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded">
                     <option value="WHATSAPP">WhatsApp</option>
                     <option value="SMS">SMS</option>
                   </select>
@@ -242,7 +242,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
               </div>
               <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
                 Message
-                <textarea value={composeBody} onChange={(e) => setComposeBody(e.target.value)} rows={4} placeholder="Type your message…" className="border border-slate-700 bg-slate-950 px-2.5 py-2 text-xs text-white outline-none focus:border-emerald-400 rounded" />
+                <textarea value={composeBody} onChange={(e) => setComposeBody(e.target.value)} rows={4} placeholder="Type your message…" className="border border-slate-700 bg-slate-950 px-2.5 py-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded" />
               </label>
               <div className="flex items-center justify-end gap-2">
                 {composeWhatsAppLink && (
@@ -250,7 +250,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
                     Open in WhatsApp
                   </a>
                 )}
-                <button type="button" onClick={() => void sendManualMessage()} disabled={composeSending} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
+                <button type="button" onClick={() => void sendManualMessage()} disabled={composeSending} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
                   {composeSending ? "Sending…" : "Send Message"}
                 </button>
               </div>
@@ -260,13 +260,13 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
         {activeTab === "templates" && (
           <div className="grid h-full grid-cols-[280px_1fr] overflow-hidden">
             <aside className="border-r border-slate-800 bg-slate-900/50 p-4 overflow-y-auto">
-              <h2 className="text-xs font-bold uppercase text-white mb-3">Event Alerts</h2>
+              <h2 className="text-xs font-bold uppercase text-slate-50 mb-3">Event Alerts</h2>
               <div className="grid gap-2">
                 {templates.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => selectTemplate(t)}
-                    className={`p-3 text-left border text-xs rounded transition-all ${selectedTemplateId === t.id ? "border-emerald-500 bg-emerald-950/20 text-white" : "border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200"}`}
+                    className={`p-3 text-left border text-xs rounded transition-all ${selectedTemplateId === t.id ? "border-emerald-500 bg-emerald-950/20 text-slate-50" : "border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200"}`}
                   >
                     <div className="font-semibold uppercase">{t.name.replace(/_/g, " ")}</div>
                     <div className="text-[10px] opacity-70 mt-1">{t.channel}</div>
@@ -278,7 +278,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
             <section className="p-6 overflow-y-auto grid grid-cols-[1fr_320px] gap-6">
               <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 flex flex-col gap-4">
                 <div>
-                  <h3 className="text-sm font-bold uppercase text-white mb-1">
+                  <h3 className="text-sm font-bold uppercase text-slate-50 mb-1">
                     Edit {templates.find((t) => t.id === selectedTemplateId)?.name.replace(/_/g, " ")} Content
                   </h3>
                   <p className="text-xs text-slate-400">Configure what text gets sent when this transaction triggers.</p>
@@ -290,17 +290,17 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
                     value={templateContent}
                     onChange={(e) => setTemplateContent(e.target.value)}
                     rows={8}
-                    className="w-full bg-slate-950 border border-slate-800 p-3 text-xs text-white rounded font-sans focus:border-emerald-400 outline-none resize-none"
+                    className="w-full bg-slate-950 border border-slate-800 p-3 text-xs text-slate-50 rounded font-sans focus:border-emerald-400 outline-none resize-none"
                   />
                 </div>
 
-                <button onClick={saveTemplate} className="w-36 h-9 bg-emerald-500 hover:bg-emerald-600 text-xs font-bold uppercase text-slate-950 rounded transition-all">
+                <button onClick={saveTemplate} className="w-36 h-9 bg-emerald-500 hover:bg-emerald-600 text-xs font-bold uppercase text-slate-50 rounded transition-all">
                   Save Changes
                 </button>
               </div>
 
               <aside className="bg-slate-900/40 border border-slate-800 p-4 rounded-lg flex flex-col gap-3">
-                <h4 className="text-xs font-bold uppercase text-white">Placeholder Tokens</h4>
+                <h4 className="text-xs font-bold uppercase text-slate-50">Placeholder Tokens</h4>
                 <p className="text-[11px] text-slate-400">Use double curly braces to insert dynamic details:</p>
                 <div className="grid gap-2 text-xs">
                   <TokenItem token="customer_name" description="Name of the customer/borrower" />
@@ -322,21 +322,21 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
           <div className="grid h-full grid-rows-[auto_1fr] p-4 gap-3">
             <div className="flex gap-2 border-b border-slate-800 pb-3 items-center justify-between">
               <div className="flex border border-slate-700 text-xs">
-                <button onClick={() => setReminderType("birthdays")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "birthdays" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+                <button onClick={() => setReminderType("birthdays")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "birthdays" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
                   🎂 Birthdays/Anniversaries
                 </button>
-                <button onClick={() => setReminderType("girvi")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "girvi" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+                <button onClick={() => setReminderType("girvi")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "girvi" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
                   🖨️ Girvi Due Reminders
                 </button>
-                <button onClick={() => setReminderType("gss")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "gss" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+                <button onClick={() => setReminderType("gss")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "gss" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
                   🟡 GSS Installment Due
                 </button>
-                <button onClick={() => setReminderType("udhari")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "udhari" ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}>
+                <button onClick={() => setReminderType("udhari")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "udhari" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>
                   💳 Udhari Outstanding
                 </button>
               </div>
 
-              <button onClick={scanReminders} className="h-8 px-4 bg-slate-800 hover:bg-slate-700 text-xs font-semibold uppercase text-white rounded">
+              <button onClick={scanReminders} className="h-8 px-4 bg-slate-800 hover:bg-slate-700 text-xs font-semibold uppercase text-slate-50 rounded">
                 🔄 Scan Dues
               </button>
             </div>
@@ -360,7 +360,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
                   <tbody className="divide-y divide-slate-800">
                     {reminders.map((r, i) => (
                       <tr key={i} className="hover:bg-slate-900/50">
-                        <td className="p-3 font-semibold text-white">{r.customer_name}</td>
+                        <td className="p-3 font-semibold text-slate-50">{r.customer_name}</td>
                         <td className="p-3 font-mono text-slate-300">{r.phone}</td>
                         <td className="p-3 text-slate-400">
                           {reminderType === "birthdays" && (r.birthday_date ? `DOB: ${r.birthday_date}` : `Anniv: ${r.anniversary_date}`)}
@@ -376,7 +376,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
                             href={r.whatsapp_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center h-7 px-3 bg-emerald-500 hover:bg-emerald-600 text-[10px] font-bold uppercase text-slate-950 rounded transition-all"
+                            className="inline-flex items-center justify-center h-7 px-3 bg-emerald-500 hover:bg-emerald-600 text-[10px] font-bold uppercase text-slate-50 rounded transition-all"
                           >
                             💬 Send WhatsApp
                           </a>
@@ -393,8 +393,8 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
         {activeTab === "logs" && (
           <div className="grid h-full grid-rows-[auto_1fr] p-4 gap-3">
             <div className="flex border-b border-slate-800 pb-2 items-center justify-between">
-              <h2 className="text-xs font-bold uppercase text-white">Log Dispatch History</h2>
-              <button onClick={loadLogs} className="h-7 px-3 bg-slate-800 hover:bg-slate-700 text-xs font-semibold uppercase text-white rounded">
+              <h2 className="text-xs font-bold uppercase text-slate-50">Log Dispatch History</h2>
+              <button onClick={loadLogs} className="h-7 px-3 bg-slate-800 hover:bg-slate-700 text-xs font-semibold uppercase text-slate-50 rounded">
                 Refresh
               </button>
             </div>
@@ -421,7 +421,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
                         <tr key={log.id} className="hover:bg-slate-900/50">
                           <td className="p-3 font-mono text-slate-400">{log.created_at.slice(0, 19).replace("T", " ")}</td>
                           <td className="p-3 font-mono text-slate-200">{log.recipient}</td>
-                          <td className="p-3 font-semibold text-white uppercase text-[10px]">{log.template_name.replace(/_/g, " ")}</td>
+                          <td className="p-3 font-semibold text-slate-50 uppercase text-[10px]">{log.template_name.replace(/_/g, " ")}</td>
                           <td className="p-3 text-slate-300 italic max-w-md truncate" title={log.message_body}>
                             {log.message_body}
                           </td>

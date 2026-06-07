@@ -270,7 +270,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
       {/* Header Panel */}
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-3 print:hidden">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Dynamic Report Builder & Pivot Studio</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Dynamic Report Builder & Pivot Studio</h1>
           <p className="text-xs text-slate-400">Extract custom transactions audits, inventory lists, and ledgers running sheets</p>
         </div>
         <div className="flex gap-2">
@@ -303,7 +303,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
             <select
               value={dataSource}
               onChange={(e) => setDataSource(e.target.value as DataSourceType)}
-              className="h-9 border border-slate-800 bg-slate-950 px-2.5 text-xs text-white rounded outline-none focus:border-emerald-500"
+              className="h-9 border border-slate-800 bg-slate-950 px-2.5 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
             >
               <option value="invoices">Sales Invoices</option>
               <option value="items">Inventory Catalog</option>
@@ -319,7 +319,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
               <label className="text-[10px] uppercase font-bold text-slate-400">Select Columns</label>
               <div className="grid gap-1.5 max-h-36 overflow-y-auto border border-slate-800 bg-slate-950 p-2 rounded">
                 {columnMap[dataSource].map((col) => (
-                  <label key={col.key} className="flex items-center gap-2 text-xs cursor-pointer text-slate-300 hover:text-white">
+                  <label key={col.key} className="flex items-center gap-2 text-xs cursor-pointer text-slate-300 hover:text-slate-50">
                     <input
                       type="checkbox"
                       checked={selectedColumns.includes(col.key)}
@@ -341,7 +341,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
               <select
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value)}
-                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none"
+                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
               >
                 <option value="">-- No Grouping (Raw Rows) --</option>
                 {columnMap[dataSource]
@@ -359,7 +359,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
                 <select
                   value={aggregateField}
                   onChange={(e) => setAggregateField(e.target.value)}
-                  className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none"
+                  className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
                 >
                   <option value="">-- Count Only --</option>
                   {numericColumns.map((c) => (
@@ -381,7 +381,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none"
+                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
               />
             </div>
 
@@ -392,7 +392,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none"
+                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
               />
             </div>
 
@@ -404,7 +404,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
                 placeholder="Search ID, customer, etc..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none placeholder:text-slate-600"
+                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none placeholder:text-slate-600"
               />
             </div>
 
@@ -414,7 +414,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none"
+                className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
               >
                 <option value="ALL">All Statuses / Types</option>
                 {dataSource === "invoices" && (
@@ -460,7 +460,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
                   <select
                     value={metalType}
                     onChange={(e) => setMetalType(e.target.value)}
-                    className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none"
+                    className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
                   >
                     <option value="ALL">All Metals</option>
                     <option value="Gold">Gold</option>
@@ -474,7 +474,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
                     placeholder="e.g. Ring, Chain..."
                     value={category === "ALL" ? "" : category}
                     onChange={(e) => setCategory(e.target.value || "ALL")}
-                    className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-white rounded outline-none placeholder:text-slate-600"
+                    className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none placeholder:text-slate-600"
                   />
                 </div>
               </>
@@ -485,7 +485,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
           <button
             onClick={executeQuery}
             disabled={loading}
-            className="w-full h-10 bg-emerald-500 text-slate-950 text-xs font-bold uppercase hover:bg-emerald-600 active:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed rounded"
+            className="w-full h-10 bg-emerald-500 text-slate-50 text-xs font-bold uppercase hover:bg-emerald-600 active:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed rounded"
           >
             {loading ? "Calculating..." : "🚀 Build Report"}
           </button>
@@ -505,7 +505,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
               <div className="border border-slate-800 bg-slate-900/60 p-3 rounded">
                 <div className="text-[9px] uppercase font-bold text-slate-500">Record Count</div>
-                <div className="text-base font-bold text-white font-mono mt-1">{summary.totalCount}</div>
+                <div className="text-base font-bold text-slate-50 font-mono mt-1">{summary.totalCount}</div>
               </div>
               {summary.sumAmountPaise > 0 && (
                 <div className="border border-slate-800 bg-slate-900/60 p-3 rounded">
@@ -543,7 +543,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
             ) : (
               <table className="w-full text-left text-xs border-collapse print:text-black">
                 <thead>
-                  <tr className="bg-slate-900 border-b border-slate-800 text-slate-400 font-semibold uppercase text-[9px] sticky top-0 print:bg-slate-100 print:text-black">
+                  <tr className="bg-slate-900 border-b border-slate-800 text-slate-400 font-semibold uppercase text-[9px] sticky top-0 print:bg-slate-800 print:text-black">
                     {groupBy ? (
                       <>
                         <th className="p-3">Group Dimension ({groupBy.replace(/_/g, " ")})</th>
@@ -573,7 +573,7 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
                     <tr key={row.id || idx} className="hover:bg-slate-900/40 transition print:hover:bg-transparent">
                       {groupBy ? (
                         <>
-                          <td className="p-3 font-semibold text-white print:text-black">
+                          <td className="p-3 font-semibold text-slate-50 print:text-black">
                             {row.group_value || "N/A"}
                           </td>
                           <td className="p-3 text-center font-mono text-slate-300 print:text-black">

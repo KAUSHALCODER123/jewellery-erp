@@ -192,7 +192,7 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
     <section className="grid h-screen grid-rows-[auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Receipt</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Receipt</h1>
           <p className="text-xs text-slate-400">Collect Udhari payments — partial, full, or advance deposits</p>
         </div>
         <button
@@ -226,7 +226,7 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
                   onKeyDown={handleSearchKeyDown}
                   autoFocus
                   placeholder="Name or phone  ↑↓ Enter"
-                  className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none"
+                  className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm text-slate-50 outline-none"
                 />
               </div>
             </label>
@@ -243,7 +243,7 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
                   onClick={() => selectCustomer(customer.customer_id)}
                   className={`grid w-full gap-1 border-b border-slate-900 px-3 py-2 text-left transition ${
                     isSelected
-                      ? "bg-emerald-500 text-slate-950"
+                      ? "bg-emerald-500 text-slate-50"
                       : isHighlighted
                         ? "bg-slate-800"
                         : "hover:bg-slate-900"
@@ -284,11 +284,11 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
 
             <div className="grid gap-3 border border-slate-800 bg-slate-900 p-4">
               <div className="flex items-center gap-2">
-                <div className="grid h-9 w-9 place-items-center bg-emerald-500 text-slate-950">
+                <div className="grid h-9 w-9 place-items-center bg-emerald-500 text-slate-50">
                   <ReceiptIndianRupee className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate text-sm font-semibold uppercase text-white">
+                  <h2 className="truncate text-sm font-semibold uppercase text-slate-50">
                     {selectedCustomer?.customer_name ?? "Select Customer"}
                   </h2>
                   <p className="font-mono text-xs text-slate-500">
@@ -363,7 +363,7 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
                 <button
                   type="submit"
                   disabled={!canSave}
-                  className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                  className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
                 >
                   {saving ? "Saving..." : isAdvanceCredit ? "Save as Advance" : "Save Receipt"}
                 </button>
@@ -389,7 +389,7 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
                 <div id="udhari-receipt-slip" className="grid gap-3 border border-slate-700 bg-slate-950 p-4">
                   <div className="border-b border-slate-800 pb-3">
                     <p className="text-[10px] font-semibold uppercase text-slate-500">Payment Receipt</p>
-                    <h2 className="mt-1 text-lg font-bold uppercase text-white">Jewelry ERP</h2>
+                    <h2 className="mt-1 text-lg font-bold uppercase text-slate-50">Jewelry ERP</h2>
                     <p className="font-mono text-xs text-slate-400">{savedReceipt?.receipt_number ?? "Not saved yet"}</p>
                   </div>
 
@@ -488,7 +488,7 @@ function MetricBox({
     tone === "receipt" ? "text-emerald-300" :
     tone === "payment" ? "text-red-300" :
     tone === "advance" ? "text-emerald-300" :
-    "text-white";
+    "text-slate-50";
   return (
     <div className="border-r border-slate-800 px-3 py-2 last:border-r-0">
       <div className="text-[10px] font-semibold uppercase text-slate-500">{label}</div>
@@ -578,7 +578,7 @@ function getToday(): string {
 }
 
 const controlClassName =
-  "h-9 w-full border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none focus:border-emerald-400";
+  "h-9 w-full border border-slate-700 bg-slate-950 px-2 text-sm text-slate-50 outline-none focus:border-emerald-400";
 
 const receiptPrintStyles = `
 @media print {

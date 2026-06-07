@@ -493,7 +493,7 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
     <section className="grid h-screen grid-rows-[auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Accounts & Bookkeeping</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Accounts & Bookkeeping</h1>
           <p className="text-xs text-slate-400">Cash, bank, debtors, double-entry vouchers, ledger statements</p>
         </div>
         <div className="flex items-center gap-2">
@@ -773,7 +773,7 @@ function VoucherView({
     <div className="grid h-full place-items-start p-3">
       <form onSubmit={onSubmit} className="grid w-full max-w-4xl gap-3 border border-slate-800 bg-slate-900 p-4 rounded-lg">
         <div>
-          <h2 className="text-sm font-semibold uppercase text-white">Manual Voucher Entry</h2>
+          <h2 className="text-sm font-semibold uppercase text-slate-50">Manual Voucher Entry</h2>
           <p className="text-xs text-slate-400 font-medium">Double-entry bookkeeping journal, payment, receipt, and contra options</p>
         </div>
         <div className="grid grid-cols-5 gap-2">
@@ -840,7 +840,7 @@ function VoucherView({
           <textarea value={voucher.narration} onChange={(event) => setVoucher({ ...voucher, narration: event.target.value })} className={`${wideControlClassName} min-h-20 py-2`} placeholder="Describe this transaction..." />
         </Field>
         <div className="flex justify-end pt-1">
-          <button type="submit" className="h-9 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold px-4 rounded uppercase text-xs transition">
+          <button type="submit" className="h-9 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-50 font-bold px-4 rounded uppercase text-xs transition">
             Save Voucher
           </button>
         </div>
@@ -903,7 +903,7 @@ function LedgerReportView({
             onFocus={() => setCustomerDropOpen(true)}
             onBlur={() => window.setTimeout(() => setCustomerDropOpen(false), 150)}
             placeholder="Search name or phone…"
-            className="h-8 w-44 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-sky-400"
+            className="h-8 w-44 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-sky-400"
           />
           {customerDropOpen && customerSuggestions.length > 0 && (
             <ul className="absolute z-30 mt-0.5 max-h-52 w-64 overflow-auto border border-slate-700 bg-slate-900 shadow-lg shadow-black/40">
@@ -934,7 +934,7 @@ function LedgerReportView({
           <select
             value={reportLedgerId}
             onChange={(e) => setReportLedgerId(e.target.value)}
-            className="h-8 max-w-[180px] border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400"
+            className="h-8 max-w-[180px] border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
           >
             <option value="">— all ledgers —</option>
             {ledgers.map((l) => (
@@ -951,7 +951,7 @@ function LedgerReportView({
             type="date"
             value={reportFromDate}
             onChange={(e) => setReportFromDate(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400"
+            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
           />
         </label>
 
@@ -961,7 +961,7 @@ function LedgerReportView({
             type="date"
             value={reportToDate}
             onChange={(e) => setReportToDate(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400"
+            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
           />
         </label>
 
@@ -975,11 +975,11 @@ function LedgerReportView({
             Print
           </button>
           <button type="button" onClick={onDownloadPDF} disabled={!reportData || downloadingPdf}
-            className="h-8 bg-emerald-600 px-3 text-[10px] font-bold uppercase text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+            className="h-8 bg-emerald-600 px-3 text-[10px] font-bold uppercase text-slate-50 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
             {downloadingPdf ? "Generating…" : "Download PDF"}
           </button>
           <button type="button" onClick={onSendStatement} disabled={!reportData?.statement_share?.whatsapp_link}
-            className="h-8 bg-sky-600 px-3 text-[10px] font-bold uppercase text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50">
+            className="h-8 bg-sky-600 px-3 text-[10px] font-bold uppercase text-slate-50 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50">
             WhatsApp Statement
           </button>
         </div>
@@ -997,7 +997,7 @@ function LedgerReportView({
           <div id="printable-ledger-report" className="min-h-0 overflow-auto bg-slate-950 p-4">
             <style dangerouslySetInnerHTML={{ __html: printStyles }} />
             <div className="hidden print:block mb-4 border-b border-slate-800 pb-3">
-              <h2 className="text-xl font-bold uppercase text-white">Ledger Statement</h2>
+              <h2 className="text-xl font-bold uppercase text-slate-50">Ledger Statement</h2>
               <p className="text-sm text-slate-400 font-semibold">{reportData.ledger.account_name} ({reportData.ledger.account_type})</p>
               <p className="text-xs text-slate-500">Period: {reportData.date_range.from} to {reportData.date_range.to}</p>
             </div>
@@ -1094,7 +1094,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}
+      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}
     >
       {children}
     </button>
@@ -1102,7 +1102,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function MetricBox({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "receipt" | "payment" }) {
-  const toneClassName = tone === "receipt" ? "text-emerald-300" : tone === "payment" ? "text-red-300" : "text-white";
+  const toneClassName = tone === "receipt" ? "text-emerald-300" : tone === "payment" ? "text-red-300" : "text-slate-50";
 
   return (
     <div className="border-r border-slate-800 bg-slate-950 px-3 py-2 last:border-r-0">
@@ -1209,10 +1209,10 @@ function FinancialsView({
     <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
       <div className="flex flex-wrap items-end gap-2 border-b border-slate-800 bg-slate-900 p-2">
         <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">From
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400" />
+          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
         </label>
         <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">To
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400" />
+          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
         </label>
         <button type="button" onClick={onPrint} className="h-8 border border-slate-700 bg-slate-800 px-3 text-[11px] font-semibold uppercase hover:border-emerald-400">Print</button>
       </div>
@@ -1244,9 +1244,9 @@ function FinancialsView({
                 {data.trial_balance.rows.map((row) => (
                   <FinTbRow key={row.name} name={row.name} debit={row.debit_paise} credit={row.credit_paise} />
                 ))}
-                <span className="mt-1 border-t border-slate-700 pt-1 font-bold text-white">Total</span>
-                <span className="mt-1 border-t border-slate-700 pt-1 text-right font-mono font-bold text-white">{formatPaise(data.trial_balance.total_debit_paise)}</span>
-                <span className="mt-1 border-t border-slate-700 pt-1 text-right font-mono font-bold text-white">{formatPaise(data.trial_balance.total_credit_paise)}</span>
+                <span className="mt-1 border-t border-slate-700 pt-1 font-bold text-slate-50">Total</span>
+                <span className="mt-1 border-t border-slate-700 pt-1 text-right font-mono font-bold text-slate-50">{formatPaise(data.trial_balance.total_debit_paise)}</span>
+                <span className="mt-1 border-t border-slate-700 pt-1 text-right font-mono font-bold text-slate-50">{formatPaise(data.trial_balance.total_credit_paise)}</span>
               </div>
               <p className={`mt-2 text-[11px] font-semibold ${data.trial_balance.balanced ? "text-emerald-300" : "text-red-300"}`}>
                 {data.trial_balance.balanced ? "✓ Balanced" : "✗ Out of balance — check postings"}
@@ -1284,8 +1284,8 @@ function FinancialsView({
 function FinLine({ label, value, tone, bold, muted }: { label: string; value: string; tone?: "pos" | "neg"; bold?: boolean; muted?: boolean }) {
   return (
     <div className="flex items-center justify-between py-0.5 text-xs">
-      <span className={`${bold ? "font-bold text-white" : muted ? "text-slate-500" : "text-slate-300"} whitespace-pre`}>{label}</span>
-      <span className={`font-mono ${bold ? "font-bold text-white" : tone === "pos" ? "text-emerald-300" : tone === "neg" ? "text-rose-300" : "text-slate-200"}`}>{value}</span>
+      <span className={`${bold ? "font-bold text-slate-50" : muted ? "text-slate-500" : "text-slate-300"} whitespace-pre`}>{label}</span>
+      <span className={`font-mono ${bold ? "font-bold text-slate-50" : tone === "pos" ? "text-emerald-300" : tone === "neg" ? "text-rose-300" : "text-slate-200"}`}>{value}</span>
     </div>
   );
 }
@@ -1347,6 +1347,6 @@ const printStyles = `
 `;
 
 const controlClassName =
-  "h-8 w-40 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded";
+  "h-8 w-40 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded";
 const wideControlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded";

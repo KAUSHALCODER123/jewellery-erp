@@ -228,7 +228,7 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
       <form onSubmit={saveRates} className="border-b border-slate-800 bg-slate-900 p-3">
         <div className="flex flex-wrap items-end gap-2">
           <div className="mr-auto">
-            <h1 className="text-sm font-semibold uppercase text-white">Daily Rates Control</h1>
+            <h1 className="text-sm font-semibold uppercase text-slate-50">Daily Rates Control</h1>
             <p className="text-xs text-slate-400">{isAdmin ? "Admin edit mode" : "Staff read-only mode"}</p>
           </div>
           <RateInput label="Gold 24K" value={rates.gold24k} disabled={!isAdmin} onChange={(value) => setRates({ ...rates, gold24k: value })} />
@@ -239,7 +239,7 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
             type="button"
             disabled={!isAdmin || syncingRates}
             onClick={syncLiveRates}
-            className="inline-flex h-8 items-center gap-1.5 rounded border border-amber-400 bg-amber-400 px-3 text-xs font-semibold uppercase text-slate-950 transition hover:bg-amber-300 active:scale-95 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
+            className="inline-flex h-8 items-center gap-1.5 rounded border border-amber-400 bg-amber-400 px-3 text-xs font-semibold uppercase text-slate-50 transition hover:bg-amber-300 active:scale-95 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${syncingRates ? "animate-spin" : ""}`} />
             {syncingRates ? "Syncing…" : "Sync Live MCX Rates"}
@@ -247,7 +247,7 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
           <button
             type="submit"
             disabled={!isAdmin}
-            className="inline-flex h-8 items-center gap-1.5 rounded border border-emerald-500 bg-emerald-500 px-3 text-xs font-semibold uppercase text-slate-950 transition hover:bg-emerald-400 active:scale-95 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
+            className="inline-flex h-8 items-center gap-1.5 rounded border border-emerald-500 bg-emerald-500 px-3 text-xs font-semibold uppercase text-slate-50 transition hover:bg-emerald-400 active:scale-95 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
           >
             <Save className="h-3.5 w-3.5" /> Save &amp; Update Rates
           </button>
@@ -367,7 +367,7 @@ function RateInput({ label, value, disabled, onChange }: { label: string; value:
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 w-28 border border-slate-700 bg-slate-950 px-2 font-mono text-xs text-white outline-none focus:border-emerald-400 disabled:text-slate-500"
+        className="h-8 w-28 border border-slate-700 bg-slate-950 px-2 font-mono text-xs text-slate-50 outline-none focus:border-emerald-400 disabled:text-slate-500"
         inputMode="decimal"
       />
     </label>
@@ -435,7 +435,7 @@ function formatTimestamp(value: string) {
 }
 
 const filterControlClassName =
-  "h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none placeholder:text-slate-600 focus:border-emerald-400";
+  "h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none placeholder:text-slate-600 focus:border-emerald-400";
 
 function EditItemModal({
   item,
@@ -676,10 +676,10 @@ function EditItemModal({
       <div className={`animate-scale-in flex flex-col gap-4 border border-slate-800 bg-slate-900 p-5 rounded-lg w-full ${activeTab === "stones" ? "max-w-3xl" : "max-w-lg"} shadow-2xl text-slate-100`}>
         <div className="flex items-center justify-between border-b border-slate-800 pb-2">
           <div>
-            <h2 className="text-sm font-semibold uppercase text-white">Item Catalog Details</h2>
+            <h2 className="text-sm font-semibold uppercase text-slate-50">Item Catalog Details</h2>
             <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {item.id} | Barcode: {item.barcode}</p>
           </div>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-white">
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-50">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -749,7 +749,7 @@ function EditItemModal({
           <form onSubmit={handleSave} className="space-y-3.5 text-xs">
             <div className="flex items-center justify-between border border-slate-800 bg-slate-950/20 p-2.5 rounded">
               <div>
-                <span className="text-white font-semibold block">Publish to Web Storefront</span>
+                <span className="text-slate-50 font-semibold block">Publish to Web Storefront</span>
                 <span className="text-[10px] text-slate-500 block mt-0.5">Toggle this switch to catalog this item on the online shop.</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -770,7 +770,7 @@ function EditItemModal({
                 placeholder="e.g. Elegant 22K Gold Ruby Studded Engagement Ring"
                 value={onlineTitle}
                 onChange={(e) => setOnlineTitle(e.target.value)}
-                className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400 transition"
+                className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400 transition"
               />
             </label>
 
@@ -780,7 +780,7 @@ function EditItemModal({
                 placeholder="Write catalog item description for web storefront details page..."
                 value={onlineDescription}
                 onChange={(e) => setOnlineDescription(e.target.value)}
-                className="h-20 w-full border border-slate-700 bg-slate-950 px-2.5 py-1.5 font-normal text-xs text-white outline-none rounded resize-none focus:border-emerald-400 transition"
+                className="h-20 w-full border border-slate-700 bg-slate-950 px-2.5 py-1.5 font-normal text-xs text-slate-50 outline-none rounded resize-none focus:border-emerald-400 transition"
               />
             </label>
 
@@ -791,7 +791,7 @@ function EditItemModal({
                 placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
                 value={imageUrlsText}
                 onChange={(e) => setImageUrlsText(e.target.value)}
-                className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400 transition"
+                className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400 transition"
               />
             </label>
 
@@ -799,14 +799,14 @@ function EditItemModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="h-8 border border-slate-800 hover:border-slate-700 bg-slate-950 px-4 rounded font-semibold text-slate-300 hover:text-white uppercase transition text-[11px]"
+                className="h-8 border border-slate-800 hover:border-slate-700 bg-slate-950 px-4 rounded font-semibold text-slate-300 hover:text-slate-50 uppercase transition text-[11px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="h-8 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 rounded uppercase transition text-[11px]"
+                className="h-8 bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold px-4 rounded uppercase transition text-[11px]"
               >
                 {saving ? "Saving..." : "Save Online Listing"}
               </button>
@@ -826,7 +826,7 @@ function EditItemModal({
                   value={certQuery}
                   onChange={(e) => setCertQuery(e.target.value)}
                   placeholder="Enter certificate number"
-                  className="h-8 flex-1 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none focus:border-emerald-400 rounded"
+                  className="h-8 flex-1 border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded"
                 />
                 <button type="button" onClick={() => void lookupCertificate()} disabled={certLoading} className="h-8 border border-slate-600 px-3 text-[11px] font-semibold uppercase text-slate-200 hover:border-emerald-400 hover:text-emerald-300 rounded disabled:text-slate-600">
                   {certLoading ? "Searching…" : "Search"}
@@ -862,7 +862,7 @@ function EditItemModal({
                     <select
                       value={newStone.stone_type}
                       onChange={(e) => setNewStone({ ...newStone, stone_type: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     >
                       <option value="DIAMOND">DIAMOND</option>
                       <option value="RUBY">RUBY</option>
@@ -879,7 +879,7 @@ function EditItemModal({
                       placeholder="ROUND"
                       value={newStone.shape}
                       onChange={(e) => setNewStone({ ...newStone, shape: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     />
                   </label>
 
@@ -891,7 +891,7 @@ function EditItemModal({
                       placeholder="0.00"
                       value={newStone.carat_weight}
                       onChange={(e) => setNewStone({ ...newStone, carat_weight: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     />
                   </label>
 
@@ -902,7 +902,7 @@ function EditItemModal({
                       placeholder="G"
                       value={newStone.color_grade}
                       onChange={(e) => setNewStone({ ...newStone, color_grade: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     />
                   </label>
 
@@ -913,7 +913,7 @@ function EditItemModal({
                       placeholder="VVS1"
                       value={newStone.clarity_grade}
                       onChange={(e) => setNewStone({ ...newStone, clarity_grade: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     />
                   </label>
 
@@ -924,7 +924,7 @@ function EditItemModal({
                       placeholder="EXCELLENT"
                       value={newStone.cut_grade}
                       onChange={(e) => setNewStone({ ...newStone, cut_grade: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     />
                   </label>
 
@@ -933,7 +933,7 @@ function EditItemModal({
                     <select
                       value={newStone.certificate_lab}
                       onChange={(e) => setNewStone({ ...newStone, certificate_lab: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     >
                       <option value="NONE">NONE</option>
                       <option value="GIA">GIA</option>
@@ -949,7 +949,7 @@ function EditItemModal({
                       placeholder="123456"
                       value={newStone.certificate_number}
                       onChange={(e) => setNewStone({ ...newStone, certificate_number: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     />
                   </label>
 
@@ -960,7 +960,7 @@ function EditItemModal({
                       placeholder="0.00"
                       value={newStone.stone_rate_rupees}
                       onChange={(e) => setNewStone({ ...newStone, stone_rate_rupees: e.target.value })}
-                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-white outline-none rounded focus:border-emerald-400"
+                      className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-400"
                     />
                   </label>
 
@@ -968,7 +968,7 @@ function EditItemModal({
                     <button
                       type="button"
                       onClick={addStone}
-                      className="h-8 bg-slate-800 hover:bg-slate-700 text-white font-semibold px-4 rounded uppercase transition text-[11px]"
+                      className="h-8 bg-slate-800 hover:bg-slate-700 text-slate-50 font-semibold px-4 rounded uppercase transition text-[11px]"
                     >
                       Add Stone to List
                     </button>
@@ -1047,7 +1047,7 @@ function EditItemModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="h-8 border border-slate-800 hover:border-slate-700 bg-slate-950 px-4 rounded font-semibold text-slate-300 hover:text-white uppercase transition text-[11px]"
+                    className="h-8 border border-slate-800 hover:border-slate-700 bg-slate-950 px-4 rounded font-semibold text-slate-300 hover:text-slate-50 uppercase transition text-[11px]"
                   >
                     Cancel
                   </button>
@@ -1055,7 +1055,7 @@ function EditItemModal({
                     type="button"
                     disabled={savingStones || weightExceedsGross}
                     onClick={saveStones}
-                    className="h-8 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 rounded uppercase transition text-[11px] disabled:bg-slate-800 disabled:text-slate-500"
+                    className="h-8 bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold px-4 rounded uppercase transition text-[11px] disabled:bg-slate-800 disabled:text-slate-500"
                   >
                     {savingStones ? "Saving..." : "Save Stones to Item"}
                   </button>

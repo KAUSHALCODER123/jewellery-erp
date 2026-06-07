@@ -124,7 +124,7 @@ export default function RemindersAgeingModule({ apiBaseUrl = "" }: Props) {
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100 font-sans">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-white tracking-wide">
+          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-slate-50 tracking-wide">
             <BellRing size={16} className="text-emerald-400" /> Reminders & Receivables Ageing
           </h1>
           <p className="text-xs text-slate-400">Daily follow-up digest and aged udhari with credit limits</p>
@@ -147,10 +147,10 @@ export default function RemindersAgeingModule({ apiBaseUrl = "" }: Props) {
             <div className="flex items-center gap-3 border-b border-slate-800 bg-slate-900/50 px-4 py-2">
               <label className="flex items-center gap-2 text-[10px] font-bold uppercase text-slate-400">
                 Udhari overdue after
-                <input value={overdueDays} onChange={(e) => setOverdueDays(e.target.value.replace(/[^\d]/g, ""))} className="h-7 w-16 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded-sm" inputMode="numeric" />
+                <input value={overdueDays} onChange={(e) => setOverdueDays(e.target.value.replace(/[^\d]/g, ""))} className="h-7 w-16 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded-sm" inputMode="numeric" />
                 days
               </label>
-              <button type="button" onClick={() => void loadDigest()} className="rounded bg-emerald-500 px-3 py-1 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-400">Refresh</button>
+              <button type="button" onClick={() => void loadDigest()} className="rounded bg-emerald-500 px-3 py-1 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400">Refresh</button>
               <span className="ml-auto text-[11px] text-slate-500">{digest?.date}</span>
             </div>
 
@@ -174,7 +174,7 @@ export default function RemindersAgeingModule({ apiBaseUrl = "" }: Props) {
                         <ReminderIcon type={r.type} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-white">{r.customer_name}</span>
+                            <span className="text-sm font-semibold text-slate-50">{r.customer_name}</span>
                             {r.reference && <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-mono text-slate-400">{r.reference}</span>}
                           </div>
                           <div className="text-[11px] text-slate-400">
@@ -184,7 +184,7 @@ export default function RemindersAgeingModule({ apiBaseUrl = "" }: Props) {
                         </div>
                       </div>
                       {r.whatsapp_link ? (
-                        <a href={r.whatsapp_link} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1 rounded bg-emerald-600 px-3 py-1.5 text-[11px] font-bold uppercase text-white hover:bg-emerald-500">
+                        <a href={r.whatsapp_link} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1 rounded bg-emerald-600 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-500">
                           <MessageCircle size={13} /> WhatsApp
                         </a>
                       ) : (
@@ -244,19 +244,19 @@ export default function RemindersAgeingModule({ apiBaseUrl = "" }: Props) {
                         <td className="px-2 py-2 text-right font-mono text-slate-300">{c.buckets.days_61_90_rupees}</td>
                         <td className="px-2 py-2 text-right font-mono text-amber-400">{c.buckets.days_91_120_rupees}</td>
                         <td className="px-2 py-2 text-right font-mono text-red-400">{c.buckets.over_120_rupees}</td>
-                        <td className="px-2 py-2 text-right font-mono font-semibold text-white">{c.balance_rupees}</td>
+                        <td className="px-2 py-2 text-right font-mono font-semibold text-slate-50">{c.balance_rupees}</td>
                         <td className="px-2 py-2 text-right">
                           {editingLimit === c.customer_id ? (
                             <div className="flex items-center justify-end gap-1">
-                              <input autoFocus value={limitInput} onChange={(e) => setLimitInput(e.target.value.replace(/[^\d.]/g, ""))} className="h-7 w-24 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded-sm" inputMode="decimal" placeholder="0 = none" />
-                              <button type="button" onClick={() => c.customer_id && void saveLimit(c.customer_id)} className="grid h-7 w-7 place-items-center rounded bg-emerald-500 text-slate-950 hover:bg-emerald-400"><Save size={13} /></button>
+                              <input autoFocus value={limitInput} onChange={(e) => setLimitInput(e.target.value.replace(/[^\d.]/g, ""))} className="h-7 w-24 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded-sm" inputMode="decimal" placeholder="0 = none" />
+                              <button type="button" onClick={() => c.customer_id && void saveLimit(c.customer_id)} className="grid h-7 w-7 place-items-center rounded bg-emerald-500 text-slate-50 hover:bg-emerald-400"><Save size={13} /></button>
                             </div>
                           ) : (
                             <button
                               type="button"
                               disabled={!c.customer_id}
                               onClick={() => { setEditingLimit(c.customer_id); setLimitInput(c.credit_limit_paise ? c.credit_limit_rupees : ""); }}
-                              className={`font-mono ${c.over_limit ? "text-red-400 font-bold" : "text-slate-400"} hover:text-white disabled:opacity-40`}
+                              className={`font-mono ${c.over_limit ? "text-red-400 font-bold" : "text-slate-400"} hover:text-slate-50 disabled:opacity-40`}
                               title="Click to set credit limit"
                             >
                               {c.credit_limit_paise ? `Rs ${c.credit_limit_rupees}` : "— set —"}
@@ -277,7 +277,7 @@ export default function RemindersAgeingModule({ apiBaseUrl = "" }: Props) {
 }
 
 function tabClass(active: boolean) {
-  return `h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-950 font-bold" : "bg-slate-950 text-slate-400 hover:text-white"}`;
+  return `h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-50 font-bold" : "bg-slate-950 text-slate-400 hover:text-slate-50"}`;
 }
 
 function Chip({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: "amber" | "blue" | "emerald" | "pink" }) {

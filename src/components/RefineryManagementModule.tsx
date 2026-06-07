@@ -411,7 +411,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100 font-sans">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white tracking-wide">Refinery Management</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50 tracking-wide">Refinery Management</h1>
           <p className="text-xs text-slate-400">Manage scrap smelting, fine receipt balances, and ledgers</p>
         </div>
         <nav className="flex border border-slate-700 text-xs">
@@ -461,7 +461,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                     placeholder="E.g. +91 98765 43210"
                   />
                 </Field>
-                <button type="submit" className="mt-2 h-9 bg-emerald-500 hover:bg-emerald-600 text-xs font-bold uppercase text-slate-950 transition-colors cursor-pointer shadow-sm">
+                <button type="submit" className="mt-2 h-9 bg-emerald-500 hover:bg-emerald-600 text-xs font-bold uppercase text-slate-50 transition-colors cursor-pointer shadow-sm">
                   Add Refinery
                 </button>
               </form>
@@ -608,7 +608,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                         <textarea
                           value={issueForm.description}
                           onChange={(e) => setIssueForm(prev => ({ ...prev, description: e.target.value }))}
-                          className="w-full h-16 border border-slate-700 bg-slate-950 p-2 text-xs text-white outline-none focus:border-emerald-400 font-sans"
+                          className="w-full h-16 border border-slate-700 bg-slate-950 p-2 text-xs text-slate-50 outline-none focus:border-emerald-400 font-sans"
                           placeholder="Smelting crucible reference, temperature, assay notes..."
                         />
                       </Field>
@@ -651,7 +651,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                     <textarea
                       value={issueForm.description}
                       onChange={(e) => setIssueForm(prev => ({ ...prev, description: e.target.value }))}
-                      className="w-full h-24 border border-slate-700 bg-slate-950 p-2 text-xs text-white outline-none focus:border-emerald-400 font-sans"
+                      className="w-full h-24 border border-slate-700 bg-slate-950 p-2 text-xs text-slate-50 outline-none focus:border-emerald-400 font-sans"
                       placeholder="Enter scrap details, batch info, reference receipts..."
                     />
                   </Field>
@@ -666,7 +666,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
               <button 
                 type="submit" 
                 disabled={!issueForm.refineryId || (issueMode === "urd" && !selectedUrdId)} 
-                className="h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold uppercase text-slate-950 transition-colors cursor-pointer shadow-sm"
+                className="h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold uppercase text-slate-50 transition-colors cursor-pointer shadow-sm"
               >
                 {issueMode === "urd" ? "Melt & Send to Refinery" : "Issue Scrap Metal"}
               </button>
@@ -735,7 +735,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                   <textarea
                     value={receiveForm.description}
                     onChange={(e) => setReceiveForm(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full h-24 border border-slate-700 bg-slate-950 p-2 text-xs text-white outline-none focus:border-emerald-400 font-sans"
+                    className="w-full h-24 border border-slate-700 bg-slate-950 p-2 text-xs text-slate-50 outline-none focus:border-emerald-400 font-sans"
                     placeholder="Refined bar numbers, pure assays, testing records..."
                   />
                 </Field>
@@ -786,7 +786,7 @@ export default function RefineryManagementModule({ apiBaseUrl = "" }: RefineryMa
                 value={receiveForm.addToStock && gramsToMg(receiveForm.fineGoldReceivedGrams) > 0 ? `+ ${formatMg(gramsToMg(receiveForm.fineGoldReceivedGrams))} 24K bar` : "No stock entry"}
                 tone={receiveForm.addToStock ? "ok" : "neutral"}
               />
-              <button type="submit" disabled={!receiveForm.refineryId} className="h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold uppercase text-slate-950 transition-colors cursor-pointer shadow-sm">
+              <button type="submit" disabled={!receiveForm.refineryId} className="h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold uppercase text-slate-50 transition-colors cursor-pointer shadow-sm">
                 Receive Fine Metal
               </button>
             </aside>
@@ -943,7 +943,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-950 font-bold" : "bg-slate-950 text-slate-400 hover:text-white"}`}
+      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-50 font-bold" : "bg-slate-950 text-slate-400 hover:text-slate-50"}`}
     >
       {children}
     </button>
@@ -953,19 +953,19 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function PanelHeader({ title, note }: { title: string; note: string }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-4 py-2">
-      <h2 className="text-xs font-semibold uppercase text-white tracking-wide">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase text-slate-50 tracking-wide">{title}</h2>
       <span className="text-[10px] text-slate-500 font-medium">{note}</span>
     </div>
   );
 }
 
 function PanelTitle({ title }: { title: string }) {
-  return <h2 className="text-xs font-bold uppercase text-white tracking-wide">{title}</h2>;
+  return <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">{title}</h2>;
 }
 
 function MetricBox({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "ok" | "warn" | "danger" }) {
   const toneClassName =
-    tone === "ok" ? "text-emerald-400 font-bold" : tone === "warn" ? "text-amber-400 font-bold" : tone === "danger" ? "text-red-400 font-bold" : "text-white";
+    tone === "ok" ? "text-emerald-400 font-bold" : tone === "warn" ? "text-amber-400 font-bold" : tone === "danger" ? "text-red-400 font-bold" : "text-slate-50";
 
   return (
     <div className="border border-slate-800 bg-slate-950 px-3 py-2 rounded-sm shadow-inner">
@@ -976,4 +976,4 @@ function MetricBox({ label, value, tone = "neutral" }: { label: string; value: s
 }
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 transition-colors rounded-sm";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 transition-colors rounded-sm";

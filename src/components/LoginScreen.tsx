@@ -95,7 +95,7 @@ export default function LoginScreen() {
       <form onSubmit={onSubmit} className="grid w-full max-w-sm gap-4 border border-slate-800 bg-slate-900 p-5 shadow-2xl shadow-black/40">
         <div className="grid gap-1">
           <p className="text-xs font-semibold uppercase text-emerald-300">Jewelry ERP</p>
-          <h1 className="text-xl font-semibold text-white">Staff Login</h1>
+          <h1 className="text-xl font-semibold text-slate-50">Staff Login</h1>
         </div>
 
         {error && (
@@ -115,7 +115,7 @@ export default function LoginScreen() {
               <select
                 value={firmKey}
                 onChange={(e) => setFirmKey(e.target.value)}
-                className="h-10 bg-transparent px-3 text-sm text-white outline-none"
+                className="h-10 bg-transparent px-3 text-sm text-slate-50 outline-none"
               >
                 {firms.map((f) => (
                   <option key={f.key} value={f.key}>
@@ -137,7 +137,7 @@ export default function LoginScreen() {
             <select
               value={fiscalYear}
               onChange={(e) => setFiscalYear(e.target.value)}
-              className="h-10 bg-transparent px-3 text-sm text-white outline-none"
+              className="h-10 bg-transparent px-3 text-sm text-slate-50 outline-none"
             >
               {fyOptions.map((fy) => (
                 <option key={fy.value} value={fy.value}>
@@ -157,7 +157,7 @@ export default function LoginScreen() {
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              className="h-10 bg-transparent px-3 text-sm text-white outline-none"
+              className="h-10 bg-transparent px-3 text-sm text-slate-50 outline-none"
               autoComplete="username"
             />
           </div>
@@ -173,7 +173,7 @@ export default function LoginScreen() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="h-10 bg-transparent px-3 text-sm text-white outline-none"
+              className="h-10 bg-transparent px-3 text-sm text-slate-50 outline-none"
               autoComplete="current-password"
             />
           </div>
@@ -190,7 +190,7 @@ export default function LoginScreen() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-grid h-10 grid-cols-[16px_1fr] items-center gap-2 bg-emerald-500 px-4 text-sm font-semibold uppercase text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          className="inline-grid h-10 grid-cols-[16px_1fr] items-center gap-2 bg-emerald-500 px-4 text-sm font-semibold uppercase text-slate-50 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
         >
           <LogIn size={16} />
           <span>{isSubmitting ? "Signing In…" : "Sign In"}</span>

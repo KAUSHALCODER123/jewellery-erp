@@ -181,7 +181,7 @@ export default function ItemMasterInventory({ apiBaseUrl = "http://localhost:400
       <form onSubmit={onSubmit} className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-sm font-semibold uppercase tracking-wide text-white">Item Master / Inventory</h1>
+            <h1 className="text-sm font-semibold uppercase tracking-wide text-slate-50">Item Master / Inventory</h1>
             {/* Sale-mode segmented toggle */}
             <div className="relative flex rounded-md border border-slate-700 bg-slate-900 p-0.5 text-xs">
               <SegButton active={!isQty} onClick={() => setSaleMode("WEIGHT_WISE")} icon={Scale}>Weight-wise</SegButton>
@@ -258,7 +258,7 @@ export default function ItemMasterInventory({ apiBaseUrl = "http://localhost:400
           </Field>
 
           <Field label="Item Image">
-            <input type="file" accept="image/*" onChange={(e) => setField("imageFile", e.target.files?.[0] ?? null)} className="h-8 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-white file:mr-2 file:border-0 file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:text-white" />
+            <input type="file" accept="image/*" onChange={(e) => setField("imageFile", e.target.files?.[0] ?? null)} className="h-8 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-50 file:mr-2 file:border-0 file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:text-slate-50" />
           </Field>
         </div>
 
@@ -287,7 +287,7 @@ export default function ItemMasterInventory({ apiBaseUrl = "http://localhost:400
             <button
               type="submit"
               disabled={submitState.status === "saving"}
-              className="h-8 rounded bg-emerald-500 px-4 text-xs font-semibold uppercase text-slate-950 transition active:scale-95 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+              className="h-8 rounded bg-emerald-500 px-4 text-xs font-semibold uppercase text-slate-50 transition active:scale-95 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
             >
               {submitState.status === "saving" ? "Saving…" : "Add Item"}
             </button>
@@ -303,7 +303,7 @@ function SegButton({ active, onClick, icon: Icon, children }: { active: boolean;
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded px-3 py-1 font-semibold transition active:scale-95 ${active ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-slate-200"}`}
+      className={`inline-flex items-center gap-1.5 rounded px-3 py-1 font-semibold transition active:scale-95 ${active ? "bg-emerald-500 text-slate-50 shadow" : "text-slate-400 hover:text-slate-200"}`}
     >
       <Icon className="h-3.5 w-3.5" /> {children}
     </button>
@@ -376,4 +376,4 @@ function formatGrams(value: number | undefined) {
 }
 
 const controlClassName =
-  "h-8 w-full rounded border border-slate-700 bg-slate-900 px-2 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400";
+  "h-8 w-full rounded border border-slate-700 bg-slate-900 px-2 text-sm text-slate-50 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400";

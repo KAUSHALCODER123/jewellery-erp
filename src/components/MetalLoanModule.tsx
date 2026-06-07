@@ -46,7 +46,7 @@ type Summary = {
 };
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 transition-colors rounded-sm";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 transition-colors rounded-sm";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -218,7 +218,7 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
     <section className="grid h-screen grid-rows-[auto_auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100 font-sans">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-white tracking-wide">
+          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-slate-50 tracking-wide">
             <Coins size={16} className="text-amber-400" /> Metal Loan / Unfixed Purchase
           </h1>
           <p className="text-xs text-slate-400">Gold borrowed in fine grams; fix the rate later to settle in rupees</p>
@@ -245,7 +245,7 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
       <main className="min-h-0 overflow-hidden">
         {activeTab === "issue" ? (
           <form onSubmit={submitLoan} className="mx-auto grid w-full max-w-2xl content-start gap-3 overflow-auto p-5">
-            <h2 className="text-xs font-bold uppercase text-white tracking-wide">Record Gold Taken on Loan</h2>
+            <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">Record Gold Taken on Loan</h2>
             <div className="grid grid-cols-2 gap-3">
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                 Existing Supplier
@@ -282,9 +282,9 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
             </div>
             <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
               Notes
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="h-16 w-full border border-slate-700 bg-slate-950 p-2 text-xs text-white outline-none focus:border-emerald-400" />
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="h-16 w-full border border-slate-700 bg-slate-950 p-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
             </label>
-            <button type="submit" disabled={busy} className="h-10 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-xs font-bold uppercase text-slate-950 transition-colors">
+            <button type="submit" disabled={busy} className="h-10 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-xs font-bold uppercase text-slate-50 transition-colors">
               {busy ? "Saving..." : "Record Metal Loan"}
             </button>
           </form>
@@ -293,7 +293,7 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
             <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900/60 px-4 py-2">
               <span className="text-[10px] font-bold uppercase text-slate-400">Filter</span>
               {(["", "UNFIXED", "PARTIALLY_FIXED", "FIXED"] as const).map((s) => (
-                <button key={s || "ALL"} type="button" onClick={() => setStatusFilter(s)} className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${statusFilter === s ? "bg-amber-500 text-slate-950" : "bg-slate-950 text-slate-400 hover:text-white"}`}>
+                <button key={s || "ALL"} type="button" onClick={() => setStatusFilter(s)} className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${statusFilter === s ? "bg-amber-500 text-slate-50" : "bg-slate-950 text-slate-400 hover:text-slate-50"}`}>
                   {s ? s.replace("_", " ") : "All"}
                 </button>
               ))}
@@ -311,7 +311,7 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
                         <div className="flex items-center justify-between gap-3 p-3">
                           <button type="button" onClick={() => setExpandedId(expanded ? null : loan.id)} className="min-w-0 flex-1 text-left">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-sm font-semibold text-white">{loan.loan_number}</span>
+                              <span className="font-mono text-sm font-semibold text-slate-50">{loan.loan_number}</span>
                               <StatusBadge status={loan.status} />
                             </div>
                             <div className="mt-0.5 text-[11px] text-slate-400">
@@ -323,7 +323,7 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
                             <div className="text-slate-500">of {loan.fine_weight_g} g</div>
                           </div>
                           {loan.status !== "FIXED" && (
-                            <button type="button" onClick={() => openFix(loan)} className="rounded bg-amber-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-950 hover:bg-amber-400">
+                            <button type="button" onClick={() => openFix(loan)} className="rounded bg-amber-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-amber-400">
                               Fix Rate
                             </button>
                           )}
@@ -345,7 +345,7 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
                                 Rate / gram (Rs)
                                 <input value={fixRate} onChange={(e) => setFixRate(e.target.value.replace(/[^\d.]/g, ""))} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" placeholder="e.g. 7250" />
                               </label>
-                              <button type="button" disabled={busy} onClick={() => submitFix(loan)} className="h-8 rounded bg-emerald-500 px-3 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:opacity-50">
+                              <button type="button" disabled={busy} onClick={() => submitFix(loan)} className="h-8 rounded bg-emerald-500 px-3 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:opacity-50">
                                 Confirm
                               </button>
                             </div>
@@ -403,11 +403,11 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
 }
 
 function tabClass(active: boolean) {
-  return `h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-amber-500 text-slate-950 font-bold" : "bg-slate-950 text-slate-400 hover:text-white"}`;
+  return `h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-amber-500 text-slate-50 font-bold" : "bg-slate-950 text-slate-400 hover:text-slate-50"}`;
 }
 
 function SummaryBox({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: "amber" | "emerald" | "slate" }) {
-  const color = tone === "amber" ? "text-amber-400" : tone === "emerald" ? "text-emerald-400" : "text-white";
+  const color = tone === "amber" ? "text-amber-400" : tone === "emerald" ? "text-emerald-400" : "text-slate-50";
   return (
     <div className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
       {icon}

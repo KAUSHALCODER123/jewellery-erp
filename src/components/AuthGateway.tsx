@@ -241,7 +241,7 @@ export default function AuthGateway({
     return (
       <GatewayShell>
         <div className="mx-auto grid w-full max-w-md gap-3 border border-slate-800 bg-slate-950 p-5 text-center">
-          <p className="text-sm font-semibold text-white">Signed in as {session.user.username}</p>
+          <p className="text-sm font-semibold text-slate-50">Signed in as {session.user.username}</p>
           <p className="text-xs text-slate-400">Opening dashboard...</p>
         </div>
       </GatewayShell>
@@ -252,7 +252,7 @@ export default function AuthGateway({
     return (
       <GatewayShell>
         <div className="mx-auto grid w-full max-w-md gap-3 border border-slate-800 bg-slate-950 p-5">
-          <p className="text-sm font-semibold text-white">Checking local setup</p>
+          <p className="text-sm font-semibold text-slate-50">Checking local setup</p>
           <div className="h-2 overflow-hidden bg-slate-800">
             <div className="h-full w-1/2 animate-pulse bg-emerald-400" />
           </div>
@@ -268,7 +268,7 @@ export default function AuthGateway({
           <div className="grid gap-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">Offline Mode Active</p>
-              <h1 className="mt-2 text-2xl font-semibold text-white">Jewelry ERP</h1>
+              <h1 className="mt-2 text-2xl font-semibold text-slate-50">Jewelry ERP</h1>
               <p className="mt-2 text-sm text-slate-400">
                 Local desktop access for inventory, billing, and shop operations.
               </p>
@@ -498,7 +498,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function FormHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div>
-      <h2 className="text-xl font-semibold text-white">{title}</h2>
+      <h2 className="text-xl font-semibold text-slate-50">{title}</h2>
       <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
     </div>
   );
@@ -564,9 +564,9 @@ async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit) {
 }
 
 const controlClassName =
-  "h-10 w-full border border-slate-700 bg-slate-900 px-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400";
+  "h-10 w-full border border-slate-700 bg-slate-900 px-3 text-sm text-slate-50 outline-none transition placeholder:text-slate-600 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400";
 const primaryButtonClassName =
-  "h-10 bg-emerald-500 px-5 text-sm font-semibold uppercase text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400";
+  "h-10 bg-emerald-500 px-5 text-sm font-semibold uppercase text-slate-50 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400";
 const secondaryButtonClassName =
   "h-10 border border-slate-700 px-5 text-sm font-semibold uppercase text-slate-200 hover:border-slate-500 hover:bg-slate-900";
 

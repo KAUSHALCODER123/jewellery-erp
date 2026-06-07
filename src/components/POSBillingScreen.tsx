@@ -520,7 +520,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
     <form onSubmit={checkout} className="grid h-screen grid-cols-[260px_1fr_310px] overflow-hidden bg-slate-950 text-slate-100">
       <aside className="grid min-h-0 grid-rows-[auto_1fr] border-r border-slate-800 bg-slate-900 p-3">
         <header className="border-b border-slate-800 pb-2">
-          <h1 className="text-sm font-semibold uppercase text-white">POS Billing</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">POS Billing</h1>
           <p className="text-xs text-slate-400">Barcode scan enabled</p>
         </header>
 
@@ -820,7 +820,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                 <button
                   type="button"
                   onClick={() => setGssCreditAppliedPaise(Math.min(posCreditBalance.total_credit_paise, totals.netPayableBeforeGssPaise))}
-                  className="h-7 rounded bg-emerald-500 text-[11px] font-semibold uppercase text-slate-950 transition hover:bg-emerald-400 active:scale-95"
+                  className="h-7 rounded bg-emerald-500 text-[11px] font-semibold uppercase text-slate-50 transition hover:bg-emerald-400 active:scale-95"
                 >
                   Apply Credit
                 </button>
@@ -864,7 +864,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         <button
           type="submit"
           disabled={checkoutDisabled || submitting}
-          className="flex h-11 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold uppercase text-slate-950 transition active:scale-[0.98] hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
+          className="flex h-11 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold uppercase text-slate-50 transition active:scale-[0.98] hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
         >
           {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : "Checkout"}
         </button>
@@ -900,7 +900,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
               <button type="button" onClick={() => setShowCreditConfirm(false)} className="rounded border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 active:scale-95">
                 Cancel
               </button>
-              <button type="button" onClick={() => void submitCheckout()} className="rounded bg-amber-500 px-4 py-2 text-xs font-bold uppercase text-slate-950 transition hover:bg-amber-400 active:scale-95">
+              <button type="button" onClick={() => void submitCheckout()} className="rounded bg-amber-500 px-4 py-2 text-xs font-bold uppercase text-slate-50 transition hover:bg-amber-400 active:scale-95">
                 Yes, Save
               </button>
             </div>
@@ -931,7 +931,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function PanelHeader({ title, note }: { title: string; note: string }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
-      <h2 className="text-xs font-semibold uppercase text-white">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase text-slate-50">{title}</h2>
       <span className="text-[11px] text-slate-500">{note}</span>
     </div>
   );
@@ -950,7 +950,7 @@ function SummaryLine({ label, value, strong = false, testId, dataPaise }: { labe
   return (
     <div className="flex items-center justify-between text-xs">
       <span className="text-slate-400">{label}</span>
-      <span data-testid={testId} data-paise={dataPaise} className={`font-mono ${strong ? "text-lg font-semibold text-white" : "text-slate-200"}`}>{value}</span>
+      <span data-testid={testId} data-paise={dataPaise} className={`font-mono ${strong ? "text-lg font-semibold text-slate-50" : "text-slate-200"}`}>{value}</span>
     </div>
   );
 }
@@ -1018,7 +1018,7 @@ function PrintModal({
     <div className="animate-fade-in fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
       <div className="animate-scale-in grid w-full max-w-sm gap-3 border border-slate-700 bg-slate-950 p-4 shadow-xl rounded-lg">
         <div className="border-b border-slate-800 pb-2">
-          <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase text-white">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase text-slate-50">
             <CheckCircle2 className="h-4 w-4 animate-pop text-emerald-400" /> Invoice Saved
           </h2>
           <p className="mt-1 text-xs text-slate-400">Invoice #{invoiceId} saved successfully.</p>
@@ -1028,7 +1028,7 @@ function PrintModal({
           <button
             type="button"
             onClick={() => openDocument("a4")}
-            className="h-12 bg-emerald-500 text-[10px] font-bold uppercase text-slate-950 hover:bg-emerald-400 rounded transition flex flex-col justify-center items-center px-1"
+            className="h-12 bg-emerald-500 text-[10px] font-bold uppercase text-slate-50 hover:bg-emerald-400 rounded transition flex flex-col justify-center items-center px-1"
           >
             <span>Print A4</span>
             <span className="text-[8px] opacity-75">(GST)</span>
@@ -1072,12 +1072,12 @@ function PrintModal({
           <button
             type="button"
             onClick={sendWhatsApp}
-            className="flex h-9 items-center justify-center gap-2 rounded bg-emerald-600 text-xs font-bold uppercase text-white transition hover:bg-emerald-500 active:scale-95"
+            className="flex h-9 items-center justify-center gap-2 rounded bg-emerald-600 text-xs font-bold uppercase text-slate-50 transition hover:bg-emerald-500 active:scale-95"
           >
             <MessageSquare className="h-4 w-4" /> Send WhatsApp
           </button>
         )}
-        <button type="button" onClick={onClose} className="h-8 text-xs font-semibold uppercase text-slate-400 hover:text-white">
+        <button type="button" onClick={onClose} className="h-8 text-xs font-semibold uppercase text-slate-400 hover:text-slate-50">
           Close
         </button>
       </div>
@@ -1301,8 +1301,8 @@ function formatMg(value: number) {
 }
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400";
 const dangerControlClassName =
-  "h-8 w-full border border-red-500 bg-red-950/40 px-2 text-xs text-white outline-none focus:border-red-300";
+  "h-8 w-full border border-red-500 bg-red-950/40 px-2 text-xs text-slate-50 outline-none focus:border-red-300";
 const tableInputClassName =
-  "h-7 w-full border border-slate-700 bg-slate-950 px-2 text-right font-mono text-xs text-white outline-none focus:border-emerald-400";
+  "h-7 w-full border border-slate-700 bg-slate-950 px-2 text-right font-mono text-xs text-slate-50 outline-none focus:border-emerald-400";

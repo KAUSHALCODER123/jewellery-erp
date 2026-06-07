@@ -161,7 +161,7 @@ export function ActionButton({
     <button
       {...rest}
       disabled={loading || rest.disabled}
-      className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${toneClass} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-50 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${toneClass} ${className}`}
     >
       {loading && <Spinner className="h-3.5 w-3.5" />}
       {children}

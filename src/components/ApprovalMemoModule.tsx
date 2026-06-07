@@ -56,7 +56,7 @@ type DraftLine = {
 };
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 transition-colors rounded-sm";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 transition-colors rounded-sm";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -238,7 +238,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100 font-sans">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-white tracking-wide">
+          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-slate-50 tracking-wide">
             <ClipboardList size={16} className="text-emerald-400" /> Approval / Jangad Memo
           </h1>
           <p className="text-xs text-slate-400">Issue stock on sale-or-return and track it until returned or billed</p>
@@ -259,7 +259,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
         {activeTab === "issue" ? (
           <form onSubmit={submitMemo} className="grid h-full grid-cols-[320px_1fr_360px] overflow-hidden">
             <aside className="grid content-start gap-3 overflow-auto border-r border-slate-800 bg-slate-900 p-4">
-              <h2 className="text-xs font-bold uppercase text-white tracking-wide">Memo Header</h2>
+              <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">Memo Header</h2>
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                 Memo Type
                 <select value={memoType} onChange={(e) => setMemoType(e.target.value as "CUSTOMER" | "OUTWARD")} className={controlClassName}>
@@ -287,19 +287,19 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
               </div>
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                 Notes
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="h-16 w-full border border-slate-700 bg-slate-950 p-2 text-xs text-white outline-none focus:border-emerald-400" />
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="h-16 w-full border border-slate-700 bg-slate-950 p-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
               </label>
             </aside>
 
             <section className="grid min-h-0 grid-rows-[auto_auto_1fr]">
               <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-4 py-2">
-                <h2 className="text-xs font-semibold uppercase text-white tracking-wide">Available In-Stock Items</h2>
+                <h2 className="text-xs font-semibold uppercase text-slate-50 tracking-wide">Available In-Stock Items</h2>
                 <span className="text-[10px] text-slate-500">Click to add to memo</span>
               </div>
               <div className="border-b border-slate-800 p-2">
                 <div className="flex items-center gap-2 border border-slate-700 bg-slate-950 px-2">
                   <Search size={14} className="text-slate-500" />
-                  <input value={itemSearch} onChange={(e) => setItemSearch(e.target.value)} placeholder="Search barcode, design, metal..." className="h-8 flex-1 bg-transparent text-xs text-white outline-none" />
+                  <input value={itemSearch} onChange={(e) => setItemSearch(e.target.value)} placeholder="Search barcode, design, metal..." className="h-8 flex-1 bg-transparent text-xs text-slate-50 outline-none" />
                 </div>
               </div>
               <div className="min-h-0 overflow-auto p-2">
@@ -339,7 +339,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
 
             <aside className="grid min-h-0 grid-rows-[auto_1fr_auto] border-l border-slate-800 bg-slate-900">
               <div className="border-b border-slate-800 px-4 py-2">
-                <h2 className="text-xs font-bold uppercase text-white tracking-wide">Memo Items ({draftLines.length})</h2>
+                <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">Memo Items ({draftLines.length})</h2>
                 <p className="text-[10px] text-slate-500">Total gross {draftGrossG.toFixed(3)} g</p>
               </div>
               <div className="min-h-0 overflow-auto p-3">
@@ -361,7 +361,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                           <input
                             value={d.estimatedValueRupees}
                             onChange={(e) => setDraftLines((prev) => prev.map((x) => x.item.id === d.item.id ? { ...x, estimatedValueRupees: e.target.value.replace(/[^\d.]/g, "") } : x))}
-                            className="h-7 border border-slate-700 bg-slate-900 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded-sm"
+                            className="h-7 border border-slate-700 bg-slate-900 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded-sm"
                             inputMode="decimal"
                             placeholder="0"
                           />
@@ -372,7 +372,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                 )}
               </div>
               <div className="border-t border-slate-800 p-3">
-                <button type="submit" disabled={submitting || draftLines.length === 0} className="h-10 w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 text-xs font-bold uppercase text-slate-950 transition-colors">
+                <button type="submit" disabled={submitting || draftLines.length === 0} className="h-10 w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-500 text-xs font-bold uppercase text-slate-50 transition-colors">
                   {submitting ? "Issuing..." : "Issue Memo & Reserve Stock"}
                 </button>
               </div>
@@ -383,7 +383,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
             <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900/60 px-4 py-2">
               <span className="text-[10px] font-bold uppercase text-slate-400">Filter</span>
               {(["OPEN", "PARTIAL", "CONVERTED", "CLOSED", ""] as const).map((s) => (
-                <button key={s || "ALL"} type="button" onClick={() => setStatusFilter(s)} className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${statusFilter === s ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-400 hover:text-white"}`}>
+                <button key={s || "ALL"} type="button" onClick={() => setStatusFilter(s)} className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${statusFilter === s ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-400 hover:text-slate-50"}`}>
                   {s || "All"}
                 </button>
               ))}
@@ -402,7 +402,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                         <button type="button" onClick={() => setExpandedId(expanded ? null : memo.id)} className="flex w-full items-center justify-between gap-3 p-3 text-left">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-sm font-semibold text-white">{memo.memo_number}</span>
+                              <span className="font-mono text-sm font-semibold text-slate-50">{memo.memo_number}</span>
                               <StatusBadge status={memo.status} />
                               <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] uppercase text-slate-400">{memo.memo_type === "CUSTOMER" ? "Customer" : "Outward"}</span>
                             </div>
@@ -445,7 +445,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                                       {line.line_status === "OUT" ? (
                                         <div className="flex justify-center gap-1">
                                           <button type="button" disabled={busy} onClick={() => returnLines(memo, [line.id])} title="Return this item to stock" className="rounded border border-slate-700 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-slate-200 hover:bg-slate-800 disabled:opacity-50">Return</button>
-                                          <button type="button" disabled={busy} onClick={() => convertLines(memo, [line.id])} title="Mark this item sold" className="rounded bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:opacity-50">Sold</button>
+                                          <button type="button" disabled={busy} onClick={() => convertLines(memo, [line.id])} title="Mark this item sold" className="rounded bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:opacity-50">Sold</button>
                                         </div>
                                       ) : (
                                         <span className="text-slate-600">—</span>
@@ -460,7 +460,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                                 <button type="button" disabled={busy} onClick={() => returnLines(memo, null)} className="flex items-center gap-1 rounded border border-slate-700 px-3 py-1.5 text-[11px] font-semibold uppercase text-slate-200 hover:bg-slate-800 disabled:opacity-50">
                                   <RotateCcw size={13} /> Return All to Stock
                                 </button>
-                                <button type="button" disabled={busy} onClick={() => convertLines(memo, null)} className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:opacity-50">
+                                <button type="button" disabled={busy} onClick={() => convertLines(memo, null)} className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:opacity-50">
                                   <PackageCheck size={13} /> Mark All Sold
                                 </button>
                               </div>
@@ -481,7 +481,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
 }
 
 function tabClass(active: boolean) {
-  return `h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-950 font-bold" : "bg-slate-950 text-slate-400 hover:text-white"}`;
+  return `h-8 border-r border-slate-700 px-3 font-semibold uppercase text-[10px] tracking-wide last:border-r-0 cursor-pointer transition-colors ${active ? "bg-emerald-500 text-slate-50 font-bold" : "bg-slate-950 text-slate-400 hover:text-slate-50"}`;
 }
 
 function StatusBadge({ status }: { status: Memo["status"] }) {

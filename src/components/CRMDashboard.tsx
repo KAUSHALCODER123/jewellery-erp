@@ -279,7 +279,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
             <span className="text-xs font-medium">{t.message}</span>
             <button
               onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
-              className="ml-auto text-slate-400 hover:text-white"
+              className="ml-auto text-slate-400 hover:text-slate-50"
             >
               <X className="h-3 w-3" />
             </button>
@@ -308,7 +308,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
         {/* Top Header & Search Bar */}
         <header className="flex flex-col gap-3 border-b border-slate-800 bg-slate-900 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-50 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-emerald-400" />
               Customer Relationship Management
             </h2>
@@ -318,7 +318,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
           <button
             type="button"
             onClick={() => { setEditCustomer(null); setShowAddCustomer(true); }}
-            className="group inline-flex items-center gap-1 self-start rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500 active:scale-95"
+            className="group inline-flex items-center gap-1 self-start rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-slate-50 transition hover:bg-emerald-500 active:scale-95"
           >
             <User className="h-3.5 w-3.5 transition-transform group-hover:scale-110" /> Add Customer
           </button>
@@ -327,11 +327,11 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
           <div className="flex gap-4 text-xs">
             <div className="rounded border border-slate-800 bg-slate-950/40 px-3 py-1.5 transition hover:border-slate-700">
               <span className="text-slate-500 uppercase text-[9px] font-bold block">Total Customers</span>
-              <CountUp value={totalCustomers} className="text-white font-mono text-sm font-semibold" />
+              <CountUp value={totalCustomers} className="text-slate-50 font-mono text-sm font-semibold" />
             </div>
             <div className="rounded border border-slate-800 bg-slate-950/40 px-3 py-1.5 transition hover:border-slate-700">
               <span className="text-slate-500 uppercase text-[9px] font-bold block">Active Area Codes</span>
-              <CountUp value={areas.length} className="text-white font-mono text-sm font-semibold" />
+              <CountUp value={areas.length} className="text-slate-50 font-mono text-sm font-semibold" />
             </div>
           </div>
         </header>
@@ -347,7 +347,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
               placeholder="Search by Name or Phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full bg-slate-950 border border-slate-800 rounded pl-8 pr-3 text-xs text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+              className="h-9 w-full bg-slate-950 border border-slate-800 rounded pl-8 pr-3 text-xs text-slate-50 placeholder-slate-500 outline-none focus:border-emerald-500 transition"
             />
           </div>
 
@@ -358,7 +358,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
-              className="h-9 border border-slate-800 bg-slate-950 px-2 text-xs rounded text-white outline-none focus:border-emerald-500 transition min-w-[120px]"
+              className="h-9 border border-slate-800 bg-slate-950 px-2 text-xs rounded text-slate-50 outline-none focus:border-emerald-500 transition min-w-[120px]"
             >
               <option value="">All Areas</option>
               {areas.map((area) => (
@@ -430,7 +430,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                     }`}
                   >
                     <td className="px-4 py-3.5 font-mono text-slate-500">{cust.id}</td>
-                    <td className="px-4 py-3.5 font-semibold text-white">{cust.name}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-50">{cust.name}</td>
                     <td className="px-4 py-3.5 font-mono text-slate-300">{cust.phone}</td>
                     <td className="px-4 py-3.5 text-slate-300">{cust.area || <span className="text-slate-600">-</span>}</td>
                     <td className="px-4 py-3.5 text-slate-300">
@@ -466,29 +466,29 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
         {/* Table Footer / Pagination */}
         <footer className="flex items-center justify-between border-t border-slate-800 bg-slate-900 px-5 py-3 text-xs">
           <span className="text-slate-400">
-            Showing <span className="font-semibold text-white">{(page - 1) * limit + 1}</span> to{" "}
-            <span className="font-semibold text-white">
+            Showing <span className="font-semibold text-slate-50">{(page - 1) * limit + 1}</span> to{" "}
+            <span className="font-semibold text-slate-50">
               {Math.min(page * limit, totalCustomers)}
             </span>{" "}
-            of <span className="font-semibold text-white">{totalCustomers}</span> customers
+            of <span className="font-semibold text-slate-50">{totalCustomers}</span> customers
           </span>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(p - 1, 1))}
               disabled={page === 1}
-              className="flex h-8 w-8 items-center justify-center border border-slate-800 bg-slate-950 rounded text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:hover:border-slate-800 disabled:hover:text-slate-400 transition"
+              className="flex h-8 w-8 items-center justify-center border border-slate-800 bg-slate-950 rounded text-slate-400 hover:text-slate-50 hover:border-slate-700 disabled:opacity-30 disabled:hover:border-slate-800 disabled:hover:text-slate-400 transition"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="font-mono text-slate-400 text-xs">
-              Page <span className="text-white font-semibold">{page}</span> of{" "}
-              <span className="text-white font-semibold">{totalPages}</span>
+              Page <span className="text-slate-50 font-semibold">{page}</span> of{" "}
+              <span className="text-slate-50 font-semibold">{totalPages}</span>
             </span>
             <button
               onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
               disabled={page === totalPages}
-              className="flex h-8 w-8 items-center justify-center border border-slate-800 bg-slate-950 rounded text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:hover:border-slate-800 disabled:hover:text-slate-400 transition"
+              className="flex h-8 w-8 items-center justify-center border border-slate-800 bg-slate-950 rounded text-slate-400 hover:text-slate-50 hover:border-slate-700 disabled:opacity-30 disabled:hover:border-slate-800 disabled:hover:text-slate-400 transition"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -521,7 +521,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                       <User className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white uppercase">{customer360.customer.name}</h3>
+                      <h3 className="text-sm font-bold text-slate-50 uppercase">{customer360.customer.name}</h3>
                       <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono mt-0.5">
                         <Phone className="h-3 w-3 text-slate-500" />
                         {customer360.customer.phone}
@@ -537,7 +537,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                     </button>
                     <button
                       onClick={() => setSelectedCustomerId(null)}
-                      className="flex h-8 w-8 items-center justify-center border border-slate-800 hover:border-slate-700 bg-slate-950/60 rounded text-slate-400 hover:text-white transition"
+                      className="flex h-8 w-8 items-center justify-center border border-slate-800 hover:border-slate-700 bg-slate-950/60 rounded text-slate-400 hover:text-slate-50 transition"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -611,7 +611,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                         <CountUp
                           value={customer360.invoice_history.total_value_paise}
                           format={(n) => formatRupees(n)}
-                          className="font-mono text-base font-bold text-white block"
+                          className="font-mono text-base font-bold text-slate-50 block"
                         />
                         <span className="text-[10px] text-slate-500 mt-1 block">
                           Total {customer360.invoice_history.count} Invoices
@@ -715,7 +715,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                         {customer360.girvi_loans.map((loan) => (
                           <div key={loan.id} className="border border-slate-800 bg-slate-950/40 p-3 rounded-lg space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="font-mono font-bold text-white text-[11px]">{loan.loan_number}</span>
+                              <span className="font-mono font-bold text-slate-50 text-[11px]">{loan.loan_number}</span>
                               <span
                                 className={`text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider rounded ${
                                   loan.status === "ACTIVE"
@@ -796,7 +796,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                             <div key={gss.id} className="border border-slate-800 bg-slate-950/40 p-3 rounded-lg space-y-2.5">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <span className="font-bold text-white block">{gss.template_name}</span>
+                                  <span className="font-bold text-slate-50 block">{gss.template_name}</span>
                                   <span className="text-[9px] text-slate-500 font-mono mt-0.5 block">Card: {gss.card_number}</span>
                                 </div>
                                 <span
@@ -837,7 +837,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                               <div className="space-y-1 pt-0.5">
                                 <div className="flex justify-between text-[9px] font-mono text-slate-400">
                                   <span>Installments Progress</span>
-                                  <span className="font-bold text-white">
+                                  <span className="font-bold text-slate-50">
                                     {gss.installments_paid_count} / {gss.duration_months} Months
                                   </span>
                                 </div>
@@ -868,7 +868,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                           formatRupees(customer360.udhari_balance_paise)
                         )
                       }
-                      className="flex items-center justify-center gap-2 h-9 w-full bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-slate-950 font-bold uppercase rounded text-xs transition"
+                      className="flex items-center justify-center gap-2 h-9 w-full bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-slate-50 font-bold uppercase rounded text-xs transition"
                     >
                       <MessageSquare className="h-4 w-4 shrink-0" />
                       Send WhatsApp Udhari Reminder
@@ -886,7 +886,7 @@ export default function CRMDashboard({ apiBaseUrl = "" }: CRMDashboardProps) {
                           );
                         }
                       }}
-                      className="flex items-center justify-center gap-2 h-9 w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold uppercase rounded text-xs transition"
+                      className="flex items-center justify-center gap-2 h-9 w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-50 font-bold uppercase rounded text-xs transition"
                     >
                       <MessageSquare className="h-4 w-4 shrink-0" />
                       Send WhatsApp GSS Reminder

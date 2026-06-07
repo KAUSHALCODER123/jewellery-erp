@@ -105,7 +105,7 @@ function AuditLocksView({
     <div className="grid h-full grid-cols-1 md:grid-cols-[300px_1fr] gap-4 p-4 overflow-auto bg-slate-950 min-h-0">
       {/* Create Lock Column */}
       <form onSubmit={createLock} className="border border-slate-800 bg-slate-900/40 p-4 rounded-lg flex flex-col gap-3 h-fit">
-        <h2 className="text-xs font-semibold uppercase text-white border-b border-slate-850 pb-2">Lock New Period</h2>
+        <h2 className="text-xs font-semibold uppercase text-slate-50 border-b border-slate-850 pb-2">Lock New Period</h2>
         
         <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
           Period From:
@@ -114,7 +114,7 @@ function AuditLocksView({
             required
             value={lockFrom}
             onChange={(e) => setLockFrom(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
           />
         </label>
 
@@ -125,7 +125,7 @@ function AuditLocksView({
             required
             value={lockTo}
             onChange={(e) => setLockTo(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
           />
         </label>
 
@@ -137,13 +137,13 @@ function AuditLocksView({
             placeholder="e.g. May 2026 Audit Complete"
             value={lockReason}
             onChange={(e) => setLockReason(e.target.value)}
-            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
           />
         </label>
 
         <button
           type="submit"
-          className="h-9 bg-red-600 hover:bg-red-700 text-white font-bold uppercase text-[10px] rounded tracking-wider mt-1 transition"
+          className="h-9 bg-red-600 hover:bg-red-700 text-slate-50 font-bold uppercase text-[10px] rounded tracking-wider mt-1 transition"
         >
           Enforce Audit Lock
         </button>
@@ -151,7 +151,7 @@ function AuditLocksView({
 
       {/* Audit Locks List Grid */}
       <div className="border border-slate-800 bg-slate-900/20 p-4 rounded-lg flex flex-col gap-2 min-h-0 overflow-auto">
-        <h2 className="text-xs font-semibold uppercase text-white border-b border-slate-800 pb-2">Active & Archive Locks</h2>
+        <h2 className="text-xs font-semibold uppercase text-slate-50 border-b border-slate-800 pb-2">Active & Archive Locks</h2>
         {locks.length === 0 ? (
           <p className="text-xs text-slate-500 py-8 text-center uppercase tracking-wider">No GST audit period locks created yet.</p>
         ) : (
@@ -184,7 +184,7 @@ function AuditLocksView({
                         <button
                           type="button"
                           onClick={() => unlockPeriod(lock.id)}
-                          className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold uppercase text-[9px] tracking-wide rounded"
+                          className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold uppercase text-[9px] tracking-wide rounded"
                         >
                           Unlock
                         </button>
@@ -342,21 +342,21 @@ function BisWorkflowView({
         <button
           type="button"
           onClick={() => setSubTab("ready")}
-          className={`px-3 py-1 font-semibold uppercase tracking-wider rounded ${subTab === "ready" ? "bg-slate-800 text-emerald-400 border border-emerald-900/30" : "text-slate-400 hover:text-white"}`}
+          className={`px-3 py-1 font-semibold uppercase tracking-wider rounded ${subTab === "ready" ? "bg-slate-800 text-emerald-400 border border-emerald-900/30" : "text-slate-400 hover:text-slate-50"}`}
         >
           1. Ready for Hallmarking ({itemsToHallmark.length})
         </button>
         <button
           type="button"
           onClick={() => setSubTab("active")}
-          className={`px-3 py-1 font-semibold uppercase tracking-wider rounded ${subTab === "active" ? "bg-slate-800 text-emerald-400 border border-emerald-900/30" : "text-slate-400 hover:text-white"}`}
+          className={`px-3 py-1 font-semibold uppercase tracking-wider rounded ${subTab === "active" ? "bg-slate-800 text-emerald-400 border border-emerald-900/30" : "text-slate-400 hover:text-slate-50"}`}
         >
           2. Active Submissions ({submissions.filter(s => s.status !== "COMPLETED").length} Pending)
         </button>
         <button
           type="button"
           onClick={() => setSubTab("huid_inventory")}
-          className={`px-3 py-1 font-semibold uppercase tracking-wider rounded ${subTab === "huid_inventory" ? "bg-slate-800 text-emerald-400 border border-emerald-900/30" : "text-slate-400 hover:text-white"}`}
+          className={`px-3 py-1 font-semibold uppercase tracking-wider rounded ${subTab === "huid_inventory" ? "bg-slate-800 text-emerald-400 border border-emerald-900/30" : "text-slate-400 hover:text-slate-50"}`}
         >
           3. HUID Card Printing & History
         </button>
@@ -421,11 +421,11 @@ function BisWorkflowView({
 
             {/* Submission Form */}
             <form onSubmit={submitToBis} className="border border-slate-800 bg-slate-900/40 p-4 rounded-lg flex flex-col gap-3 h-fit">
-              <h3 className="text-xs font-semibold uppercase text-white border-b border-slate-800 pb-2">Generate BIS Submission</h3>
+              <h3 className="text-xs font-semibold uppercase text-slate-50 border-b border-slate-800 pb-2">Generate BIS Submission</h3>
               
               <div className="bg-slate-950 p-2 rounded text-[10px] text-slate-400 border border-slate-900 flex justify-between items-center">
                 <span>Selected Items Count</span>
-                <span className="font-mono text-sm font-bold text-white">
+                <span className="font-mono text-sm font-bold text-slate-50">
                   {Object.keys(selectedItemIds).filter(id => selectedItemIds[Number(id)]).length}
                 </span>
               </div>
@@ -438,7 +438,7 @@ function BisWorkflowView({
                   placeholder="e.g. Mumbai Assay & Hallmarking Center"
                   value={hallmarkCenter}
                   onChange={(e) => setHallmarkCenter(e.target.value)}
-                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                 />
               </label>
 
@@ -449,7 +449,7 @@ function BisWorkflowView({
                   required
                   value={bisSubmittedDate}
                   onChange={(e) => setBisSubmittedDate(e.target.value)}
-                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                 />
               </label>
 
@@ -459,7 +459,7 @@ function BisWorkflowView({
                   type="date"
                   value={expectedReturnDate}
                   onChange={(e) => setExpectedReturnDate(e.target.value)}
-                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                 />
               </label>
 
@@ -470,13 +470,13 @@ function BisWorkflowView({
                   placeholder="Challan details or notes"
                   value={bisRemarks}
                   onChange={(e) => setBisRemarks(e.target.value)}
-                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                 />
               </label>
 
               <button
                 type="submit"
-                className="h-9 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold uppercase text-[10px] rounded tracking-wider mt-1 transition"
+                className="h-9 bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold uppercase text-[10px] rounded tracking-wider mt-1 transition"
               >
                 Submit Job to BIS
               </button>
@@ -558,7 +558,7 @@ function BisWorkflowView({
                                           <select
                                             value={itemState.status}
                                             onChange={(e) => handleReturnItemField(item.item_id, "status", e.target.value)}
-                                            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+                                            className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                                           >
                                             <option value="HUID_RECEIVED">HUID Received</option>
                                             <option value="REJECTED">Rejected / Melted</option>
@@ -568,7 +568,7 @@ function BisWorkflowView({
                                       <td className="px-3 py-2.5">
                                         {isProcessed ? (
                                           <div className="text-[11px] grid gap-0.5">
-                                            {item.huid && <div>HUID: <span className="font-mono font-bold text-white">{item.huid}</span></div>}
+                                            {item.huid && <div>HUID: <span className="font-mono font-bold text-slate-50">{item.huid}</span></div>}
                                             {item.certificate_number && <div>Cert #: <span className="font-mono text-slate-400">{item.certificate_number}</span></div>}
                                             {item.remarks && <div className="italic text-slate-500">Remarks: {item.remarks}</div>}
                                           </div>
@@ -582,14 +582,14 @@ function BisWorkflowView({
                                                   placeholder="HUID (e.g. A1B2C3)"
                                                   value={itemState.huid}
                                                   onChange={(e) => handleReturnItemField(item.item_id, "huid", e.target.value.toUpperCase())}
-                                                  className="h-8 w-36 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500 font-mono font-bold"
+                                                  className="h-8 w-36 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500 font-mono font-bold"
                                                 />
                                                 <input
                                                   type="text"
                                                   placeholder="Cert No. (Optional)"
                                                   value={itemState.certificate_number}
                                                   onChange={(e) => handleReturnItemField(item.item_id, "certificate_number", e.target.value)}
-                                                  className="h-8 w-36 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+                                                  className="h-8 w-36 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                                                 />
                                               </>
                                             ) : (
@@ -598,7 +598,7 @@ function BisWorkflowView({
                                                 placeholder="Rejection remarks / Reason"
                                                 value={itemState.remarks}
                                                 onChange={(e) => handleReturnItemField(item.item_id, "remarks", e.target.value)}
-                                                className="h-8 w-72 border border-slate-700 bg-slate-950 px-2 text-xs text-white rounded outline-none focus:border-emerald-500"
+                                                className="h-8 w-72 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                                               />
                                             )}
                                           </div>
@@ -623,7 +623,7 @@ function BisWorkflowView({
                               <button
                                 type="button"
                                 onClick={() => submitReturn(sub.id)}
-                                className="h-8 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold uppercase text-[10px] rounded px-4"
+                                className="h-8 bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold uppercase text-[10px] rounded px-4"
                               >
                                 Process return verification
                               </button>
@@ -651,7 +651,7 @@ function BisWorkflowView({
                   placeholder="Enter barcode or HUID number..."
                   value={huidSearch}
                   onChange={(e) => setHuidSearch(e.target.value)}
-                  className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-white rounded outline-none focus:border-emerald-500 transition"
+                  className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 rounded outline-none focus:border-emerald-500 transition"
                 />
               </label>
             </div>
@@ -698,7 +698,7 @@ function BisWorkflowView({
                           <button
                             type="button"
                             onClick={() => triggerCardPrint(item.id)}
-                            className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold uppercase text-[9px] tracking-wide rounded"
+                            className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold uppercase text-[9px] tracking-wide rounded"
                           >
                             Print Card
                           </button>
@@ -738,7 +738,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       className={`h-8 border-r border-slate-750 px-3 font-semibold uppercase last:border-r-0 text-[10px] tracking-wider transition ${
-        active ? "bg-emerald-500 text-slate-950 font-bold" : "bg-slate-900 text-slate-400 hover:text-white"
+        active ? "bg-emerald-500 text-slate-50 font-bold" : "bg-slate-900 text-slate-400 hover:text-slate-50"
       }`}
     >
       {children}
@@ -867,7 +867,7 @@ function Gstr3bView({ data }: { data: Gst3bResponse }) {
 function MiniMetricBox({ label, value, highlight = false, tone = "neutral" }: { label: string; value: string; highlight?: boolean; tone?: "neutral" | "receipt" | "payment" }) {
   const toneClass = highlight 
     ? (tone === "payment" ? "text-red-400 font-bold" : "text-emerald-400 font-bold") 
-    : "text-white font-semibold";
+    : "text-slate-50 font-semibold";
   return (
     <div className="bg-slate-950/80 border border-slate-800/60 rounded p-2 flex flex-col gap-0.5 shadow-sm">
       <span className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">{label}</span>
@@ -936,7 +936,7 @@ function GstrLinesView({
                   <td className="px-3 py-2 font-mono text-slate-300">{(line.gross_weight_mg / 1000).toFixed(3)}g</td>
                   <td className="px-3 py-2 font-mono text-slate-300">{(line.net_weight_mg / 1000).toFixed(3)}g</td>
                   <td className="px-3 py-2 font-mono text-slate-200">{line.rt}%</td>
-                  <td className="px-3 py-2 font-mono font-semibold text-white">Rs {line.txval}</td>
+                  <td className="px-3 py-2 font-mono font-semibold text-slate-50">Rs {line.txval}</td>
                   <td className="px-3 py-2 font-mono text-slate-300">Rs {line.camt}</td>
                   <td className="px-3 py-2 font-mono text-slate-300">Rs {line.samt}</td>
                   <td className="px-3 py-2 font-mono text-slate-300">Rs {line.iamt}</td>
@@ -954,7 +954,7 @@ function MetricItem({ label, value, highlight = false }: { label: string; value:
   return (
     <div className="border-r border-slate-800 bg-slate-950/80 px-3 py-2.5 last:border-r-0 flex flex-col gap-0.5">
       <span className="text-[9px] font-semibold uppercase text-slate-500">{label}</span>
-      <span className={`font-mono text-xs font-bold ${highlight ? "text-emerald-400" : "text-white"}`}>
+      <span className={`font-mono text-xs font-bold ${highlight ? "text-emerald-400" : "text-slate-50"}`}>
         {value}
       </span>
     </div>
@@ -1375,7 +1375,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
     <section className="grid h-screen grid-rows-[auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">GST Compliance & HUID Dashboard</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">GST Compliance & HUID Dashboard</h1>
           <p className="text-xs text-slate-400">Taxes, GSTR exports, audit period locks, and BIS hallmarking workflows</p>
         </div>
         <nav className="flex border border-slate-700 text-xs">
@@ -1398,7 +1398,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded"
+                className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded"
               />
             </label>
 
@@ -1408,7 +1408,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded"
+                className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded"
               />
             </label>
 
@@ -1416,7 +1416,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
               type="button"
               onClick={exportCSV}
               disabled={loading || (activeTab === "gstr3b" ? !gstr3bData : activeTab === "b2b_b2c" ? !b2bb2cData : gstLines.length === 0)}
-              className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold px-4 rounded uppercase text-[10px] tracking-wide ml-auto disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="h-8 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-50 font-bold px-4 rounded uppercase text-[10px] tracking-wide ml-auto disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Export GST CSV
             </button>
@@ -1505,7 +1505,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
           <div className="w-full max-w-lg border border-slate-700 bg-slate-950 p-4 rounded-lg flex flex-col gap-3 shadow-xl">
             <div className="border-b border-slate-800 pb-2 flex justify-between items-center">
               <div>
-                <h2 className="text-sm font-semibold uppercase text-white">HUID History Log</h2>
+                <h2 className="text-sm font-semibold uppercase text-slate-50">HUID History Log</h2>
                 <p className="text-[11px] text-slate-400">Lifecycle trace for item: <strong>{historyItemBarcode}</strong></p>
               </div>
               <button
@@ -1514,7 +1514,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
                   setShowHistoryItemId(null);
                   setHuidHistory([]);
                 }}
-                className="text-slate-400 hover:text-white text-xs font-semibold uppercase"
+                className="text-slate-400 hover:text-slate-50 text-xs font-semibold uppercase"
               >
                 Close
               </button>
@@ -1533,7 +1533,7 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
                       </div>
                       <div className="mt-1 grid grid-cols-2 gap-1.5 text-[11px]">
                         <div>Status: <span className="text-slate-200 font-semibold">{ev.from_status} → {ev.to_status}</span></div>
-                        {ev.huid && <div>HUID: <span className="text-white font-mono font-bold">{ev.huid}</span></div>}
+                        {ev.huid && <div>HUID: <span className="text-slate-50 font-mono font-bold">{ev.huid}</span></div>}
                         {ev.certificate_number && <div className="col-span-2">Cert #: <span className="text-slate-300 font-mono">{ev.certificate_number}</span></div>}
                         {ev.remarks && <div className="col-span-2 text-slate-400 italic">Remarks: {ev.remarks}</div>}
                       </div>

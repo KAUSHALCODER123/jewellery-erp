@@ -612,7 +612,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
         <div>
           <div className="flex items-center gap-2">
             <Cpu className="h-5 w-5 text-emerald-400 animate-pulse" />
-            <h1 className="text-base font-semibold tracking-wider uppercase text-white">Hardware Security & Auditing</h1>
+            <h1 className="text-base font-semibold tracking-wider uppercase text-slate-50">Hardware Security & Auditing</h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">Thermal labels, exit gate scanning logs, RFID streams, active tray sessions, and anti-theft alarms.</p>
         </div>
@@ -678,7 +678,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
               {/* Simulator / Alarm Zone */}
               <div className="space-y-6">
                 <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-                  <h2 className="text-sm font-semibold uppercase text-white flex items-center gap-2">
+                  <h2 className="text-sm font-semibold uppercase text-slate-50 flex items-center gap-2">
                     <ShieldAlert className="h-4 w-4 text-emerald-400" />
                     Security Exit Gate Simulator
                   </h2>
@@ -689,19 +689,19 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                       placeholder="ENTER TAG BARCODE OR BIS HUID (e.g. RIN0001)"
                       value={simulatorBarcode}
                       onChange={(e) => setSimulatorBarcode(e.target.value.toUpperCase())}
-                      className="h-10 border border-slate-700 bg-slate-950 px-3.5 text-xs text-white outline-none rounded font-mono focus:border-emerald-500 transition"
+                      className="h-10 border border-slate-700 bg-slate-950 px-3.5 text-xs text-slate-50 outline-none rounded font-mono focus:border-emerald-500 transition"
                     />
                     <select
                       value={simulatorDevice ?? ""}
                       onChange={(e) => setSimulatorDevice(Number(e.target.value) || null)}
-                      className="h-10 border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none rounded focus:border-emerald-500 transition"
+                      className="h-10 border border-slate-700 bg-slate-950 px-3 text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
                     >
                       <option value="">Default Gate</option>
                       {devices.filter(d=>d.device_type === "BARCODE_SCANNER").map(d=>(
                         <option key={d.id} value={d.id}>{d.name}</option>
                       ))}
                     </select>
-                    <button type="submit" className="h-10 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold uppercase text-[11px] rounded transition flex items-center justify-center gap-1.5">
+                    <button type="submit" className="h-10 bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold uppercase text-[11px] rounded transition flex items-center justify-center gap-1.5">
                       <Play className="h-3 w-3 fill-current" />
                       Scan Tag
                     </button>
@@ -726,13 +726,13 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                 {alarmFlashing && (
                   <div className="border border-red-500 bg-red-950/40 rounded-lg p-6 text-center space-y-4 animate-pulse">
                     <div className="h-12 w-12 bg-red-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_15px_#ef4444]">
-                      <ShieldAlert className="h-7 w-7 text-white animate-ping" />
+                      <ShieldAlert className="h-7 w-7 text-slate-50 animate-ping" />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-red-400 tracking-wider uppercase">THEFT PREVENTION ALARM TRIPPED</h3>
                       <p className="text-xs text-slate-200 mt-1.5">{lastAlarmMsg || "Unauthorized item exit check detected."}</p>
                     </div>
-                    <button onClick={() => setAlarmFlashing(false)} className="h-8 border border-red-500 hover:bg-red-500 hover:text-white text-red-400 font-semibold px-4 rounded text-xs transition">
+                    <button onClick={() => setAlarmFlashing(false)} className="h-8 border border-red-500 hover:bg-red-500 hover:text-slate-50 text-red-400 font-semibold px-4 rounded text-xs transition">
                       Dismiss Siren
                     </button>
                   </div>
@@ -745,11 +745,11 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                 <div className="grid grid-cols-2 gap-3 text-xs pt-2">
                   <div className="bg-slate-950 p-3.5 rounded border border-slate-800">
                     <div className="text-[10px] text-slate-500">DEVICES CONFIGED</div>
-                    <div className="text-lg font-bold text-white font-mono mt-1">{devices.length}</div>
+                    <div className="text-lg font-bold text-slate-50 font-mono mt-1">{devices.length}</div>
                   </div>
                   <div className="bg-slate-950 p-3.5 rounded border border-slate-800">
                     <div className="text-[10px] text-slate-500">OPEN TRAY SESSIONS</div>
-                    <div className="text-lg font-bold text-white font-mono mt-1">{sessions.length}</div>
+                    <div className="text-lg font-bold text-slate-50 font-mono mt-1">{sessions.length}</div>
                   </div>
                   <div className="bg-slate-950 p-3.5 rounded border border-slate-800 col-span-2">
                     <div className="text-[10px] text-slate-500">PENDING THEFT ALERTS</div>
@@ -768,27 +768,27 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
               {/* Open Session Form */}
               <div className="space-y-4">
                 <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-                  <h3 className="text-xs font-semibold uppercase text-white mb-4">Open Showroom Tray Session</h3>
+                  <h3 className="text-xs font-semibold uppercase text-slate-50 mb-4">Open Showroom Tray Session</h3>
                   <form onSubmit={openTray} className="space-y-3">
                     <label className="block text-[10px] uppercase text-slate-400 font-bold">
                       Tray Code Name
-                      <input value={trayCode} onChange={(e) => setTrayCode(e.target.value.toUpperCase())} className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-white mt-1 outline-none rounded focus:border-emerald-500" />
+                      <input value={trayCode} onChange={(e) => setTrayCode(e.target.value.toUpperCase())} className="h-8 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 mt-1 outline-none rounded focus:border-emerald-500" />
                     </label>
                     <label className="block text-[10px] uppercase text-slate-400 font-bold">
                       Showroom Purpose
-                      <select value={trayPurpose} onChange={(e) => setTrayPurpose(e.target.value)} className="h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white mt-1 outline-none rounded focus:border-emerald-500">
+                      <select value={trayPurpose} onChange={(e) => setTrayPurpose(e.target.value)} className="h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 mt-1 outline-none rounded focus:border-emerald-500">
                         <option value="SHOWROOM_VIEW">Showroom Customer View</option>
                         <option value="CUSTOMER_TRIAL">Customer Trial & Fit</option>
                         <option value="VIP_INSPECTION">VIP Private Inspection</option>
                       </select>
                     </label>
-                    <button type="submit" className="h-8 w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs uppercase rounded transition">Open Tray Session</button>
+                    <button type="submit" className="h-8 w-full bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold text-xs uppercase rounded transition">Open Tray Session</button>
                   </form>
                 </div>
 
                 {/* Active Sessions List */}
                 <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-                  <h3 className="text-xs font-semibold uppercase text-white mb-3">Open Tray Sessions</h3>
+                  <h3 className="text-xs font-semibold uppercase text-slate-50 mb-3">Open Tray Sessions</h3>
                   {sessions.length === 0 ? (
                     <p className="text-xs text-slate-500 py-4 text-center">No active tray sessions.</p>
                   ) : (
@@ -800,7 +800,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                           className={`p-3 rounded border text-xs cursor-pointer flex justify-between items-center transition ${activeTrayId === s.id ? "bg-slate-800 border-emerald-500" : "bg-slate-950 border-slate-800 hover:bg-slate-900"}`}
                         >
                           <div>
-                            <div className="font-bold text-white">{s.tray_code}</div>
+                            <div className="font-bold text-slate-50">{s.tray_code}</div>
                             <div className="text-[10px] text-slate-500 mt-0.5">{s.purpose} | ID #{s.id}</div>
                           </div>
                           <Clock className="h-4 w-4 text-slate-500" />
@@ -815,7 +815,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
               <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 flex flex-col">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <div>
-                    <h2 className="text-sm font-semibold uppercase text-white">Active Tray Session Items</h2>
+                    <h2 className="text-sm font-semibold uppercase text-slate-50">Active Tray Session Items</h2>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {sessions.find(s=>s.id === activeTrayId)?.tray_code || "No Tray Selected"} — List of items currently scanned into the tray.
                     </p>
@@ -824,7 +824,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                   <button
                     disabled={!activeTrayId}
                     onClick={closeTray}
-                    className="h-8 border border-red-500 text-red-400 hover:bg-red-500 hover:text-white disabled:border-slate-800 disabled:text-slate-600 font-bold px-4 rounded text-[11px] uppercase transition"
+                    className="h-8 border border-red-500 text-red-400 hover:bg-red-500 hover:text-slate-50 disabled:border-slate-800 disabled:text-slate-600 font-bold px-4 rounded text-[11px] uppercase transition"
                   >
                     Close & Verify Tray
                   </button>
@@ -837,7 +837,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                       placeholder="Add barcode/HUID to tray..."
                       value={trayItemCode}
                       onChange={(e) => setSimulatorBarcode(e.target.value.toUpperCase())} // helper duplicate
-                      className="h-8 w-64 border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none rounded font-mono focus:border-emerald-500"
+                      className="h-8 w-64 border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none rounded font-mono focus:border-emerald-500"
                     />
                     <input
                       type="hidden"
@@ -887,7 +887,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                       <tbody>
                         {selectedTrayItems.map((item) => (
                           <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                            <td className="py-2.5 font-mono text-white">{item.barcode}</td>
+                            <td className="py-2.5 font-mono text-slate-50">{item.barcode}</td>
                             <td className="py-2.5">{item.category ?? "Jewellery Item"}</td>
                             <td className="py-2.5">{item.gross_weight_g ? `${item.gross_weight_g.toFixed(3)} g` : "-"}</td>
                             <td className="py-2.5 text-right">
@@ -911,7 +911,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
           {/* Tab 3: Anti-Theft Response Center */}
           {activeTab === "alerts" && (
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-              <h2 className="text-sm font-semibold uppercase text-white mb-4">Active Security Alarms & Theft Alerts</h2>
+              <h2 className="text-sm font-semibold uppercase text-slate-50 mb-4">Active Security Alarms & Theft Alerts</h2>
               <div className="overflow-auto min-h-[400px]">
                 {alerts.length === 0 ? (
                   <div className="text-center py-16 text-slate-500 space-y-2">
@@ -933,7 +933,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                       {alerts.map((alert) => (
                         <tr key={alert.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                           <td className="py-3 font-mono text-red-300 font-bold">{alert.barcode ?? "-"}</td>
-                          <td className="py-3 font-semibold text-white">{alert.alert_type}</td>
+                          <td className="py-3 font-semibold text-slate-50">{alert.alert_type}</td>
                           <td className="py-3">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${alert.severity === "CRITICAL" ? "bg-red-950/50 border border-red-500 text-red-300 animate-pulse" : alert.severity === "HIGH" ? "bg-amber-950/50 border border-amber-500 text-amber-300" : "bg-blue-950/50 border border-blue-500 text-blue-300"}`}>
                               {alert.severity}
@@ -970,7 +970,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
               {/* Select Printer & Item */}
               <div className="space-y-4">
                 <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-                  <h3 className="text-xs font-semibold uppercase text-white mb-4">Select Target Printer</h3>
+                  <h3 className="text-xs font-semibold uppercase text-slate-50 mb-4">Select Target Printer</h3>
                   
                   <div className="space-y-3">
                     <label className="block text-[10px] uppercase text-slate-400 font-bold">
@@ -978,7 +978,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                       <select
                         value={selectedPrinterId ?? ""}
                         onChange={(e) => setSelectedPrinterId(Number(e.target.value) || null)}
-                        className="h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white mt-1 outline-none rounded"
+                        className="h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 mt-1 outline-none rounded"
                       >
                         <option value="">No printers configed</option>
                         {devices.filter(d => d.device_type === "THERMAL_BARCODE_PRINTER").map(d => (
@@ -994,7 +994,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                           placeholder="Search e.g. ITEM-001..."
                           value={printSearch}
                           onChange={(e) => setPrintSearch(e.target.value)}
-                          className="h-8 flex-1 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none rounded"
+                          className="h-8 flex-1 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none rounded"
                         />
                         <button type="button" onClick={searchItemsForPrint} className="h-8 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 rounded text-xs">Search</button>
                       </div>
@@ -1005,7 +1005,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                 {/* Print search results */}
                 {printResults.length > 0 && (
                   <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-                    <h3 className="text-xs font-semibold uppercase text-white mb-3">Matching Stock Items</h3>
+                    <h3 className="text-xs font-semibold uppercase text-slate-50 mb-3">Matching Stock Items</h3>
                     <div className="space-y-2 max-h-[300px] overflow-auto">
                       {printResults.map(r => (
                         <div
@@ -1014,7 +1014,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                           className={`p-2.5 rounded border cursor-pointer text-xs flex justify-between items-center transition ${selectedPrintItem?.id === r.id ? "bg-slate-800 border-emerald-500" : "bg-slate-950 border-slate-800 hover:bg-slate-900"}`}
                         >
                           <div>
-                            <div className="font-mono font-bold text-white">{r.barcode}</div>
+                            <div className="font-mono font-bold text-slate-50">{r.barcode}</div>
                             <div className="text-[10px] text-slate-500 mt-0.5">{r.category} | Wt: {r.gross_weight_g}g</div>
                           </div>
                         </div>
@@ -1027,16 +1027,16 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
               {/* Label template preview */}
               <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold uppercase text-white mb-3">Label Template Preview</h3>
+                  <h3 className="text-sm font-semibold uppercase text-slate-50 mb-3">Label Template Preview</h3>
                   {selectedPrintItem ? (
-                    <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 bg-white text-slate-950 w-72 mx-auto font-mono text-center shadow-md select-none">
+                    <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 bg-white text-slate-50 w-72 mx-auto font-mono text-center shadow-md select-none">
                       <div className="text-[10px] text-slate-500 uppercase tracking-widest">TAG PREVIEW</div>
                       <div className="text-xs font-bold mt-2">{selectedPrintItem.category}</div>
                       <div className="text-[10px] mt-1">Weight: {selectedPrintItem.gross_weight_g} g</div>
                       <div className="text-[10px]">Purity: {selectedPrintItem.purity_karat} Karat</div>
                       
                       {/* Simulated barcode */}
-                      <div className="mt-3 bg-slate-950 text-white p-2.5 text-xs inline-block font-mono tracking-widest border border-slate-900 uppercase">
+                      <div className="mt-3 bg-slate-950 text-slate-50 p-2.5 text-xs inline-block font-mono tracking-widest border border-slate-900 uppercase">
                         ||||| {selectedPrintItem.barcode} |||||
                       </div>
                       <div className="text-[8px] text-slate-400 mt-1">{selectedPrintItem.barcode}</div>
@@ -1052,7 +1052,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                   <button
                     disabled={!selectedPrinterId || !selectedPrintItem}
                     onClick={triggerPrintJob}
-                    className="h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-bold px-6 rounded text-xs uppercase transition flex items-center gap-1.5"
+                    className="h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-50 font-bold px-6 rounded text-xs uppercase transition flex items-center gap-1.5"
                   >
                     <Printer className="h-4 w-4" />
                     Print Label Tag
@@ -1070,7 +1070,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
               {/* Weighing scale serial configuration */}
               <div className="col-span-2 bg-slate-900 border border-slate-800 rounded-lg p-5">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-semibold uppercase text-white">Weighing Scale (Serial) Configuration</h2>
+                  <h2 className="text-xs font-semibold uppercase text-slate-50">Weighing Scale (Serial) Configuration</h2>
                   <button type="button" onClick={() => void loadScalePorts()} disabled={scalePortsLoading} className="h-7 border border-slate-600 px-2.5 text-[11px] font-semibold uppercase text-slate-200 hover:border-emerald-400 hover:text-emerald-300 rounded disabled:text-slate-600">
                     {scalePortsLoading ? "Scanning…" : "Refresh Ports"}
                   </button>
@@ -1093,7 +1093,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                     <input value={scaleBaud} onChange={(e) => setScaleBaud(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" className={`${controlClassName} mt-1`} />
                   </label>
                   <div className="flex items-end">
-                    <button type="button" onClick={() => void saveScaleConfig()} disabled={scaleSaving} className="h-9 w-full bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
+                    <button type="button" onClick={() => void saveScaleConfig()} disabled={scaleSaving} className="h-9 w-full bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
                       {scaleSaving ? "Saving…" : "Save & Connect Scale"}
                     </button>
                   </div>
@@ -1103,7 +1103,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
 
               {/* Form profile */}
               <form onSubmit={saveDevice} className="bg-slate-900 border border-slate-800 rounded-lg p-5 space-y-3 h-fit">
-                <h2 className="text-xs font-semibold uppercase text-white mb-2">Configure Device Profile</h2>
+                <h2 className="text-xs font-semibold uppercase text-slate-50 mb-2">Configure Device Profile</h2>
                 <input placeholder="Friendly device name (e.g. Counter Scanner 1)" value={deviceDraft.name} onChange={(e) => setDeviceDraft({ ...deviceDraft, name: e.target.value })} className={controlClassName} required />
                 
                 <div className="grid grid-cols-2 gap-2">
@@ -1143,12 +1143,12 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                   </select>
                 </div>
 
-                <button type="submit" className="h-9 w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold uppercase text-xs rounded transition mt-3">Configure device</button>
+                <button type="submit" className="h-9 w-full bg-emerald-500 hover:bg-emerald-600 text-slate-50 font-bold uppercase text-xs rounded transition mt-3">Configure device</button>
               </form>
 
               {/* Active Profile list */}
               <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-                <h2 className="text-sm font-semibold uppercase text-white mb-4">Configured Hardware profiles</h2>
+                <h2 className="text-sm font-semibold uppercase text-slate-50 mb-4">Configured Hardware profiles</h2>
                 <div className="overflow-auto max-h-[500px]">
                   {devices.length === 0 ? (
                     <p className="text-xs text-slate-500 py-10 text-center">No hardware devices configured.</p>
@@ -1166,7 +1166,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                       <tbody>
                         {devices.map((device) => (
                           <tr key={device.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                            <td className="py-2.5 font-bold text-white">{device.name}</td>
+                            <td className="py-2.5 font-bold text-slate-50">{device.name}</td>
                             <td className="py-2.5 text-[10px] font-mono">{device.device_type}</td>
                             <td className="py-2.5 text-[10px] text-slate-400">{device.connection_type}</td>
                             <td className="py-2.5 text-[10px] font-mono text-slate-400">
@@ -1193,7 +1193,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
           {activeTab === "history" && (
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-                <h2 className="text-sm font-semibold uppercase text-white">Scanner Audit Logs History</h2>
+                <h2 className="text-sm font-semibold uppercase text-slate-50">Scanner Audit Logs History</h2>
                 <div className="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Last 80 Scans captured</div>
               </div>
               <div className="overflow-auto min-h-[400px]">
@@ -1219,7 +1219,7 @@ export default function HardwareSecurityModule({ apiBaseUrl = "" }: HardwareSecu
                               {log.event_type}
                             </span>
                           </td>
-                          <td className="py-2.5 font-mono text-white font-semibold">{log.barcode ?? log.rfid_epc ?? "-"}</td>
+                          <td className="py-2.5 font-mono text-slate-50 font-semibold">{log.barcode ?? log.rfid_epc ?? "-"}</td>
                           <td className="py-2.5 text-slate-400 font-bold text-[10px]">{log.context ?? "-"}</td>
                           <td className="py-2.5">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${log.result.includes("THEFT") || log.result.includes("FAILED") || log.result.includes("UNKNOWN") ? "bg-red-950/40 text-red-400 border border-red-900" : log.result.includes("MATCHED") || log.result.includes("PRINTED") || log.result.includes("VERIFIED") || log.result.includes("ADDED") ? "bg-emerald-950/40 text-emerald-400 border border-emerald-900" : "bg-slate-850 text-slate-300"}`}>
@@ -1260,14 +1260,14 @@ function SidebarBtn({
   return (
     <button
       onClick={onClick}
-      className={`h-9 w-full flex items-center justify-between px-3 text-xs font-semibold rounded transition ${active ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-300 hover:bg-slate-800"}`}
+      className={`h-9 w-full flex items-center justify-between px-3 text-xs font-semibold rounded transition ${active ? "bg-emerald-500 text-slate-50 shadow" : "text-slate-300 hover:bg-slate-800"}`}
     >
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4" />
         <span>{label}</span>
       </div>
       {count !== undefined && (
-        <span className={`h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold ${active ? "bg-slate-950 text-emerald-400" : tone === "red" ? "bg-red-500 text-white" : "bg-slate-800 text-slate-400"}`}>
+        <span className={`h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold ${active ? "bg-slate-950 text-emerald-400" : tone === "red" ? "bg-red-500 text-slate-50" : "bg-slate-800 text-slate-400"}`}>
           {count}
         </span>
       )}
@@ -1275,4 +1275,4 @@ function SidebarBtn({
   );
 }
 
-const controlClassName = "h-8 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-white outline-none rounded focus:border-emerald-500 transition duration-150";
+const controlClassName = "h-8 w-full border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition duration-150";

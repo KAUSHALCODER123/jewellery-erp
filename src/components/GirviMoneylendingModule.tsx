@@ -718,10 +718,10 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
     <section className="grid h-screen grid-rows-[auto_auto_1fr] overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
         <div>
-          <h1 className="text-sm font-semibold uppercase text-white">Girvi Moneylending</h1>
+          <h1 className="text-sm font-semibold uppercase text-slate-50">Girvi Moneylending</h1>
           <p className="text-xs text-slate-400">LTV, KYC, collateral, repayments</p>
         </div>
-        <nav className="flex border border-slate-700 text-xs text-white">
+        <nav className="flex border border-slate-700 text-xs text-slate-50">
           <TabButton active={activeTab === "issue"} onClick={() => setActiveTab("issue")}>Issue New Loan</TabButton>
           <TabButton active={activeTab === "active"} onClick={() => setActiveTab("active")}>Active Loans & Repayments</TabButton>
           <TabButton active={activeTab === "closed"} onClick={() => setActiveTab("closed")}>Defaulted/Settled</TabButton>
@@ -785,10 +785,10 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                   ) : (
                     <div className="w-10 h-10 border border-slate-700 bg-slate-950 flex items-center justify-center text-[8px] text-slate-500">No Photo</div>
                   )}
-                  <button type="button" onClick={() => startWebcam({ kind: "loanField", field: "customerPhotoPath" })} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white">
+                  <button type="button" onClick={() => startWebcam({ kind: "loanField", field: "customerPhotoPath" })} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-slate-50">
                     📷 Webcam
                   </button>
-                  <label className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white cursor-pointer text-center">
+                  <label className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-slate-50 cursor-pointer text-center">
                     Upload
                     <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), { kind: "loanField", field: "customerPhotoPath" })} className="hidden" />
                   </label>
@@ -804,17 +804,17 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                   ) : (
                     <div className="w-10 h-10 border border-slate-700 bg-slate-950 flex items-center justify-center text-[8px] text-slate-500">No Thumb</div>
                   )}
-                  <button type="button" onClick={() => startWebcam({ kind: "loanField", field: "thumbprintPath" })} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white">
+                  <button type="button" onClick={() => startWebcam({ kind: "loanField", field: "thumbprintPath" })} className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-slate-50">
                     📷 Webcam
                   </button>
                   <button
                     type="button"
                     onClick={scanBiometricFingerprint}
-                    className="px-2 py-1 bg-emerald-600 text-[10px] uppercase font-bold hover:bg-emerald-700 rounded text-white"
+                    className="px-2 py-1 bg-emerald-600 text-[10px] uppercase font-bold hover:bg-emerald-700 rounded text-slate-50"
                   >
                     ☝️ Biometric
                   </button>
-                  <label className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-white cursor-pointer text-center">
+                  <label className="px-2 py-1 bg-slate-800 text-[10px] uppercase font-bold hover:bg-slate-700 rounded text-slate-50 cursor-pointer text-center">
                     Upload
                     <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), { kind: "loanField", field: "thumbprintPath" })} className="hidden" />
                   </label>
@@ -892,10 +892,10 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                           ) : (
                             <div className="flex h-12 w-12 items-center justify-center border border-slate-700 bg-slate-950 text-[10px] text-slate-500">No Photo</div>
                           )}
-                          <button type="button" onClick={() => startWebcam({ kind: "collateral", key: row.key })} className="rounded bg-slate-800 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-slate-700">
+                          <button type="button" onClick={() => startWebcam({ kind: "collateral", key: row.key })} className="rounded bg-slate-800 px-3 py-1.5 text-xs font-bold uppercase text-slate-50 hover:bg-slate-700">
                             📷 Capture Photo
                           </button>
-                          <label className="cursor-pointer rounded bg-slate-800 px-3 py-1.5 text-center text-xs font-bold uppercase text-white hover:bg-slate-700">
+                          <label className="cursor-pointer rounded bg-slate-800 px-3 py-1.5 text-center text-xs font-bold uppercase text-slate-50 hover:bg-slate-700">
                             Upload File
                             <input type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0] ?? new Blob(), { kind: "collateral", key: row.key })} className="hidden" />
                           </label>
@@ -956,7 +956,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
               <MetricBox label="Max Permissible Loan" value={formatIndianCurrency(maxPermissibleLoanPaise)} tone={principalExceedsLtv ? "danger" : "ok"} />
               <MetricBox label="Principal Payload" value={`${principalPaise} paise`} />
               {principalExceedsLtv && <p className="border border-red-500 bg-red-950/40 p-2 text-xs text-red-200">Principal exceeds the 75% LTV limit and cannot be submitted.</p>}
-              <button type="submit" disabled={issueSubmitDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500">
+              <button type="submit" disabled={issueSubmitDisabled} className="h-10 bg-emerald-500 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                 Issue Loan
               </button>
             </aside>
@@ -978,7 +978,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                     onClick={() => setSelectedLoanId(String(loan.id))}
                     className={`mb-2 grid w-full gap-1 border p-2 text-left text-xs ${selectedLoanId === String(loan.id) ? "border-emerald-400 bg-emerald-950/30" : "border-slate-800 bg-slate-950"}`}
                   >
-                    <span className="font-mono font-semibold text-white">{loan.loan_number}</span>
+                    <span className="font-mono font-semibold text-slate-50">{loan.loan_number}</span>
                     <span className="text-slate-400">{loan.customer_name ?? "Masked Borrower"}</span>
                     <span className="font-mono text-slate-200">{formatIndianCurrency(loan.principal_amount_paise)}</span>
                   </button>
@@ -1025,7 +1025,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                   Allocation Summary: Notice Fee: {formatIndianCurrency(repaymentSplit.noticePaid)} | Letter Fee: {formatIndianCurrency(repaymentSplit.letterPaid)} | Interest: {formatIndianCurrency(repaymentSplit.interestAllocated)} | Principal: {formatIndianCurrency(repaymentSplit.principalAllocated)}
                 </div>
                 <div className="flex flex-wrap gap-3 items-center">
-                  <button type="submit" disabled={!selectedLoanId || repaymentPaise <= 0} className="h-10 px-6 bg-emerald-500 text-xs font-semibold uppercase text-slate-950 disabled:bg-slate-700 disabled:text-slate-500 rounded">
+                  <button type="submit" disabled={!selectedLoanId || repaymentPaise <= 0} className="h-10 px-6 bg-emerald-500 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500 rounded">
                     Save Repayment
                   </button>
                   {selectedLoanId && (
@@ -1033,7 +1033,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                       <select
                         value={pavatiLanguage}
                         onChange={(e) => setPavatiLanguage(e.target.value as "en" | "mr" | "hi")}
-                        className="h-10 border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none rounded"
+                        className="h-10 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none rounded"
                       >
                         <option value="en">English Pavati</option>
                         <option value="mr">मराठी (Marathi)</option>
@@ -1043,7 +1043,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                         href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${selectedLoanId}/pavati?lang=${pavatiLanguage}`)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center px-4 h-10 bg-blue-600 hover:bg-blue-700 text-xs font-semibold uppercase text-white rounded"
+                        className="inline-flex items-center justify-center px-4 h-10 bg-blue-600 hover:bg-blue-700 text-xs font-semibold uppercase text-slate-50 rounded"
                       >
                         🖨️ Print Pawn Ticket (A4)
                       </a>
@@ -1069,7 +1069,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                       <button
                         type="button"
                         onClick={markLoanDefaulted}
-                        className="h-8 px-4 bg-red-600 hover:bg-red-700 text-xs font-semibold uppercase text-white rounded"
+                        className="h-8 px-4 bg-red-600 hover:bg-red-700 text-xs font-semibold uppercase text-slate-50 rounded"
                       >
                         ⚠️ Mark As Defaulted
                       </button>
@@ -1083,7 +1083,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                       href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/repayment/${lastRepaymentId}/receipt`)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center px-3 h-8 bg-emerald-500 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-600 rounded"
+                      className="inline-flex items-center justify-center px-3 h-8 bg-emerald-500 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-600 rounded"
                     >
                       Print Receipt (A5)
                     </a>
@@ -1142,7 +1142,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                       onClick={() => setSelectedClosedLoanId(String(loan.id))}
                       className={`mb-2 grid w-full gap-1 border p-2 text-left text-xs ${selectedClosedLoanId === String(loan.id) ? (closedSubTab === "settled" ? "border-emerald-400 bg-emerald-950/30" : "border-red-400 bg-red-950/30") : "border-slate-800 bg-slate-950"}`}
                     >
-                      <span className="font-mono font-semibold text-white">{loan.loan_number}</span>
+                      <span className="font-mono font-semibold text-slate-50">{loan.loan_number}</span>
                       <span className="text-slate-400">{loan.customer_name ?? "Masked Borrower"}</span>
                       <span className="font-mono text-slate-200">{formatIndianCurrency(loan.principal_amount_paise)}</span>
                     </button>
@@ -1173,15 +1173,15 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                     <div className="grid grid-cols-3 bg-slate-900 border border-slate-800 rounded p-3 text-xs gap-y-2 gap-x-4">
                       <div>
                         <span className="text-slate-500 uppercase block font-semibold text-[10px]">Loan Number</span>
-                        <span className="font-mono text-white text-sm font-semibold">{loan.loan_number}</span>
+                        <span className="font-mono text-slate-50 text-sm font-semibold">{loan.loan_number}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 uppercase block font-semibold text-[10px]">Borrower</span>
-                        <span className="text-white text-sm font-semibold">{loan.customer_name ?? "N/A"}</span>
+                        <span className="text-slate-50 text-sm font-semibold">{loan.customer_name ?? "N/A"}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 uppercase block font-semibold text-[10px]">Principal Amount</span>
-                        <span className="font-mono text-white text-sm font-semibold">{formatIndianCurrency(loan.principal_amount_paise)}</span>
+                        <span className="font-mono text-slate-50 text-sm font-semibold">{formatIndianCurrency(loan.principal_amount_paise)}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 uppercase block font-semibold text-[10px]">Issue Date</span>
@@ -1204,7 +1204,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                             href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${loan.id}/release-receipt`)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center px-4 h-10 bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold uppercase text-white rounded"
+                            className="inline-flex items-center justify-center px-4 h-10 bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold uppercase text-slate-50 rounded"
                           >
                             🖨️ Print Settlement & Release Receipt (A4)
                           </a>
@@ -1224,7 +1224,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                             <select
                               value={noticeLanguage}
                               onChange={(e) => setNoticeLanguage(e.target.value as "en" | "mr" | "hi")}
-                              className="h-10 border border-slate-700 bg-slate-900 px-2 text-xs text-white outline-none rounded"
+                              className="h-10 border border-slate-700 bg-slate-900 px-2 text-xs text-slate-50 outline-none rounded"
                             >
                               <option value="en">English Notice</option>
                               <option value="mr">मराठी (Marathi)</option>
@@ -1234,7 +1234,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                               href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${loan.id}/legal-notice?lang=${noticeLanguage}`)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center px-4 h-10 bg-amber-600 hover:bg-amber-700 text-xs font-semibold uppercase text-white rounded"
+                              className="inline-flex items-center justify-center px-4 h-10 bg-amber-600 hover:bg-amber-700 text-xs font-semibold uppercase text-slate-50 rounded"
                             >
                               🖨️ Print Legal Notice
                             </a>
@@ -1251,7 +1251,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                             <button
                               type="button"
                               onClick={() => forfeitCollateral(loan.id)}
-                              className="h-10 px-5 bg-red-600 hover:bg-red-700 text-xs font-semibold uppercase text-white rounded shadow-md"
+                              className="h-10 px-5 bg-red-600 hover:bg-red-700 text-xs font-semibold uppercase text-slate-50 rounded shadow-md"
                             >
                               ⚖️ Forfeit Collateral & Create Stock
                             </button>
@@ -1270,14 +1270,14 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       {/* Pawn Ticket Confirmation Modal */}
       {pavatiLoan && (
         <div className="fixed inset-0 grid place-items-center bg-slate-950/80 p-6 z-50">
-          <div className="w-full max-w-5xl border border-slate-700 bg-white p-4 text-slate-950 rounded shadow-2xl">
+          <div className="w-full max-w-5xl border border-slate-700 bg-white p-4 text-slate-50 rounded shadow-2xl">
             <div className="mb-3 flex items-center justify-between border-b border-slate-300 pb-2">
-              <h2 className="text-sm font-bold uppercase text-slate-950">Pavati / Pawn Receipt - {pavatiLoan.loanNumber}</h2>
+              <h2 className="text-sm font-bold uppercase text-slate-50">Pavati / Pawn Receipt - {pavatiLoan.loanNumber}</h2>
               <div className="flex items-center gap-2">
                 <select
                   value={pavatiLanguage}
                   onChange={(e) => setPavatiLanguage(e.target.value as "en" | "mr" | "hi")}
-                  className="h-8 border border-slate-300 bg-white px-2 text-xs text-slate-950 outline-none rounded"
+                  className="h-8 border border-slate-300 bg-white px-2 text-xs text-slate-50 outline-none rounded"
                 >
                   <option value="en">English Pavati</option>
                   <option value="mr">मराठी (Marathi)</option>
@@ -1287,7 +1287,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                   href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${pavatiLoan.id}/pavati?lang=${pavatiLanguage}`)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1 bg-blue-600 text-xs text-white uppercase font-bold hover:bg-blue-700 rounded"
+                  className="px-3 py-1 bg-blue-600 text-xs text-slate-50 uppercase font-bold hover:bg-blue-700 rounded"
                 >
                   Print Official PDF Pavati (A4)
                 </a>
@@ -1308,10 +1308,10 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 p-4">
           <div className="w-full max-w-md overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-slate-950">
-              <h3 className="text-xs font-bold uppercase text-white">
+              <h3 className="text-xs font-bold uppercase text-slate-50">
                 Capture {activeCaptureField?.kind === "loanField" && activeCaptureField.field === "customerPhotoPath" ? "Customer Photo" : activeCaptureField?.kind === "loanField" && activeCaptureField.field === "thumbprintPath" ? "Thumbprint" : "Collateral"}
               </h3>
-              <button type="button" onClick={stopWebcam} className="text-slate-400 hover:text-white">&times;</button>
+              <button type="button" onClick={stopWebcam} className="text-slate-400 hover:text-slate-50">&times;</button>
             </div>
             <div className="relative aspect-video bg-black flex items-center justify-center">
               <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
@@ -1320,7 +1320,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
               <button type="button" onClick={stopWebcam} className="px-4 py-2 border border-slate-700 text-xs uppercase font-semibold text-slate-300 hover:bg-slate-800">
                 Cancel
               </button>
-              <button type="button" onClick={capturePhoto} className="px-4 py-2 bg-emerald-500 text-xs uppercase font-semibold text-slate-950 hover:bg-emerald-600">
+              <button type="button" onClick={capturePhoto} className="px-4 py-2 bg-emerald-500 text-xs uppercase font-semibold text-slate-50 hover:bg-emerald-600">
                 Capture & Upload
               </button>
             </div>
@@ -1332,7 +1332,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       {isBiometricModalOpen && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 p-4">
           <div className="w-full max-w-md overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-xl p-6 text-center">
-            <h3 className="text-sm font-bold uppercase text-white mb-4">Biometric Fingerprint Scanner</h3>
+            <h3 className="text-sm font-bold uppercase text-slate-50 mb-4">Biometric Fingerprint Scanner</h3>
             
             {/* Holographic scanner visual */}
             <div className="relative mx-auto my-6 w-36 h-48 border border-slate-700 bg-slate-950 rounded-2xl flex flex-col items-center justify-center overflow-hidden">
@@ -1353,7 +1353,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
               <button
                 type="button"
                 onClick={() => setIsBiometricModalOpen(false)}
-                className="px-4 py-2 border border-slate-700 text-xs uppercase font-semibold text-slate-400 hover:bg-slate-800 hover:text-white rounded"
+                className="px-4 py-2 border border-slate-700 text-xs uppercase font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-50 rounded"
               >
                 Cancel
               </button>
@@ -1361,7 +1361,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
               <button
                 type="button"
                 onClick={simulateBiometricScan}
-                className="px-4 py-2 bg-emerald-500 text-slate-950 text-xs uppercase font-bold hover:bg-emerald-400 rounded"
+                className="px-4 py-2 bg-emerald-500 text-slate-50 text-xs uppercase font-bold hover:bg-emerald-400 rounded"
               >
                 Simulate Scan (Mock)
               </button>
@@ -1435,7 +1435,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-950" : "bg-slate-950 text-slate-300"}`}
+      className={`h-8 border-r border-slate-700 px-3 font-semibold uppercase last:border-r-0 ${active ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}
     >
       {children}
     </button>
@@ -1445,19 +1445,19 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function PanelHeader({ title, note }: { title: string; note: string }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
-      <h2 className="text-xs font-semibold uppercase text-white">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase text-slate-50">{title}</h2>
       <span className="text-[11px] text-slate-500">{note}</span>
     </div>
   );
 }
 
 function PanelTitle({ title }: { title: string }) {
-  return <h2 className="text-xs font-semibold uppercase text-white">{title}</h2>;
+  return <h2 className="text-xs font-semibold uppercase text-slate-50">{title}</h2>;
 }
 
 function MetricBox({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "ok" | "warn" | "danger" }) {
   const toneClassName =
-    tone === "ok" ? "text-emerald-300" : tone === "warn" ? "text-amber-300" : tone === "danger" ? "text-red-300" : "text-white";
+    tone === "ok" ? "text-emerald-300" : tone === "warn" ? "text-amber-300" : tone === "danger" ? "text-red-300" : "text-slate-50";
 
   return (
     <div className="border-r border-slate-800 bg-slate-950 px-3 py-2 last:border-r-0">
@@ -1479,8 +1479,8 @@ function ReceiptColumn({ title, loan }: { title: string; loan: string }) {
 }
 
 const controlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400";
 const dangerControlClassName =
-  "h-8 w-full border border-red-500 bg-red-950/40 px-2 text-xs text-white outline-none focus:border-red-300";
+  "h-8 w-full border border-red-500 bg-red-950/40 px-2 text-xs text-slate-50 outline-none focus:border-red-300";
 const fileControlClassName =
-  "h-8 w-full border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white file:mr-2 file:border-0 file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-white";
+  "h-8 w-full border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-50 file:mr-2 file:border-0 file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-slate-50";

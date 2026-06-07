@@ -50,7 +50,7 @@ type EwayInfo = {
   ewaybill: Ewaybill | null;
 };
 
-const ctl = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-white outline-none focus:border-emerald-400 rounded-sm";
+const ctl = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded-sm";
 
 export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
   const { session } = useAuthSession();
@@ -193,7 +193,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
       {/* Invoice list */}
       <aside className="grid min-h-0 grid-rows-[auto_auto_1fr] border-r border-slate-800 bg-slate-900">
         <div className="border-b border-slate-800 px-3 py-2">
-          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-white tracking-wide">
+          <h1 className="flex items-center gap-2 text-sm font-semibold uppercase text-slate-50 tracking-wide">
             <FileCheck2 size={16} className="text-emerald-400" /> GST e-Documents
           </h1>
           <p className="text-[11px] text-slate-400">e-Invoice (IRN/QR) & e-Way Bill</p>
@@ -201,7 +201,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
         <div className="border-b border-slate-800 p-2">
           <div className="flex items-center gap-2 border border-slate-700 bg-slate-950 px-2">
             <Search size={14} className="text-slate-500" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search invoice number..." className="h-8 flex-1 bg-transparent text-xs text-white outline-none" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search invoice number..." className="h-8 flex-1 bg-transparent text-xs text-slate-50 outline-none" />
           </div>
         </div>
         <div className="min-h-0 overflow-auto p-2">
@@ -210,7 +210,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
           ) : list.map((inv) => (
             <button key={inv.id} type="button" onClick={() => selectInvoice(inv)} className={`mb-1 w-full rounded border p-2 text-left transition ${selected?.id === inv.id ? "border-emerald-500 bg-emerald-950/20" : "border-slate-800 bg-slate-950 hover:border-slate-600"}`}>
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-semibold text-white">{inv.invoice_number}</span>
+                <span className="font-mono text-xs font-semibold text-slate-50">{inv.invoice_number}</span>
                 <span className="font-mono text-[11px] text-slate-300">Rs {inv.total_rupees}</span>
               </div>
               <div className="mt-0.5 truncate text-[10px] text-slate-400">{inv.customer_name}{inv.customer_gstin ? " · B2B" : " · B2C"}</div>
@@ -236,7 +236,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
           <div className="min-h-0 overflow-auto p-4">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="font-mono text-lg font-semibold text-white">{selected.invoice_number}</h2>
+                <h2 className="font-mono text-lg font-semibold text-slate-50">{selected.invoice_number}</h2>
                 <p className="text-[11px] text-slate-400">{selected.customer_name} · Rs {selected.total_rupees} · {selected.customer_gstin ? `GSTIN ${selected.customer_gstin}` : "B2C (no buyer GSTIN)"}</p>
               </div>
             </div>
@@ -250,12 +250,12 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
             <div className="grid grid-cols-2 gap-4">
               {/* E-INVOICE PANEL */}
               <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-                <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase text-white"><QrCode size={15} className="text-emerald-400" /> e-Invoice (IRN)</h3>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase text-slate-50"><QrCode size={15} className="text-emerald-400" /> e-Invoice (IRN)</h3>
                 {!einvoice || einvoice.status === "CANCELLED" ? (
                   <div className="grid gap-2">
                     {einvoice?.status === "CANCELLED" && <p className="text-[11px] text-red-300">Previously cancelled. You can re-prepare.</p>}
                     <p className="text-[11px] text-slate-400">No active e-invoice. Prepare the IRP payload, IRN hash and QR content offline.</p>
-                    <button type="button" disabled={busy || selected.gst_not_required} onClick={prepareEinvoice} className="h-9 rounded bg-emerald-500 text-xs font-bold uppercase text-slate-950 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500">
+                    <button type="button" disabled={busy || selected.gst_not_required} onClick={prepareEinvoice} className="h-9 rounded bg-emerald-500 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500">
                       Prepare e-Invoice
                     </button>
                   </div>
@@ -285,7 +285,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
                         <input value={recordIrn} onChange={(e) => setRecordIrn(e.target.value)} className={ctl} placeholder="Registered IRN (defaults to computed)" />
                         <input value={recordAck} onChange={(e) => setRecordAck(e.target.value)} className={`${ctl} mt-1`} placeholder="Ack No" />
                         <input value={recordQr} onChange={(e) => setRecordQr(e.target.value)} className={`${ctl} mt-1`} placeholder="Signed QR (base64)" />
-                        <button type="button" disabled={busy} onClick={recordEinvoice} className="mt-2 h-8 w-full rounded bg-blue-600 text-[11px] font-bold uppercase text-white hover:bg-blue-500 disabled:opacity-50">Record & Register</button>
+                        <button type="button" disabled={busy} onClick={recordEinvoice} className="mt-2 h-8 w-full rounded bg-blue-600 text-[11px] font-bold uppercase text-slate-50 hover:bg-blue-500 disabled:opacity-50">Record & Register</button>
                       </div>
                     )}
                     <div className="mt-1 flex gap-2">
@@ -298,7 +298,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
 
               {/* E-WAY PANEL */}
               <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-                <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase text-white"><Truck size={15} className="text-blue-400" /> e-Way Bill</h3>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase text-slate-50"><Truck size={15} className="text-blue-400" /> e-Way Bill</h3>
                 {ewayInfo && (
                   <div className={`mb-3 rounded px-2 py-1.5 text-[10px] ${ewayInfo.required ? "bg-blue-950/40 text-blue-300" : "bg-slate-950 text-slate-500"}`}>
                     {ewayInfo.required
@@ -319,7 +319,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
                     {ewayInfo.ewaybill.status === "PREPARED" && (
                       <div className="mt-1 rounded border border-slate-700 bg-slate-950 p-2">
                         <input value={ewbNumber} onChange={(e) => setEwbNumber(e.target.value)} className={ctl} placeholder="Portal EWB number" />
-                        <button type="button" disabled={busy} onClick={recordEway} className="mt-2 h-8 w-full rounded bg-blue-600 text-[11px] font-bold uppercase text-white hover:bg-blue-500 disabled:opacity-50">Record EWB Number</button>
+                        <button type="button" disabled={busy} onClick={recordEway} className="mt-2 h-8 w-full rounded bg-blue-600 text-[11px] font-bold uppercase text-slate-50 hover:bg-blue-500 disabled:opacity-50">Record EWB Number</button>
                       </div>
                     )}
                     <button type="button" disabled={busy} onClick={cancelEway} className="mt-1 flex h-8 items-center justify-center gap-1 rounded border border-red-900/60 text-[11px] font-semibold uppercase text-red-300 hover:bg-red-950/40 disabled:opacity-50"><X size={12} /> Cancel e-Way Bill</button>
@@ -337,7 +337,7 @@ export default function GstEDocsModule({ apiBaseUrl = "" }: Props) {
                     <label className="grid gap-1 text-[9px] font-bold uppercase text-slate-400">Distance (km)
                       <input value={distance} onChange={(e) => setDistance(e.target.value.replace(/[^\d]/g, ""))} className={ctl} inputMode="numeric" />
                     </label>
-                    <button type="button" disabled={busy} onClick={prepareEway} className="h-9 rounded bg-blue-600 text-xs font-bold uppercase text-white hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500">Prepare e-Way Bill</button>
+                    <button type="button" disabled={busy} onClick={prepareEway} className="h-9 rounded bg-blue-600 text-xs font-bold uppercase text-slate-50 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500">Prepare e-Way Bill</button>
                   </div>
                 )}
               </div>
