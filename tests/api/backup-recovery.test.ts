@@ -120,6 +120,22 @@ describe("Backup & Recovery API", () => {
     expect(putRes.body.config.max_retained_backups).toBe(5);
   });
 
+  test("PUT /api/backup/schedule rejects non-positive interval / retention", async () => {
+    const badInterval = await request(app)
+      .put("/api/backup/schedule")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ interval_hours: 0 });
+    expect(badInterval.status).toBe(400);
+    expect(badInterval.body.errors.join(" ")).toMatch(/interval_hours/);
+
+    const badRetention = await request(app)
+      .put("/api/backup/schedule")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ max_retained_backups: 0 });
+    expect(badRetention.status).toBe(400);
+    expect(badRetention.body.errors.join(" ")).toMatch(/max_retained_backups/);
+  });
+
   test("GET /api/backup/logs lists backup history", async () => {
     db.insert(backupScheduleConfig).values({ local_backup_dir: testBackupDir }).run();
 

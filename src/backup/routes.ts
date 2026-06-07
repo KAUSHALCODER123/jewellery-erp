@@ -74,7 +74,10 @@ function formatBackupLog(log: typeof backupLogs.$inferSelect) {
     error_message: log.error_message,
     started_at: log.started_at,
     completed_at: log.completed_at,
-    created_by: log.created_by
+    created_by: log.created_by,
+    // Whether the backup file is still on disk (false once retention-pruned), so the
+    // UI can hide the Download action for vanished files.
+    file_exists: log.status === "SUCCESS" && fs.existsSync(log.file_path)
   };
 }
 
@@ -96,6 +99,12 @@ backupRouter.post("/create", requireAuth, requireAdmin, async (request, response
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return response.status(400).json({ errors: [message] });
+  }
+
+  // Pre-flight cloud config (like USB above) so an unconfigured target fails before
+  // a history row is written — no misleading FAILED row.
+  if (target === "CLOUD" && !config.cloud_upload_url?.trim()) {
+    return response.status(400).json({ errors: ["Cloud upload URL is not configured."] });
   }
 
   const passphrase = body.passphrase?.trim() || undefined;
@@ -360,6 +369,18 @@ backupRouter.put("/schedule", requireAuth, requireAdmin, (request, response) => 
     clear_passphrase?: boolean;
     backup_on_exit?: boolean;
   };
+
+  // Reject invalid values instead of silently clamping them to the previous setting.
+  const scheduleErrors: string[] = [];
+  if (typeof body.interval_hours === "number" && body.interval_hours < 1) {
+    scheduleErrors.push("interval_hours must be at least 1.");
+  }
+  if (typeof body.max_retained_backups === "number" && body.max_retained_backups < 1) {
+    scheduleErrors.push("max_retained_backups must be at least 1.");
+  }
+  if (scheduleErrors.length > 0) {
+    return response.status(400).json({ errors: scheduleErrors });
+  }
 
   const config = ensureScheduleConfig();
   const updates: Partial<typeof backupScheduleConfig.$inferInsert> = {};

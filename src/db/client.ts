@@ -22,6 +22,7 @@ function resolveDbPath() {
 }
 
 const dbPath = resolveDbPath();
+applyPendingRestore(dbPath);
 console.log(`[DB] Connected to SQLite database: ${dbPath}`);
 const sqlite = connectSqlite(dbPath);
 
@@ -29,6 +30,30 @@ export const db = drizzle(sqlite, { schema });
 export { sqlite };
 export function getDbPath() {
   return dbPath;
+}
+
+// Apply a staged restore (sqlite.db.pending-restore) before any connection opens.
+// Doing the swap here — with no open handle — avoids the Windows EPERM that breaks
+// renaming over a live SQLite file, and clears stale WAL/SHM from the replaced DB.
+function applyPendingRestore(databasePath: string) {
+  const pending = `${databasePath}.pending-restore`;
+  if (!fs.existsSync(pending)) return;
+  try {
+    for (const suffix of ["-wal", "-shm"]) {
+      const sidecar = `${databasePath}${suffix}`;
+      if (fs.existsSync(sidecar)) fs.unlinkSync(sidecar);
+    }
+    fs.renameSync(pending, databasePath);
+    for (const leftover of [
+      path.join(path.dirname(databasePath), "restore_pending.flag"),
+      `${databasePath}.restoring`
+    ]) {
+      if (fs.existsSync(leftover)) fs.unlinkSync(leftover);
+    }
+    console.log("[DB] Applied staged database restore.");
+  } catch (error) {
+    writeCrashLog(error);
+  }
 }
 
 function connectSqlite(databasePath: string) {

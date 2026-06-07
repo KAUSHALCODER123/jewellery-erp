@@ -34,6 +34,7 @@ type BackupLog = {
   error_message: string | null;
   started_at: string;
   completed_at: string | null;
+  file_exists?: boolean;
 };
 
 type ScheduleConfig = {
@@ -324,8 +325,8 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
             <ShieldAlert className="h-3.5 w-3.5" />
             {lastStatus.last_backup_at
               ? lastStatus.stale
-                ? `Last backup ${lastStatus.hours_since}h ago — over ${lastStatus.stale_threshold_hours}h. Back up before closing the shop.`
-                : `Last backup ${lastStatus.hours_since}h ago · up to date.`
+                ? `Last backup ${lastStatus.hours_since ?? "?"}h ago — over ${lastStatus.stale_threshold_hours}h. Back up before closing the shop.`
+                : `Last backup ${lastStatus.hours_since != null && lastStatus.hours_since >= 1 ? `${lastStatus.hours_since}h ago` : "just now"} · up to date.`
               : "No backup yet — run your first encrypted backup before closing the shop."}
           </div>
         )}
@@ -423,7 +424,7 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
                       </span>
                     </td>
                     <td className="p-2 flex gap-1 flex-wrap">
-                      {log.status === "SUCCESS" && isAdmin && (
+                      {log.status === "SUCCESS" && log.file_exists !== false && isAdmin && (
                         <>
                           <a
                             href={`${apiBaseUrl}/api/backup/download/${log.id}`}

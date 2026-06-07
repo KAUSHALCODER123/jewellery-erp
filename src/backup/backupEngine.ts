@@ -167,7 +167,18 @@ export async function decryptAndDecompress(
       throw new Error("Passphrase is required for encrypted backups.");
     }
     const raw = fs.readFileSync(encryptedPath);
-    const decrypted = decryptBuffer(raw, passphrase);
+    let decrypted: Buffer;
+    try {
+      decrypted = decryptBuffer(raw, passphrase);
+    } catch (err) {
+      // GCM auth failure surfaces as "Unsupported state or unable to authenticate
+      // data" — translate it to a meaningful cause for the user.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/authenticate|unsupported state|bad decrypt/i.test(msg)) {
+        throw new Error("Incorrect passphrase, or the backup file is corrupt.");
+      }
+      throw err;
+    }
     const gzipTemp = `${outputPath}.gz.tmp`;
     fs.writeFileSync(gzipTemp, decrypted);
     try {
@@ -214,9 +225,13 @@ export async function performRestore(backupPath: string, passphrase?: string): P
       return { ok: false, message: integrity.message, requiresRestart: false };
     }
 
+    // Stage the restored DB next to the live one and let startup apply the swap
+    // BEFORE the SQLite connection opens. Renaming over the open live file fails on
+    // Windows (EPERM), so we never touch the live DB here — making restore both
+    // cross-platform and non-destructive if the app is interrupted.
+    const pendingPath = `${liveDbPath}.pending-restore`;
     const pendingFlag = path.join(path.dirname(liveDbPath), "restore_pending.flag");
-    fs.copyFileSync(tempDb, `${liveDbPath}.restoring`);
-    fs.renameSync(`${liveDbPath}.restoring`, liveDbPath);
+    fs.copyFileSync(tempDb, pendingPath);
     fs.writeFileSync(
       pendingFlag,
       JSON.stringify({ restoredAt: new Date().toISOString(), from: backupPath }),
@@ -225,7 +240,7 @@ export async function performRestore(backupPath: string, passphrase?: string): P
 
     return {
       ok: true,
-      message: "Database restored successfully. Restart the application to reload connections.",
+      message: "Database restore staged. Restart the application to complete it.",
       requiresRestart: true
     };
   } catch (error) {
