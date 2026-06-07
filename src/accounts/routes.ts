@@ -267,31 +267,68 @@ accountsRouter.get("/udhari", requireAdmin, (_request, response) => {
   const rows = db
     .select({
       ledger_id: ledgers.id,
-      customer_id: customers.id,
+      entity_id: ledgers.entity_id,
       customer_name: customers.name,
       phone: customers.phone,
       balance_paise: ledgers.balance_paise
     })
     .from(ledgers)
     .leftJoin(customers, eq(ledgers.entity_id, customers.id))
-    .where(and(eq(ledgers.account_type, "CUSTOMER_UDHARI"), gt(ledgers.balance_paise, 0)))
+    .where(eq(ledgers.account_type, "CUSTOMER_UDHARI"))
     .all();
 
-  return response.json({
-    udhari: rows.map((row) => {
-      const lastEntry = db.query.journalEntries.findFirst({
-        where: eq(journalEntries.ledger_id, row.ledger_id),
-        orderBy: desc(journalEntries.created_at)
-      }).sync();
+  // Aggregate every udhari ledger by customer so each customer appears once and any
+  // advance (credit balance) nets against their dues. Ledgers with no entity link
+  // (legacy) stay as their own row.
+  const byCustomer = aggregateUdhariByCustomer(rows);
+
+  const udhari = byCustomer
+    .filter((agg) => agg.balance_paise > 0)
+    .map((agg) => {
+      const lastEntry = db
+        .select({ created_at: journalEntries.created_at })
+        .from(journalEntries)
+        .where(inArray(journalEntries.ledger_id, agg.ledger_ids))
+        .orderBy(desc(journalEntries.created_at))
+        .get();
 
       return {
-        ...row,
+        ledger_id: agg.primary_ledger_id,
+        customer_id: agg.customer_id,
+        customer_name: agg.customer_name,
+        phone: agg.phone,
+        balance_paise: agg.balance_paise,
         last_transaction_date: lastEntry?.created_at ?? null,
-        outstanding_rupees: paiseToRupees(row.balance_paise)
+        outstanding_rupees: paiseToRupees(agg.balance_paise)
       };
-    })
-  });
+    });
+
+  return response.json({ udhari });
 });
+
+type UdhariRow = { ledger_id: number; entity_id: number | null; customer_name: string | null; phone: string | null; balance_paise: number };
+type UdhariAgg = { ledger_ids: number[]; primary_ledger_id: number; customer_id: number | null; customer_name: string | null; phone: string | null; balance_paise: number };
+
+// Collapse a customer's multiple CUSTOMER_UDHARI ledgers into one aggregate (netting
+// dues against advances). Entity-less ledgers are kept separate (keyed by ledger id).
+function aggregateUdhariByCustomer(rows: UdhariRow[]): UdhariAgg[] {
+  const byKey = new Map<string, UdhariAgg>();
+  for (const row of rows) {
+    const key = row.entity_id !== null ? `c${row.entity_id}` : `l${row.ledger_id}`;
+    const agg = byKey.get(key) ?? {
+      ledger_ids: [],
+      primary_ledger_id: row.ledger_id,
+      customer_id: row.entity_id,
+      customer_name: row.customer_name,
+      phone: row.phone,
+      balance_paise: 0
+    };
+    agg.ledger_ids.push(row.ledger_id);
+    agg.balance_paise += row.balance_paise;
+    byKey.set(key, agg);
+  }
+  return [...byKey.values()];
+}
 
 // Aged receivables: bucket each customer's outstanding udhari by the age of the unpaid amount.
 // Uses FIFO allocation — payments (CREDIT) clear the oldest debits first, so the leftover debit
@@ -303,24 +340,30 @@ accountsRouter.get("/udhari/ageing", requireAdmin, (_request, response) => {
   const rows = db
     .select({
       ledger_id: ledgers.id,
-      customer_id: customers.id,
+      entity_id: ledgers.entity_id,
       customer_name: customers.name,
       phone: customers.phone,
-      credit_limit_paise: customers.credit_limit_paise,
       balance_paise: ledgers.balance_paise
     })
     .from(ledgers)
     .leftJoin(customers, eq(ledgers.entity_id, customers.id))
-    .where(and(eq(ledgers.account_type, "CUSTOMER_UDHARI"), gt(ledgers.balance_paise, 0)))
+    .where(eq(ledgers.account_type, "CUSTOMER_UDHARI"))
     .all();
+
+  // One aged row per customer: combine every udhari ledger (netting advances), then
+  // run FIFO over the customer's entire entry timeline across those ledgers.
+  const aggregates = aggregateUdhariByCustomer(rows).filter((agg) => agg.balance_paise > 0);
 
   const totals = { current: 0, days30: 0, days60: 0, days90: 0, over90: 0, total: 0 };
 
-  const customersOut = rows.map((row) => {
+  const customersOut = aggregates.map((row) => {
+    const creditLimitPaise = row.customer_id !== null
+      ? (db.select({ limit: customers.credit_limit_paise }).from(customers).where(eq(customers.id, row.customer_id)).get()?.limit ?? 0)
+      : 0;
     const entries = db
       .select()
       .from(journalEntries)
-      .where(eq(journalEntries.ledger_id, row.ledger_id))
+      .where(inArray(journalEntries.ledger_id, row.ledger_ids))
       .orderBy(journalEntries.created_at)
       .all();
 
@@ -368,9 +411,9 @@ accountsRouter.get("/udhari/ageing", requireAdmin, (_request, response) => {
     totals.over90 += buckets.over90;
     totals.total += row.balance_paise;
 
-    const creditLimit = row.credit_limit_paise ?? 0;
+    const creditLimit = creditLimitPaise;
     return {
-      ledger_id: row.ledger_id,
+      ledger_id: row.primary_ledger_id,
       customer_id: row.customer_id,
       customer_name: row.customer_name,
       phone: row.phone,
