@@ -33,7 +33,29 @@ export function useBarcodeScanner(onScanCallback: (barcode: string) => void) {
       clearTimerRef.current = window.setTimeout(clearBuffer, BUFFER_TIMEOUT_MS);
     };
 
+    const isEditableTarget = (target: EventTarget | null) => {
+      const element = target as HTMLElement | null;
+      if (!element) {
+        return false;
+      }
+      if (element.isContentEditable) {
+        return true;
+      }
+      const tagName = element.tagName;
+      return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+    };
+
     const onKeyDown = (event: KeyboardEvent) => {
+      // Never intercept keystrokes headed for a focused input/textarea/select. A fast
+      // human typist routinely beats the <=50ms "rapid sequence" threshold below, and
+      // would otherwise have characters swallowed by preventDefault() — the field would
+      // appear to "stop accepting input". Hardware scanners fire with no field focused
+      // (POS scan-to-add), so skipping editable targets preserves scanning.
+      if (isEditableTarget(event.target)) {
+        clearBuffer();
+        return;
+      }
+
       if (event.ctrlKey || event.altKey || event.metaKey) {
         clearBuffer();
         return;

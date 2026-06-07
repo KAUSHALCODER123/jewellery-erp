@@ -313,7 +313,8 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
       setSelectedVoucherId(id);
       setSelectedPurchaseId(null);
       const v = vouchersList.find(x => x.id === id);
-      setIngestBarcode(v ? `URD-${v.voucher_number}` : "");
+      // voucher_number already carries the "URD-" prefix; don't double it.
+      setIngestBarcode(v ? v.voucher_number : "");
     } else {
       setSelectedPurchaseId(id);
       setSelectedVoucherId(null);

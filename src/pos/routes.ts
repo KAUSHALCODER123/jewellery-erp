@@ -879,7 +879,9 @@ posRouter.post("/urd-vouchers/:id/ingest-stock", requireAuth, (request, response
 
   const userId = (request as AuthenticatedRequest).user.id;
   const body = isRecord(request.body) ? request.body : {};
-  const barcode = optionalTrimmedText(body.barcode) ?? `URD-${voucher.voucher_number}`;
+  // voucher_number is already "URD-…" (see generateUrdVoucherNumber), so use it
+  // directly as the barcode — prefixing another "URD-" produced "URD-URD-…".
+  const barcode = optionalTrimmedText(body.barcode) ?? voucher.voucher_number;
   const location = optionalTrimmedText(body.location) ?? "OLD_GOLD_VAULT";
 
   const duplicate = db.query.items.findFirst({
