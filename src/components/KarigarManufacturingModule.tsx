@@ -112,6 +112,13 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
   const [ledger, setLedger] = useState<LedgerResponse | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [showAddKarigar, setShowAddKarigar] = useState(false);
+  const [savingKarigar, setSavingKarigar] = useState(false);
+  const [newKarigar, setNewKarigar] = useState<{ name: string; phone: string; specialty: Karigar["specialty"] }>({
+    name: "",
+    phone: "",
+    specialty: "CASTING"
+  });
   const [transferModal, setTransferModal] = useState<{
     isOpen: boolean;
     jobId: number;
@@ -178,6 +185,43 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
       setKarigars(response.ok && result?.karigars ? result.karigars : []);
     } catch {
       setKarigars([]);
+    }
+  }
+
+  async function createKarigar() {
+    if (savingKarigar) return;
+    if (!newKarigar.name.trim() || !newKarigar.phone.trim()) {
+      setError("Karigar name and phone are required.");
+      return;
+    }
+    setSavingKarigar(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/karigar/karigars`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newKarigar.name.trim(),
+          phone: newKarigar.phone.trim(),
+          specialty: newKarigar.specialty
+        })
+      });
+      const result = (await response.json().catch(() => null)) as { karigar?: Karigar; errors?: string[] } | null;
+      if (!response.ok) {
+        throw new Error(result?.errors?.join(" ") || "Could not add karigar.");
+      }
+      await loadKarigars();
+      if (result?.karigar?.id) {
+        setIssueForm((current) => ({ ...current, karigarId: String(result.karigar!.id) }));
+      }
+      setNewKarigar({ name: "", phone: "", specialty: "CASTING" });
+      setShowAddKarigar(false);
+      setMessage("Karigar added.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not add karigar.");
+    } finally {
+      setSavingKarigar(false);
     }
   }
 
@@ -506,6 +550,13 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
                     <option key={karigar.id} value={karigar.id}>{karigar.name} - {karigar.specialty}</option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => setShowAddKarigar(true)}
+                  className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase text-emerald-400 hover:text-emerald-300"
+                >
+                  + Add Karigar
+                </button>
               </Field>
               <div className="grid grid-cols-2 gap-2">
                 <MetricBox label="Artisans" value={String(karigars.length)} />
@@ -704,6 +755,65 @@ export default function KarigarManufacturingModule({ apiBaseUrl = "" }: KarigarM
           </section>
         )}
       </main>
+
+      {showAddKarigar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+          <div className="w-full max-w-sm border border-slate-800 bg-slate-900 p-4 text-slate-100 shadow-2xl rounded-sm">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 className="text-sm font-semibold uppercase text-slate-50">Add Karigar</h3>
+              <button type="button" onClick={() => setShowAddKarigar(false)} className="text-slate-400 hover:text-slate-200">✕</button>
+            </div>
+            <div className="grid gap-3">
+              <Field label="Name">
+                <input
+                  value={newKarigar.name}
+                  onChange={(event) => setNewKarigar({ ...newKarigar, name: event.target.value })}
+                  className={controlClassName}
+                  placeholder="Karigar full name"
+                />
+              </Field>
+              <Field label="Phone">
+                <input
+                  value={newKarigar.phone}
+                  onChange={(event) => setNewKarigar({ ...newKarigar, phone: event.target.value.replace(/[^\d]/g, "") })}
+                  className={controlClassName}
+                  inputMode="numeric"
+                  placeholder="10-digit mobile"
+                />
+              </Field>
+              <Field label="Specialty">
+                <select
+                  value={newKarigar.specialty}
+                  onChange={(event) => setNewKarigar({ ...newKarigar, specialty: event.target.value as Karigar["specialty"] })}
+                  className={controlClassName}
+                >
+                  <option value="CASTING">Casting</option>
+                  <option value="HANDMADE">Handmade</option>
+                  <option value="POLISH">Polish</option>
+                  <option value="SETTING">Setting</option>
+                </select>
+              </Field>
+              <div className="mt-1 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddKarigar(false)}
+                  className="h-8 border border-slate-700 px-3 text-xs font-semibold uppercase text-slate-300 hover:border-slate-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={savingKarigar || !newKarigar.name.trim() || !newKarigar.phone.trim()}
+                  onClick={() => void createKarigar()}
+                  className="h-8 border border-emerald-500 bg-emerald-500 px-3 text-xs font-semibold uppercase text-slate-50 hover:bg-emerald-400 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
+                >
+                  {savingKarigar ? "Saving…" : "Add Karigar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {transferModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">

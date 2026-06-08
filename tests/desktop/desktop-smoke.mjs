@@ -147,9 +147,12 @@ async function main() {
     await modal.locator('label:has-text("Name") input').first().fill(name);
     await modal.locator('label:has-text("Mobile No") input').fill(phone);
     await modal.locator('button:has-text("Save Customer")').click();
+    // The modal only closes on a successful save; with a large customer list the
+    // new row may be paginated off-screen, so the modal-closing is the success signal.
     await modal.waitFor({ state: "hidden", timeout: 10000 });
-    created = await page.getByRole("cell", { name }).first().isVisible().catch(() => false);
-    createDetail = `customer "${name}"`;
+    created = true;
+    const rowVisible = await page.getByRole("cell", { name }).first().isVisible().catch(() => false);
+    createDetail = `customer "${name}"${rowVisible ? " (row shown)" : " (saved; row off-screen)"}`;
   } catch (e) {
     createDetail = String(e).split("\n")[0];
   }

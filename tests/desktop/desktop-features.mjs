@@ -132,8 +132,17 @@ async function main() {
   const cashLedger = ledgers.find((l) => /CASH/i.test(l.account_type || l.account_name)) || ledgers[0];
   const otherLedger = ledgers.find((l) => l.id !== cashLedger?.id) || ledgers[1] || ledgers[0];
 
-  const karigarsRes = await api("GET", "/api/karigar/karigars");
-  const karigar = pick(karigarsRes.data, "karigars", "data")[0];
+  let karigarsRes = await api("GET", "/api/karigar/karigars");
+  let karigar = pick(karigarsRes.data, "karigars", "data")[0];
+  if (!karigar) {
+    // No karigar master data in a fresh DB — create one via the new endpoint.
+    const made = await api("POST", "/api/karigar/karigars", {
+      name: `ZZ Karigar ${stamp}`,
+      phone: "5" + stamp + "01",
+      specialty: "HANDMADE",
+    });
+    karigar = made.data?.karigar;
+  }
 
   // ---- Settings ----
   await get("Settings: rates", "/api/settings/rates");
@@ -238,6 +247,7 @@ async function main() {
   await get("Karigar: list karigars", "/api/karigar/karigars");
   await get("Karigar: list jobs", "/api/karigar/jobs");
   await get("Karigar: next job number", "/api/karigar/next-job-number");
+  rec("Karigar: add karigar (master)", !!karigar?.id, karigar?.id ? `id ${karigar.id}` : "create failed");
   if (karigar) {
     const job = await write("Karigar: create job", "POST", "/api/karigar/jobs", {
       job_name: `ZZ Job ${stamp}`,
@@ -256,9 +266,8 @@ async function main() {
       });
     } else rec("Karigar: issue metal", false, "no job id returned");
   } else {
-    // Karigars are master data (seeded via master setup); none in a fresh DB.
-    skip("Karigar: create job", "no karigar master records in DB");
-    skip("Karigar: issue metal", "no karigar master records in DB");
+    rec("Karigar: create job", false, "no karigar available");
+    rec("Karigar: issue metal", false, "no karigar available");
   }
 
   // ---- Accounts ----

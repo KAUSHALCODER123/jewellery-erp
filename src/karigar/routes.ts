@@ -114,6 +114,43 @@ karigarRouter.get("/karigars", requireAuth, requireAdmin, (_request, response) =
   });
 });
 
+const KARIGAR_SPECIALTIES = new Set(["CASTING", "HANDMADE", "POLISH", "SETTING"]);
+
+karigarRouter.post("/karigars", requireAuth, requireAdmin, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
+  const body = (request.body ?? {}) as { name?: unknown; phone?: unknown; specialty?: unknown };
+
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const specialty = typeof body.specialty === "string" ? body.specialty.trim().toUpperCase() : "";
+
+  const errors: string[] = [];
+  if (!name) errors.push("name is required.");
+  if (!phone) errors.push("phone is required.");
+  if (!KARIGAR_SPECIALTIES.has(specialty)) {
+    errors.push("specialty must be one of CASTING, HANDMADE, POLISH, SETTING.");
+  }
+  if (errors.length > 0) {
+    return response.status(400).json({ errors });
+  }
+
+  const created = db
+    .insert(karigars)
+    .values({ name, phone, specialty: specialty as "CASTING" | "HANDMADE" | "POLISH" | "SETTING" })
+    .returning()
+    .get();
+
+  logAction(authUser.id, "CREATE_KARIGAR", "karigars", created.id, null, { name, phone, specialty });
+
+  return response.status(201).json({
+    karigar: {
+      ...created,
+      fine_gold_balance_grams: milligramsToGrams(created.fine_gold_balance_mg),
+      cash_balance_rupees: paiseToRupees(created.cash_balance_paise)
+    }
+  });
+});
+
 karigarRouter.get("/jobs", requireAuth, requireAdmin, (request, response) => {
   const status = typeof request.query.status === "string" ? request.query.status : undefined;
   const rows = status && isJobStatus(status)
