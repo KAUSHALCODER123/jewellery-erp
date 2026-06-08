@@ -76,7 +76,10 @@ settingsRouter.post("/rates/sync", requireAuth, requireAdmin, async (request, re
 
   try {
     const oldRates = formatRates(settings);
-    const liveRates = await fetchLiveMetalRates();
+    const liveRates = await fetchLiveMetalRates({
+      apiKey: settings.gold_api_key,
+      apiUrl: settings.gold_api_url
+    });
 
     db.update(organizationSettings)
       .set({
@@ -113,6 +116,63 @@ settingsRouter.post("/rates/sync", requireAuth, requireAdmin, async (request, re
       errors: [caught instanceof Error ? caught.message : "Could not sync live metal rates."]
     });
   }
+});
+
+// Report whether a live-rate API key is configured (never returns the raw key).
+settingsRouter.get("/rate-provider", requireAuth, (_request, response) => {
+  const settings = db.query.organizationSettings.findFirst().sync();
+
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  const key = settings.gold_api_key ?? "";
+  return response.json({
+    configured: key.trim().length > 0,
+    key_hint: key.trim().length > 0 ? `••••${key.trim().slice(-4)}` : null,
+    gold_api_url: settings.gold_api_url ?? null
+  });
+});
+
+// Save / clear the per-shop live-rate provider credentials.
+settingsRouter.put("/rate-provider", requireAuth, requireAdmin, (request, response) => {
+  const authUser = (request as AuthenticatedRequest).user;
+  const body = (request.body ?? {}) as { gold_api_key?: unknown; gold_api_url?: unknown };
+
+  if (body.gold_api_key !== undefined && typeof body.gold_api_key !== "string") {
+    return response.status(400).json({ errors: ["gold_api_key must be a string."] });
+  }
+  if (body.gold_api_url !== undefined && typeof body.gold_api_url !== "string") {
+    return response.status(400).json({ errors: ["gold_api_url must be a string."] });
+  }
+
+  const settings = db.query.organizationSettings.findFirst().sync();
+
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  // Empty string clears the value; omitted field leaves it unchanged.
+  const nextKey =
+    body.gold_api_key === undefined ? settings.gold_api_key : body.gold_api_key.trim() || null;
+  const nextUrl =
+    body.gold_api_url === undefined ? settings.gold_api_url : body.gold_api_url.trim() || null;
+
+  db.update(organizationSettings)
+    .set({ gold_api_key: nextKey, gold_api_url: nextUrl, updated_at: sql`CURRENT_TIMESTAMP` })
+    .where(eq(organizationSettings.id, settings.id))
+    .run();
+
+  logAction(authUser.id, "UPDATE_RATE_PROVIDER", "organization_settings", settings.id, null, {
+    configured: !!nextKey,
+    gold_api_url: nextUrl
+  });
+
+  return response.json({
+    configured: !!nextKey,
+    key_hint: nextKey ? `••••${nextKey.slice(-4)}` : null,
+    gold_api_url: nextUrl
+  });
 });
 
 settingsRouter.get("/loyalty", requireAuth, (_request, response) => {
@@ -248,6 +308,13 @@ function parseRate(value: unknown, field: string, errors: string[]) {
 
   if (!parsed.ok) {
     errors.push(`${field}: ${parsed.error}`);
+    return 0;
+  }
+
+  // A metal rate of 0 (or negative) yields zero/garbage valuations everywhere it is
+  // used, so reject it rather than silently accepting it.
+  if (parsed.value <= 0) {
+    errors.push(`${field} must be greater than zero.`);
     return 0;
   }
 

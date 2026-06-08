@@ -12,7 +12,10 @@ function resolveDbPath() {
     return "test.sqlite";
   }
 
-  if (packagedProcess.pkg) {
+  // `process.pkg` exists only under the legacy pkg-compiled sidecar. The packaged
+  // Tauri app now runs the backend with a bundled node.exe and signals packaged
+  // mode via ERP_PACKAGED so we still store data under the user's home directory.
+  if (packagedProcess.pkg || process.env.ERP_PACKAGED === "1") {
     const dataDir = path.join(os.homedir(), ".shree-erp");
     fs.mkdirSync(dataDir, { recursive: true });
     return path.join(dataDir, "sqlite.db");

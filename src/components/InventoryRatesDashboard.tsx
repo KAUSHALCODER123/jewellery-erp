@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { X, RefreshCw, Save, Tag, Pencil, Boxes, Coins } from "lucide-react";
+import { X, RefreshCw, Save, Tag, Pencil, Boxes, Coins, KeyRound } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { MetricCard, CountUp, StatusBadge, type BadgeTone } from "./ui.js";
 
@@ -72,6 +72,11 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
   const [error, setError] = useState("");
   const [syncingRates, setSyncingRates] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+  const [apiKeyHint, setApiKeyHint] = useState<string | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [showKeyEditor, setShowKeyEditor] = useState(false);
+  const [savingKey, setSavingKey] = useState(false);
   const isAdmin = session?.user.role === "ADMIN";
 
   const authHeaders = useMemo(
@@ -84,6 +89,7 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
   useEffect(() => {
     void loadRates();
     void loadInventory();
+    void loadRateProvider();
   }, []);
 
   const metrics = useMemo(() => {
@@ -218,6 +224,52 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
     }
   }
 
+  async function loadRateProvider() {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/settings/rate-provider`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as
+        | { configured?: boolean; key_hint?: string | null }
+        | null;
+      if (response.ok && result) {
+        setApiKeyConfigured(!!result.configured);
+        setApiKeyHint(result.key_hint ?? null);
+      }
+    } catch {
+      // non-fatal; the Sync button will surface a clear error if no key is set
+    }
+  }
+
+  async function saveRateProviderKey() {
+    if (!isAdmin || savingKey) {
+      return;
+    }
+    setSavingKey(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/settings/rate-provider`, {
+        method: "PUT",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ gold_api_key: apiKeyInput })
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { configured?: boolean; key_hint?: string | null; errors?: string[] }
+        | null;
+      if (!response.ok) {
+        throw new Error(result?.errors?.join(" ") || "Could not save the rate API key.");
+      }
+      setApiKeyConfigured(!!result?.configured);
+      setApiKeyHint(result?.key_hint ?? null);
+      setApiKeyInput("");
+      setShowKeyEditor(false);
+      setMessage(result?.configured ? "Rate API key saved." : "Rate API key cleared.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the rate API key.");
+    } finally {
+      setSavingKey(false);
+    }
+  }
+
   function updateFilters(nextFilters: InventoryFilters) {
     setFilters(nextFilters);
     void loadInventory(nextFilters);
@@ -244,6 +296,18 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
             <RefreshCw className={`h-3.5 w-3.5 ${syncingRates ? "animate-spin" : ""}`} />
             {syncingRates ? "Syncing…" : "Sync Live MCX Rates"}
           </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowKeyEditor((open) => !open)}
+              title={apiKeyConfigured ? `Rate API key configured (${apiKeyHint ?? "set"})` : "No rate API key configured"}
+              className="inline-flex h-8 items-center gap-1.5 rounded border border-slate-600 bg-slate-800 px-3 text-xs font-semibold uppercase text-slate-200 transition hover:border-amber-400 hover:text-amber-300 active:scale-95"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              Rate API Key
+              <span className={`ml-1 h-1.5 w-1.5 rounded-full ${apiKeyConfigured ? "bg-emerald-400" : "bg-red-400"}`} />
+            </button>
+          )}
           <button
             type="submit"
             disabled={!isAdmin}
@@ -252,6 +316,40 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
             <Save className="h-3.5 w-3.5" /> Save &amp; Update Rates
           </button>
         </div>
+        {isAdmin && showKeyEditor && (
+          <div className="animate-fade-in mt-2 flex flex-wrap items-center gap-2 rounded border border-slate-700 bg-slate-950/60 p-2">
+            <span className="text-[11px] uppercase text-slate-400">Gold-rate provider API key</span>
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(event) => setApiKeyInput(event.target.value)}
+              placeholder={apiKeyConfigured ? `Saved (${apiKeyHint ?? "••••"}) — enter new to replace` : "Paste your APISED gold API key"}
+              className="h-8 min-w-[280px] flex-1 rounded border border-slate-700 bg-slate-900 px-2 text-xs text-slate-100 placeholder:text-slate-600"
+            />
+            <button
+              type="button"
+              disabled={savingKey || apiKeyInput.trim().length === 0}
+              onClick={() => void saveRateProviderKey()}
+              className="inline-flex h-8 items-center gap-1.5 rounded border border-emerald-500 bg-emerald-500 px-3 text-xs font-semibold uppercase text-slate-50 transition hover:bg-emerald-400 active:scale-95 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
+            >
+              {savingKey ? "Saving…" : "Save Key"}
+            </button>
+            {apiKeyConfigured && (
+              <button
+                type="button"
+                disabled={savingKey}
+                onClick={() => {
+                  setApiKeyInput("");
+                  void saveRateProviderKey();
+                }}
+                className="inline-flex h-8 items-center rounded border border-slate-600 bg-slate-800 px-3 text-xs font-semibold uppercase text-slate-300 transition hover:border-red-400 hover:text-red-300 active:scale-95"
+              >
+                Clear
+              </button>
+            )}
+            <span className="text-[11px] text-slate-500">Stored per-shop in your local database. Get a key from the APISED gold provider.</span>
+          </div>
+        )}
         <p className="mt-2 text-[11px] text-slate-500">Last Synced: {lastSyncedAt ? formatTimestamp(lastSyncedAt) : "Never"}</p>
         {(message || error) && (
           <p className={`animate-fade-in mt-2 text-xs ${error ? "text-red-300" : "text-emerald-300"}`}>{error || message}</p>

@@ -14,6 +14,14 @@ use tauri_plugin_shell::{
 
 struct SidecarState(Mutex<Option<CommandChild>>);
 
+/// Tauri's `resource_dir()` returns a Windows extended-length path (`\\?\C:\...`).
+/// Node's main-module resolver can't `realpath` that form (it fails with
+/// `EISDIR: lstat 'C:'`), so strip the verbatim prefix before handing paths to node.
+fn plain_path(p: &std::path::Path) -> String {
+    let s = p.to_string_lossy().to_string();
+    s.strip_prefix(r"\\?\").map(str::to_string).unwrap_or(s)
+}
+
 fn app_data_dir() -> PathBuf {
     std::env::var_os("USERPROFILE")
         .map(PathBuf::from)
@@ -47,7 +55,39 @@ pub fn run() {
                 )?;
             }
 
-            match app.shell().sidecar("app-server") {
+            // The sidecar is a copy of the official (signed) node.exe; we run the
+            // bundled backend script with it. Resources land under <resource_dir>/backend
+            // (older Tauri layouts nest them under resources/backend — handle both).
+            let resource_dir = app
+                .path()
+                .resource_dir()
+                .expect("failed to resolve resource dir");
+            let mut backend_dir = resource_dir.join("backend");
+            if !backend_dir.join("server.cjs").exists() {
+                backend_dir = resource_dir.join("resources").join("backend");
+            }
+            let server_entry = backend_dir.join("server.cjs");
+            let migrations_dir = backend_dir.join("drizzle");
+
+            // Backend writes data (sqlite.db, .data/images, backups) relative to its
+            // working dir / home, so run it from the writable per-user data folder.
+            let data_dir = app_data_dir();
+            let _ = fs::create_dir_all(&data_dir);
+
+            append_sidecar_log(format!(
+                "Launching backend: node \"{}\" (cwd={})",
+                server_entry.display(),
+                data_dir.display()
+            ));
+
+            match app.shell().sidecar("app-server").map(|command| {
+                command
+                    .arg(plain_path(&server_entry))
+                    .current_dir(&data_dir)
+                    .env("ERP_PACKAGED", "1")
+                    .env("PORT", "4000")
+                    .env("ERP_MIGRATIONS_DIR", plain_path(&migrations_dir))
+            }) {
                 Ok(command) => match command.spawn() {
                     Ok((mut receiver, child)) => {
                         append_sidecar_log(format!("Started bundled backend sidecar pid={}", child.pid()));

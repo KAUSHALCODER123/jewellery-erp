@@ -91,6 +91,9 @@ describe("E2E Integration & Stress Test Suite", () => {
         .values({
           barcode: "E2E-RNG-001",
           huid: "HUID01",
+          // Must be fully hallmarked, otherwise checkout rejects it on the BIS
+          // hallmark gate before reaching the missing-item rollback path under test.
+          huid_status: "HUID_RECEIVED",
           category: "Rings",
           metal_type: "Gold",
           purity_karat: 22,

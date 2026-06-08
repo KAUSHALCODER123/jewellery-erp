@@ -13,11 +13,13 @@
       "allow": [
         {
           "name": "binaries/app-server",
-          "sidecar": true
+          "sidecar": true,
+          "args": true
         },
         {
           "name": "app-server",
-          "sidecar": true
+          "sidecar": true,
+          "args": true
         }
       ]
     },
@@ -26,11 +28,13 @@
       "allow": [
         {
           "name": "binaries/app-server",
-          "sidecar": true
+          "sidecar": true,
+          "args": true
         },
         {
           "name": "app-server",
-          "sidecar": true
+          "sidecar": true,
+          "args": true
         }
       ]
     }

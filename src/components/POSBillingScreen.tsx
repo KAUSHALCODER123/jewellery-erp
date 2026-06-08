@@ -33,6 +33,8 @@ type InventoryItem = {
   net_weight_mg: number;
   making_charge_type: "PER_GRAM" | "FLAT";
   making_charge_value: number;
+  sale_mode?: "WEIGHT_WISE" | "QUANTITY_WISE";
+  unit_price_paise?: number;
   status: string | null;
 };
 
@@ -1119,6 +1121,12 @@ function calculateTotals(
 }
 
 function calculateCartLineTotalPaise(line: CartLine) {
+  // Quantity-wise items (coins / fixed-price articles) are sold at their fixed
+  // unit price, not weight × metal rate.
+  if (line.sale_mode === "QUANTITY_WISE") {
+    return line.unit_price_paise ?? 0;
+  }
+
   const metalValuePaise = paisePerGramToLinePaise(rupeesToPaise(line.metalRateRupees), line.net_weight_mg);
   const makingChargePaise = calculateMakingChargePaise(line);
 
@@ -1126,6 +1134,11 @@ function calculateCartLineTotalPaise(line: CartLine) {
 }
 
 function calculateMakingChargePaise(line: CartLine) {
+  // Fixed-price (quantity-wise) items carry no separate making charge.
+  if (line.sale_mode === "QUANTITY_WISE") {
+    return 0;
+  }
+
   const makingValuePaise = rupeesToPaise(line.makingRupees);
   return line.making_charge_type === "PER_GRAM"
     ? paisePerGramToLinePaise(makingValuePaise, line.net_weight_mg)
@@ -1184,7 +1197,9 @@ function buildCheckoutPayload({
     sales_items: cart.map((line) => ({
       item_id: line.id,
       barcode: line.barcode,
-      net_weight_mg: line.net_weight_mg,
+      // Quantity-wise items (coins) have no weight; omit it so the backend's
+      // "must be greater than zero" guard doesn't reject the fixed-price line.
+      net_weight_mg: line.net_weight_mg > 0 ? line.net_weight_mg : undefined,
       metal_rate_paise_per_gram: rupeesToPaise(line.metalRateRupees),
       making_charge_paise: calculateMakingChargePaise(line),
       item_total_paise: calculateCartLineTotalPaise(line)

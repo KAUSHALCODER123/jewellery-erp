@@ -531,6 +531,10 @@ export const organizationSettings = sqliteTable("organization_settings", {
   gold_22k_rate_per_gram: integer("gold_22k_rate_per_gram").notNull().default(0),
   gold_18k_rate_per_gram: integer("gold_18k_rate_per_gram").notNull().default(0),
   silver_rate_per_gram: integer("silver_rate_per_gram").notNull().default(0),
+  // Per-shop live-rate provider credentials (entered in-app so no key is ever
+  // committed or required as an OS env var on the vendor's machine).
+  gold_api_key: text("gold_api_key"),
+  gold_api_url: text("gold_api_url"),
   default_gst_percentage: real("default_gst_percentage").notNull().default(3.0),
   scale_port_name: text("scale_port_name"),
   scale_baud_rate: integer("scale_baud_rate").notNull().default(9600),

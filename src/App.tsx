@@ -435,6 +435,7 @@ function SettingsRoute() {
                 className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
               />
               {secretConfigured && <span className="text-[9px] normal-case text-emerald-400/80">A secret is currently configured (hidden for security).</span>}
+              {secretConfigured && <span className="text-[9px] normal-case text-slate-500">Re-enter the secret above to preview the catalog (it is never stored in the browser).</span>}
             </label>
 
             <div className="flex justify-end gap-2 pt-1">
@@ -485,7 +486,7 @@ function SettingsRoute() {
                 Points per Rs 100
                 <input
                   value={loyaltyPointsPerHundred}
-                  onChange={(e) => setLoyaltyPointsPerHundred(e.target.value.replace(/[^\d]/g, ""))}
+                  onChange={(e) => setLoyaltyPointsPerHundred(e.target.value.replace(/[^\d-]/g, ""))}
                   className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
                   inputMode="numeric"
                 />
@@ -494,7 +495,7 @@ function SettingsRoute() {
                 Points per gram gold
                 <input
                   value={loyaltyPointsPerGramGold}
-                  onChange={(e) => setLoyaltyPointsPerGramGold(e.target.value.replace(/[^\d]/g, ""))}
+                  onChange={(e) => setLoyaltyPointsPerGramGold(e.target.value.replace(/[^\d-]/g, ""))}
                   className="h-8 border border-slate-700 bg-slate-950 px-2.5 font-normal text-xs text-slate-50 outline-none rounded focus:border-emerald-500 transition"
                   inputMode="numeric"
                 />

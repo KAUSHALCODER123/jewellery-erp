@@ -33,18 +33,26 @@ type ApisedLatestResponse = {
   message?: string;
 };
 
-export async function fetchLiveMetalRates(): Promise<LiveMetalRates> {
-  // No baked-in key: the provider key must come from the environment so it is
-  // never committed to source. Missing key -> clear, recoverable error (the caller
-  // surfaces it and the shop falls back to manual rate entry).
-  const apiKey = process.env.GOLD_API_KEY;
+export type RateProviderOptions = {
+  apiKey?: string | null;
+  apiUrl?: string | null;
+};
+
+export async function fetchLiveMetalRates(options: RateProviderOptions = {}): Promise<LiveMetalRates> {
+  // No baked-in key. The provider key is supplied per-shop from saved settings
+  // (entered in-app) and falls back to an OS env var for local development, so it
+  // is never committed to source. Missing key -> clear, recoverable error (the
+  // caller surfaces it and the shop falls back to manual rate entry).
+  const apiKey = (options.apiKey && options.apiKey.trim()) || process.env.GOLD_API_KEY;
 
   if (!apiKey) {
-    throw new Error("Live sync failed, please enter rates manually. GOLD_API_KEY is not configured.");
+    throw new Error(
+      "Live sync failed, please enter rates manually. Add your gold-rate API key in Daily Rates → Rate API Key."
+    );
   }
 
   try {
-    const { goldQuote, silverQuote, source } = await fetchApisedQuotes(apiKey);
+    const { goldQuote, silverQuote, source } = await fetchApisedQuotes(apiKey, options.apiUrl);
 
     const gold24kRupeesPerGram = extractGoldRupeesPerGram(goldQuote);
     const gold22kRupeesPerGram = typeof goldQuote.price_22k === "number"
@@ -73,10 +81,10 @@ export async function fetchLiveMetalRates(): Promise<LiveMetalRates> {
   }
 }
 
-async function fetchApisedQuotes(apiKey: string) {
+async function fetchApisedQuotes(apiKey: string, apiUrlOverride?: string | null) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const url = process.env.GOLD_API_URL ?? APISED_GOLD_URL;
+  const url = (apiUrlOverride && apiUrlOverride.trim()) || process.env.GOLD_API_URL || APISED_GOLD_URL;
 
   const response = await fetch(url, {
     headers: {

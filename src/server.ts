@@ -131,7 +131,8 @@ export { app };
 if (process.env.NODE_ENV !== "test" || process.env.PLAYWRIGHT === "true") {
   try {
     console.log("[DB] Running startup migrations...");
-    migrate(db, { migrationsFolder: path.join(serverDirname, "../drizzle") });
+    const migrationsFolder = process.env.ERP_MIGRATIONS_DIR ?? path.join(serverDirname, "../drizzle");
+    migrate(db, { migrationsFolder });
     console.log("[DB] Migrations completed successfully.");
 
     startScheduler();

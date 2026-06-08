@@ -34,7 +34,10 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:api": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/api --runInBand --forceExit",
     "test:e2e": "playwright test",
-    "build:sidecar": "npm run rebuild:sqlite:pkg && npm run build:backend && pkg . --targets node18-win-x64,node18-macos-x64 --out-path src-tauri/binaries && npm run rename:sidecar",
+    "test:all": "npm run test && npm run test:e2e",
+    "test:desktop": "node tests/desktop/desktop-smoke.mjs",
+    "build:sidecar": "node scripts/build-sidecar-node.cjs",
+    "build:sidecar:pkg": "npm run rebuild:sqlite:pkg && npm run build:backend && pkg . --targets node18-win-x64,node18-macos-x64 --out-path src-tauri/binaries && npm run rename:sidecar",
     "build:desktop": "npm run build && npm run build:sidecar && tauri build"
   },
   "dependencies": {

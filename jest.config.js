@@ -5,6 +5,9 @@ export default {
   testEnvironment: "node",
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   testPathIgnorePatterns: ["<rootDir>/tests/e2e/"],
+  // Ignore the packaged backend staging trees — their package.json files
+  // otherwise collide in jest's haste module map ("erp-backend-runtime").
+  modulePathIgnorePatterns: ["<rootDir>/src-tauri/"],
   extensionsToTreatAsEsm: [".ts"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1"
