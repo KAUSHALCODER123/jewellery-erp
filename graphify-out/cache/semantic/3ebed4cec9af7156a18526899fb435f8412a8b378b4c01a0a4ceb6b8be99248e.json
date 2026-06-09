@@ -1,0 +1,1 @@
+{"nodes": [{"id": "customer_master_crm_customer_360", "label": "Customer 360 View", "file_type": "concept", "source_file": "docs/cowork-tests/02-customer-master-crm.md"}, {"id": "customer_master_crm", "label": "Customer Master & CRM 360", "file_type": "document", "source_file": "docs/cowork-tests/02-customer-master-crm.md"}], "edges": [], "hyperedges": []}

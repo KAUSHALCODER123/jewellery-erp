@@ -21,7 +21,9 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(gh auth *)",
-      "Bash(gh --version)"
+      "Bash(gh --version)",
+      "Bash(npm --version)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

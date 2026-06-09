@@ -1,0 +1,1572 @@
+{
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\.claude\\settings.local.json": {
+    "mtime": 1780660937.8800466,
+    "ast_hash": "3d6890760b0115746cbf4d9dc22d5c53",
+    "semantic_hash": "3d6890760b0115746cbf4d9dc22d5c53"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle.config.ts": {
+    "mtime": 1780633405.0274653,
+    "ast_hash": "7e171b1f132c53570fcbbf2347523134",
+    "semantic_hash": "7e171b1f132c53570fcbbf2347523134"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0000_tough_marten_broadcloak.sql": {
+    "mtime": 1780633405.1299074,
+    "ast_hash": "0a260fcda09924b0225fe64b4b3678cf",
+    "semantic_hash": "0a260fcda09924b0225fe64b4b3678cf"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0001_equal_gunslinger.sql": {
+    "mtime": 1780633405.1317947,
+    "ast_hash": "4944ab13a25eb61170f42ec9e44abeba",
+    "semantic_hash": "4944ab13a25eb61170f42ec9e44abeba"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0002_tranquil_alex_wilder.sql": {
+    "mtime": 1780633405.1358056,
+    "ast_hash": "98c72cf465bc278cb2d2b095de1b0bbc",
+    "semantic_hash": "98c72cf465bc278cb2d2b095de1b0bbc"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0003_overrated_human_fly.sql": {
+    "mtime": 1780633405.1395612,
+    "ast_hash": "1f2b5af116e239971dc762d25a34870f",
+    "semantic_hash": "1f2b5af116e239971dc762d25a34870f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0004_thankful_trish_tilby.sql": {
+    "mtime": 1780633405.1415668,
+    "ast_hash": "cc4515a30b9af968ea5b809cf5a78b58",
+    "semantic_hash": "cc4515a30b9af968ea5b809cf5a78b58"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0005_serious_wolverine.sql": {
+    "mtime": 1780633405.14566,
+    "ast_hash": "a388c7a5f61e3566e5bc64d60240faa5",
+    "semantic_hash": "a388c7a5f61e3566e5bc64d60240faa5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0006_overrated_namorita.sql": {
+    "mtime": 1780633405.1480424,
+    "ast_hash": "28acb630d08b0f4ff3ac5656ac2eb1c5",
+    "semantic_hash": "28acb630d08b0f4ff3ac5656ac2eb1c5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0007_mighty_puff_adder.sql": {
+    "mtime": 1780633405.1500483,
+    "ast_hash": "e847bbb3545189c84c537904ca170dc7",
+    "semantic_hash": "e847bbb3545189c84c537904ca170dc7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0008_flaky_the_watchers.sql": {
+    "mtime": 1780633405.15437,
+    "ast_hash": "5c60dafc8547233627146a18b5452e71",
+    "semantic_hash": "5c60dafc8547233627146a18b5452e71"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0009_married_molecule_man.sql": {
+    "mtime": 1780633405.15437,
+    "ast_hash": "3ca7ee41b6a0f446da2c651e786cabbb",
+    "semantic_hash": "3ca7ee41b6a0f446da2c651e786cabbb"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0010_third_blazing_skull.sql": {
+    "mtime": 1780633405.1590786,
+    "ast_hash": "c2b788972874dc0d1f3b0f736bf83dbd",
+    "semantic_hash": "c2b788972874dc0d1f3b0f736bf83dbd"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0011_white_drax.sql": {
+    "mtime": 1780633405.1648805,
+    "ast_hash": "f71e2e689f558517b33a718863708282",
+    "semantic_hash": "f71e2e689f558517b33a718863708282"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0012_fluffy_living_tribunal.sql": {
+    "mtime": 1780633405.1668873,
+    "ast_hash": "0b00957740066a8b9d2e3d8925c220f3",
+    "semantic_hash": "0b00957740066a8b9d2e3d8925c220f3"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0013_tricky_harrier.sql": {
+    "mtime": 1780633405.170647,
+    "ast_hash": "b159e9c1640a7b59a8f8bbdc6b5a49f7",
+    "semantic_hash": "b159e9c1640a7b59a8f8bbdc6b5a49f7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0014_classy_gabe_jones.sql": {
+    "mtime": 1780633405.1746645,
+    "ast_hash": "2076354699fb220a3e710b977e477d48",
+    "semantic_hash": "2076354699fb220a3e710b977e477d48"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0015_yielding_scream.sql": {
+    "mtime": 1780633405.1777897,
+    "ast_hash": "6e468c995fa278fb37374c6318af79c5",
+    "semantic_hash": "6e468c995fa278fb37374c6318af79c5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0016_balanced_voucher_documents.sql": {
+    "mtime": 1780633405.179797,
+    "ast_hash": "3d879ce850bc1712e132741cc348bd59",
+    "semantic_hash": "3d879ce850bc1712e132741cc348bd59"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0017_pos_maturity_documents.sql": {
+    "mtime": 1780633405.1833127,
+    "ast_hash": "9a49f15af9dada57b848bba217af99da",
+    "semantic_hash": "9a49f15af9dada57b848bba217af99da"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0018_print_templates.sql": {
+    "mtime": 1780633405.1848845,
+    "ast_hash": "d11347d3f19e8477fb3418e1aa7f1003",
+    "semantic_hash": "d11347d3f19e8477fb3418e1aa7f1003"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0019_hardware_anti_theft.sql": {
+    "mtime": 1780633405.1848845,
+    "ast_hash": "bcf87632eafab333738cb70d1063ddb6",
+    "semantic_hash": "bcf87632eafab333738cb70d1063ddb6"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0020_urd_stock_lifecycle.sql": {
+    "mtime": 1780633405.1848845,
+    "ast_hash": "72e954e10b0397f466dd8d9ce3f1db5f",
+    "semantic_hash": "72e954e10b0397f466dd8d9ce3f1db5f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0021_gst_bis_huid_compliance.sql": {
+    "mtime": 1780633405.1948674,
+    "ast_hash": "f2373fc41f106f15daf16ee72cf1c062",
+    "semantic_hash": "f2373fc41f106f15daf16ee72cf1c062"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0022_bitter_supernaut.sql": {
+    "mtime": 1780634803.6216004,
+    "ast_hash": "cfb78d7ab02bf3312a3e3c07b51ac98e",
+    "semantic_hash": "cfb78d7ab02bf3312a3e3c07b51ac98e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0022_gss_reporting_and_rules.sql": {
+    "mtime": 1780633405.2015598,
+    "ast_hash": "560b07d88c0f95df7962e892614cd20a",
+    "semantic_hash": "560b07d88c0f95df7962e892614cd20a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0023_backup_recovery.sql": {
+    "mtime": 1780633405.2015598,
+    "ast_hash": "6b4a049c25de2e7bd4c7d3718157b85c",
+    "semantic_hash": "6b4a049c25de2e7bd4c7d3718157b85c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0024_sleepy_fallen_one.sql": {
+    "mtime": 1780636297.704934,
+    "ast_hash": "b0784e829067b0f1652bbbb5c537d80c",
+    "semantic_hash": "b0784e829067b0f1652bbbb5c537d80c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0025_urd_recycled_gold.sql": {
+    "mtime": 1780639430.6969612,
+    "ast_hash": "be2855777e9cf24ab4d47b84bf9ef21d",
+    "semantic_hash": "be2855777e9cf24ab4d47b84bf9ef21d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0026_slim_shape.sql": {
+    "mtime": 1780639846.8473964,
+    "ast_hash": "a977f8d4a45440960fc53d54cf85d8cb",
+    "semantic_hash": "a977f8d4a45440960fc53d54cf85d8cb"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0028_job_cancellation_reason.sql": {
+    "mtime": 1780641641.4396505,
+    "ast_hash": "833b5cb848742ebe086916a6719e0abd",
+    "semantic_hash": "833b5cb848742ebe086916a6719e0abd"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0029_customer_master_fields.sql": {
+    "mtime": 1780645386.3960793,
+    "ast_hash": "abf36f7ee2a05c7f50263db70c8ef374",
+    "semantic_hash": "abf36f7ee2a05c7f50263db70c8ef374"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0030_loyalty_points_rule.sql": {
+    "mtime": 1780646497.2960236,
+    "ast_hash": "3eb41ac4292e3fd75c9ffd27c0fca417",
+    "semantic_hash": "3eb41ac4292e3fd75c9ffd27c0fca417"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0031_gss_scheme_11plus1.sql": {
+    "mtime": 1780646628.4457562,
+    "ast_hash": "138a1e91e4b9b4f659c70a99afb00625",
+    "semantic_hash": "138a1e91e4b9b4f659c70a99afb00625"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0032_item_catalog_sale_mode.sql": {
+    "mtime": 1780648011.2909324,
+    "ast_hash": "2b440755d9817c582cccf35a19b37fbe",
+    "semantic_hash": "2b440755d9817c582cccf35a19b37fbe"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0033_item_definitions.sql": {
+    "mtime": 1780656831.6091816,
+    "ast_hash": "d644879a46a51407b7406bb705b374c9",
+    "semantic_hash": "d644879a46a51407b7406bb705b374c9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0034_girvi_gross_net_rate.sql": {
+    "mtime": 1780724087.2557778,
+    "ast_hash": "36b512e61de69e6362fdf3074ba14487",
+    "semantic_hash": "36b512e61de69e6362fdf3074ba14487"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0035_karigar_jobname_wastage.sql": {
+    "mtime": 1780726271.6181114,
+    "ast_hash": "4ef078c58bdca86c88199abfcd79ef6e",
+    "semantic_hash": "4ef078c58bdca86c88199abfcd79ef6e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0036_suppliers_purchase_ingest.sql": {
+    "mtime": 1780729744.7464309,
+    "ast_hash": "ee7662befaa01313a109fce6a5b6661a",
+    "semantic_hash": "ee7662befaa01313a109fce6a5b6661a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0037_purchase_line_stock_mode.sql": {
+    "mtime": 1780731049.0030346,
+    "ast_hash": "104158d293b762d7f9df8301e18c4737",
+    "semantic_hash": "104158d293b762d7f9df8301e18c4737"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0038_expenses.sql": {
+    "mtime": 1780733238.314042,
+    "ast_hash": "de184e7685d001b7a793c67b15279810",
+    "semantic_hash": "de184e7685d001b7a793c67b15279810"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0039_loyalty_enrollment_ledger_mode.sql": {
+    "mtime": 1780739598.4032185,
+    "ast_hash": "455694ca30639cca8131f11e686c9cb1",
+    "semantic_hash": "455694ca30639cca8131f11e686c9cb1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0040_customer_order_booking.sql": {
+    "mtime": 1780741390.4998689,
+    "ast_hash": "bcb9827899d62d766ee8ff7938480022",
+    "semantic_hash": "bcb9827899d62d766ee8ff7938480022"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0041_invoice_walk_in_name.sql": {
+    "mtime": 1780742598.554891,
+    "ast_hash": "2b830bc867a4056a2e6e0f6a3c13427a",
+    "semantic_hash": "2b830bc867a4056a2e6e0f6a3c13427a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0042_firms_fiscal_year.sql": {
+    "mtime": 1780745323.812197,
+    "ast_hash": "c53558ad816f75c5e49b806680977750",
+    "semantic_hash": "c53558ad816f75c5e49b806680977750"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0043_print_language.sql": {
+    "mtime": 1780744283.0684175,
+    "ast_hash": "d26719ab081ab80ce2fedcf0e4ae2282",
+    "semantic_hash": "d26719ab081ab80ce2fedcf0e4ae2282"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0044_approval_memo.sql": {
+    "mtime": 1780745980.116696,
+    "ast_hash": "f5023d61fcd4443eaa5cc7cfda0458da",
+    "semantic_hash": "f5023d61fcd4443eaa5cc7cfda0458da"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0045_metal_loans.sql": {
+    "mtime": 1780746385.1417923,
+    "ast_hash": "c0b4d5d26acb348bc8c2db89d0495cd1",
+    "semantic_hash": "c0b4d5d26acb348bc8c2db89d0495cd1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0046_customer_credit_limit.sql": {
+    "mtime": 1780747016.5073762,
+    "ast_hash": "d176a298c40e479d272346324d466ebf",
+    "semantic_hash": "d176a298c40e479d272346324d466ebf"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\0047_einvoice_ewaybill.sql": {
+    "mtime": 1780747560.9565122,
+    "ast_hash": "11dc1f1fcc155a55bcb3a1ce70b48cee",
+    "semantic_hash": "11dc1f1fcc155a55bcb3a1ce70b48cee"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0000_snapshot.json": {
+    "mtime": 1780633405.2123759,
+    "ast_hash": "4dac592bddfc87dc45ce28094c90b524",
+    "semantic_hash": "4dac592bddfc87dc45ce28094c90b524"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0001_snapshot.json": {
+    "mtime": 1780633405.2161317,
+    "ast_hash": "fc9c4973eb62b370605bebbe808a64f4",
+    "semantic_hash": "fc9c4973eb62b370605bebbe808a64f4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0002_snapshot.json": {
+    "mtime": 1780633405.2207923,
+    "ast_hash": "4d404c92ec2331f90e656d5a68121701",
+    "semantic_hash": "4d404c92ec2331f90e656d5a68121701"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0003_snapshot.json": {
+    "mtime": 1780633405.2217615,
+    "ast_hash": "8e91aca719e08ec4e43669a9fd7da6d2",
+    "semantic_hash": "8e91aca719e08ec4e43669a9fd7da6d2"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0004_snapshot.json": {
+    "mtime": 1780633405.226154,
+    "ast_hash": "a6dc1f8b97d09c22f3607e99cc9f7ef1",
+    "semantic_hash": "a6dc1f8b97d09c22f3607e99cc9f7ef1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0005_snapshot.json": {
+    "mtime": 1780633405.2326262,
+    "ast_hash": "00d22005fa06afdafef3dc2a1685c9f5",
+    "semantic_hash": "00d22005fa06afdafef3dc2a1685c9f5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0006_snapshot.json": {
+    "mtime": 1780633405.2375937,
+    "ast_hash": "03c069a71db53c61eaa60a36be04f560",
+    "semantic_hash": "03c069a71db53c61eaa60a36be04f560"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0007_snapshot.json": {
+    "mtime": 1780633405.2396007,
+    "ast_hash": "da3fa1fd63b6f3afb1f824c5674ca2b3",
+    "semantic_hash": "da3fa1fd63b6f3afb1f824c5674ca2b3"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0008_snapshot.json": {
+    "mtime": 1780633405.2455723,
+    "ast_hash": "322cd0b8d5903f28b0673df5a4b70783",
+    "semantic_hash": "322cd0b8d5903f28b0673df5a4b70783"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0009_snapshot.json": {
+    "mtime": 1780633405.2481184,
+    "ast_hash": "6c6eaf8194a82fb7d68ea6e0390e3e2c",
+    "semantic_hash": "6c6eaf8194a82fb7d68ea6e0390e3e2c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0010_snapshot.json": {
+    "mtime": 1780633405.2481184,
+    "ast_hash": "ca34769299fe72ea2683e0b4dba46dec",
+    "semantic_hash": "ca34769299fe72ea2683e0b4dba46dec"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0011_snapshot.json": {
+    "mtime": 1780633405.2588265,
+    "ast_hash": "682808af4cb6364fe329192cceaa77ca",
+    "semantic_hash": "682808af4cb6364fe329192cceaa77ca"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0012_snapshot.json": {
+    "mtime": 1780633405.2628427,
+    "ast_hash": "8cb93c98476890e40aa0939aa1be7d1d",
+    "semantic_hash": "8cb93c98476890e40aa0939aa1be7d1d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0013_snapshot.json": {
+    "mtime": 1780633405.263852,
+    "ast_hash": "57a41ad8c7d0f358e27d2efcbfd5b322",
+    "semantic_hash": "57a41ad8c7d0f358e27d2efcbfd5b322"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0014_snapshot.json": {
+    "mtime": 1780633405.263852,
+    "ast_hash": "16279802b8801f600f8326f29bd9483d",
+    "semantic_hash": "16279802b8801f600f8326f29bd9483d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0015_snapshot.json": {
+    "mtime": 1780633405.263852,
+    "ast_hash": "a36f13b6bc66c077739f4ce7064141e4",
+    "semantic_hash": "a36f13b6bc66c077739f4ce7064141e4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0022_snapshot.json": {
+    "mtime": 1780633405.279222,
+    "ast_hash": "8ce9722127cf7e426d3df1522ec97f02",
+    "semantic_hash": "8ce9722127cf7e426d3df1522ec97f02"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0024_snapshot.json": {
+    "mtime": 1780636127.2131722,
+    "ast_hash": "88845700fd9e340385c37e851cbba65d",
+    "semantic_hash": "88845700fd9e340385c37e851cbba65d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0025_snapshot.json": {
+    "mtime": 1780639445.0118816,
+    "ast_hash": "c1143f5095e2cf7ce31adc88abc5f9f9",
+    "semantic_hash": "c1143f5095e2cf7ce31adc88abc5f9f9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0026_snapshot.json": {
+    "mtime": 1780639846.8473964,
+    "ast_hash": "1be5136aec86ef1afd69ff75d12e87fb",
+    "semantic_hash": "1be5136aec86ef1afd69ff75d12e87fb"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0034_snapshot.json": {
+    "mtime": 1780723938.3186474,
+    "ast_hash": "efb9eb94a74b2148c4ac954a5c78099d",
+    "semantic_hash": "efb9eb94a74b2148c4ac954a5c78099d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0035_snapshot.json": {
+    "mtime": 1780726271.6181114,
+    "ast_hash": "e57216d81e335a48045cac969cd597e7",
+    "semantic_hash": "e57216d81e335a48045cac969cd597e7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0036_snapshot.json": {
+    "mtime": 1780729744.7453504,
+    "ast_hash": "cc96c6abc8651e0158102b570f3f4634",
+    "semantic_hash": "cc96c6abc8651e0158102b570f3f4634"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0037_snapshot.json": {
+    "mtime": 1780731049.0030346,
+    "ast_hash": "a8b307f01c2d6f39ad969b7613007ee4",
+    "semantic_hash": "a8b307f01c2d6f39ad969b7613007ee4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\0038_snapshot.json": {
+    "mtime": 1780733238.3120365,
+    "ast_hash": "5ba919f00ea5e2ec62a5c9aef6122afd",
+    "semantic_hash": "5ba919f00ea5e2ec62a5c9aef6122afd"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\drizzle\\meta\\_journal.json": {
+    "mtime": 1780747575.3524978,
+    "ast_hash": "353b5647d83cf6f88bf6416e98decdc8",
+    "semantic_hash": "353b5647d83cf6f88bf6416e98decdc8"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\jest.config.js": {
+    "mtime": 1780633405.057695,
+    "ast_hash": "13ebf6483112d996dae70cd16a6fba16",
+    "semantic_hash": "13ebf6483112d996dae70cd16a6fba16"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\package.json": {
+    "mtime": 1780633405.073732,
+    "ast_hash": "78c7e432bedb88ed82760714e231e69e",
+    "semantic_hash": "78c7e432bedb88ed82760714e231e69e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\playwright.config.ts": {
+    "mtime": 1780633405.0805483,
+    "ast_hash": "f1045fe8e5b76e7fbdb9ac2fc0e80860",
+    "semantic_hash": "f1045fe8e5b76e7fbdb9ac2fc0e80860"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\postcss.config.js": {
+    "mtime": 1780633405.0897696,
+    "ast_hash": "442ee6f3f950b33482963958f133b78c",
+    "semantic_hash": "442ee6f3f950b33482963958f133b78c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\scratch-test-types.ts": {
+    "mtime": 1780638328.3235714,
+    "ast_hash": "eb241f0aafdfe1be865f4d7da4f84e50",
+    "semantic_hash": "eb241f0aafdfe1be865f4d7da4f84e50"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\scratch-test.ts": {
+    "mtime": 1780638318.101474,
+    "ast_hash": "04bd2c5d54116f82dce4802a3a91b24e",
+    "semantic_hash": "04bd2c5d54116f82dce4802a3a91b24e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\scripts\\build-sidecar.js": {
+    "mtime": 1780748862.225003,
+    "ast_hash": "8eff384601eda87770e8d69cdd3b7b7d",
+    "semantic_hash": "8eff384601eda87770e8d69cdd3b7b7d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\scripts\\rebuild-sqlite-for-pkg.js": {
+    "mtime": 1780633405.2953527,
+    "ast_hash": "3a0185bc89cef3f7c1db8d32f809c27a",
+    "semantic_hash": "3a0185bc89cef3f7c1db8d32f809c27a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\scripts\\reorder_components.js": {
+    "mtime": 1780633405.2953527,
+    "ast_hash": "ad315f8ff88af92ca1542b0c3a0c996f",
+    "semantic_hash": "ad315f8ff88af92ca1542b0c3a0c996f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\scripts\\seed.ts": {
+    "mtime": 1780811930.1699946,
+    "ast_hash": "e15d1c71abc14a7419abb305a82a46bd",
+    "semantic_hash": "e15d1c71abc14a7419abb305a82a46bd"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\scripts\\ui-gap-audit.mjs": {
+    "mtime": 1780763237.6105225,
+    "ast_hash": "92e4f2e8743cfdb241bdec243ce7e2e1",
+    "semantic_hash": "92e4f2e8743cfdb241bdec243ce7e2e1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\skills-lock.json": {
+    "mtime": 1780641082.5302682,
+    "ast_hash": "58efabdc92f191ae5c6fc6d34173cba0",
+    "semantic_hash": "58efabdc92f191ae5c6fc6d34173cba0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\build.rs": {
+    "mtime": 1780633405.3278048,
+    "ast_hash": "1be34a5c61c2c35365de3dab14298f0b",
+    "semantic_hash": "1be34a5c61c2c35365de3dab14298f0b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\capabilities\\default.json": {
+    "mtime": 1780633405.3369088,
+    "ast_hash": "9ca6dbc76c025f4355ccb79deb824cda",
+    "semantic_hash": "9ca6dbc76c025f4355ccb79deb824cda"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\gen\\schemas\\acl-manifests.json": {
+    "mtime": 1780748799.5005217,
+    "ast_hash": "90d3b71b8023634146d5a6459c008f05",
+    "semantic_hash": "90d3b71b8023634146d5a6459c008f05"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\gen\\schemas\\capabilities.json": {
+    "mtime": 1780748799.5118413,
+    "ast_hash": "53da588a446e4efe28da47000493c6a4",
+    "semantic_hash": "53da588a446e4efe28da47000493c6a4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\gen\\schemas\\desktop-schema.json": {
+    "mtime": 1780748799.5005217,
+    "ast_hash": "4f78ff250b4dbed4983f01e2df315f53",
+    "semantic_hash": "4f78ff250b4dbed4983f01e2df315f53"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\gen\\schemas\\windows-schema.json": {
+    "mtime": 1780748799.5005217,
+    "ast_hash": "4f78ff250b4dbed4983f01e2df315f53",
+    "semantic_hash": "4f78ff250b4dbed4983f01e2df315f53"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\src\\lib.rs": {
+    "mtime": 1780633405.4345238,
+    "ast_hash": "cd0906bcff1b550661fc67501d47b711",
+    "semantic_hash": "cd0906bcff1b550661fc67501d47b711"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\src\\main.rs": {
+    "mtime": 1780633405.4382868,
+    "ast_hash": "c606fa15ae831a39cb2310dde4d4fa4c",
+    "semantic_hash": "c606fa15ae831a39cb2310dde4d4fa4c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\tauri.conf.json": {
+    "mtime": 1780633405.3278048,
+    "ast_hash": "1e8d41af8809d956f9f195b10f9d7ff7",
+    "semantic_hash": "1e8d41af8809d956f9f195b10f9d7ff7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\App.tsx": {
+    "mtime": 1780765319.3842738,
+    "ast_hash": "daa32f4e581b9d0d095509e32bee2d47",
+    "semantic_hash": "daa32f4e581b9d0d095509e32bee2d47"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\accounts\\posting.ts": {
+    "mtime": 1780777988.6421382,
+    "ast_hash": "de719af59f519eb9b6435d574577810d",
+    "semantic_hash": "de719af59f519eb9b6435d574577810d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\accounts\\routes.ts": {
+    "mtime": 1780747110.0815043,
+    "ast_hash": "57a791ffbc110da2dc49b3443481acd5",
+    "semantic_hash": "57a791ffbc110da2dc49b3443481acd5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\approvals\\routes.ts": {
+    "mtime": 1780746217.9776888,
+    "ast_hash": "fe7279c5d7a5bf81e590061597703ef6",
+    "semantic_hash": "fe7279c5d7a5bf81e590061597703ef6"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\audit\\logAction.ts": {
+    "mtime": 1780633405.4748166,
+    "ast_hash": "43ecf2c8e99ef96b5c36d7da87830c34",
+    "semantic_hash": "43ecf2c8e99ef96b5c36d7da87830c34"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\auth\\AuthSessionContext.tsx": {
+    "mtime": 1780760615.205586,
+    "ast_hash": "48020aacd47ffcdeac7b33cc909e6fb9",
+    "semantic_hash": "48020aacd47ffcdeac7b33cc909e6fb9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\auth\\middleware.ts": {
+    "mtime": 1780633405.4905214,
+    "ast_hash": "c691e1fd5315d44ab585299dd7625c63",
+    "semantic_hash": "c691e1fd5315d44ab585299dd7625c63"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\auth\\routes.ts": {
+    "mtime": 1780633405.4967678,
+    "ast_hash": "c0349b6593896518ffe6646cade5d171",
+    "semantic_hash": "c0349b6593896518ffe6646cade5d171"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\auth\\session.ts": {
+    "mtime": 1780633405.5017722,
+    "ast_hash": "2dc6d17d97371a85e5575d1869239ddb",
+    "semantic_hash": "2dc6d17d97371a85e5575d1869239ddb"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\backup\\backupEngine.ts": {
+    "mtime": 1780633405.5097475,
+    "ast_hash": "89cfd52ae5bf40a8708b5e95371246d1",
+    "semantic_hash": "89cfd52ae5bf40a8708b5e95371246d1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\backup\\backupScheduler.ts": {
+    "mtime": 1780633405.5097475,
+    "ast_hash": "f63c11c25a577e056597db275cd74215",
+    "semantic_hash": "f63c11c25a577e056597db275cd74215"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\backup\\routes.ts": {
+    "mtime": 1780737103.6868238,
+    "ast_hash": "4cfe39671bcf3b714709b36ef2622305",
+    "semantic_hash": "4cfe39671bcf3b714709b36ef2622305"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\compliance\\auditLocks.ts": {
+    "mtime": 1780633405.5307505,
+    "ast_hash": "f396e0e2c89d8923dbff37e39b3c6259",
+    "semantic_hash": "f396e0e2c89d8923dbff37e39b3c6259"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\compliance\\routes.ts": {
+    "mtime": 1780736489.5759227,
+    "ast_hash": "a984de1aeb1fd475167ffc47f6f32b96",
+    "semantic_hash": "a984de1aeb1fd475167ffc47f6f32b96"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\AccountsDayBookModule.tsx": {
+    "mtime": 1780762028.8626559,
+    "ast_hash": "e4670b839e44b2c253382062e63f7d09",
+    "semantic_hash": "e4670b839e44b2c253382062e63f7d09"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\ApprovalMemoModule.tsx": {
+    "mtime": 1780814285.549226,
+    "ast_hash": "92410854e9340cad2d2a078259cd0dc6",
+    "semantic_hash": "92410854e9340cad2d2a078259cd0dc6"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\AuthGateway.tsx": {
+    "mtime": 1780633405.5476236,
+    "ast_hash": "d405261e71e5be5df7da1de932777bce",
+    "semantic_hash": "d405261e71e5be5df7da1de932777bce"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\BackupRecoveryModule.tsx": {
+    "mtime": 1780737201.788593,
+    "ast_hash": "4718f63873b5e5b2acf200a8df6261a5",
+    "semantic_hash": "4718f63873b5e5b2acf200a8df6261a5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\BarcodeStockDesk.tsx": {
+    "mtime": 1780760876.4728312,
+    "ast_hash": "d0d3dff471f0b7e72d428966c3c5a999",
+    "semantic_hash": "d0d3dff471f0b7e72d428966c3c5a999"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\CRMDashboard.tsx": {
+    "mtime": 1780774438.4070306,
+    "ast_hash": "64ed424556bdbcb7f06927103f93fe7f",
+    "semantic_hash": "64ed424556bdbcb7f06927103f93fe7f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\CustomerMaster.tsx": {
+    "mtime": 1780739766.7375884,
+    "ast_hash": "7c84cf08c6ab071a91072533c805fc7d",
+    "semantic_hash": "7c84cf08c6ab071a91072533c805fc7d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\CustomerOrderBookingModule.tsx": {
+    "mtime": 1780741522.9887471,
+    "ast_hash": "5b48499c63217acc23fc6e747bc2b770",
+    "semantic_hash": "5b48499c63217acc23fc6e747bc2b770"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\DayBookSummary.tsx": {
+    "mtime": 1780733470.1968553,
+    "ast_hash": "11d405a29ae40ace852cfba91ce042de",
+    "semantic_hash": "11d405a29ae40ace852cfba91ce042de"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\FirmsManager.tsx": {
+    "mtime": 1780745018.8658557,
+    "ast_hash": "404050c89e2b24f2a3d774ee726425b0",
+    "semantic_hash": "404050c89e2b24f2a3d774ee726425b0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\GSTReportsModule.tsx": {
+    "mtime": 1780762561.7295694,
+    "ast_hash": "feca75d316b0068abd2895ef28124fb6",
+    "semantic_hash": "feca75d316b0068abd2895ef28124fb6"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\GirviMoneylendingModule.tsx": {
+    "mtime": 1780725490.703724,
+    "ast_hash": "86bf78146f24d8f3f65526d0fa5a7380",
+    "semantic_hash": "86bf78146f24d8f3f65526d0fa5a7380"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\GoldSavingSchemeModule.tsx": {
+    "mtime": 1780762181.2116947,
+    "ast_hash": "10e47479f7268b35188449cbdc741cab",
+    "semantic_hash": "10e47479f7268b35188449cbdc741cab"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\GssSchemeBuilder.tsx": {
+    "mtime": 1780648869.369244,
+    "ast_hash": "9c3782aef254fa9f704c29c227833352",
+    "semantic_hash": "9c3782aef254fa9f704c29c227833352"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\GstEDocsModule.tsx": {
+    "mtime": 1780747838.475308,
+    "ast_hash": "8bd4508638f5d15c342e3c98542635b9",
+    "semantic_hash": "8bd4508638f5d15c342e3c98542635b9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\HardwareSecurityModule.tsx": {
+    "mtime": 1780762391.6509783,
+    "ast_hash": "e8aab1ea4cc7a13db87f795bc1a25089",
+    "semantic_hash": "e8aab1ea4cc7a13db87f795bc1a25089"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\InventoryRatesDashboard.tsx": {
+    "mtime": 1780762732.2787268,
+    "ast_hash": "c7708259515857e29a6fbb7784f28a61",
+    "semantic_hash": "c7708259515857e29a6fbb7784f28a61"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\ItemMasterInventory.tsx": {
+    "mtime": 1780658053.7075305,
+    "ast_hash": "539654a4ae0790f66a42e2302ab667ca",
+    "semantic_hash": "539654a4ae0790f66a42e2302ab667ca"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\KarigarManufacturingModule.tsx": {
+    "mtime": 1780760830.6815774,
+    "ast_hash": "995ec99fa1ae9bb859c40ae705f3c81e",
+    "semantic_hash": "995ec99fa1ae9bb859c40ae705f3c81e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\LoginScreen.tsx": {
+    "mtime": 1780773824.980146,
+    "ast_hash": "8905e2a6e05e0ac17c22e2cd9e1556e1",
+    "semantic_hash": "8905e2a6e05e0ac17c22e2cd9e1556e1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\MISDashboard.tsx": {
+    "mtime": 1780651077.2843592,
+    "ast_hash": "1dfe5ed0398a6efe278366c375524f79",
+    "semantic_hash": "1dfe5ed0398a6efe278366c375524f79"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\MessengerModule.tsx": {
+    "mtime": 1780763092.3878794,
+    "ast_hash": "fc2d64427b19ac915f3fe9b3f86012fb",
+    "semantic_hash": "fc2d64427b19ac915f3fe9b3f86012fb"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\MetalLoanModule.tsx": {
+    "mtime": 1780746535.1023066,
+    "ast_hash": "73c1d0979cea06cec4da27eddf98423e",
+    "semantic_hash": "73c1d0979cea06cec4da27eddf98423e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\POSBillingScreen.tsx": {
+    "mtime": 1780811816.0874314,
+    "ast_hash": "847ea4638381bf6d2325fcb0a671915b",
+    "semantic_hash": "847ea4638381bf6d2325fcb0a671915b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\PrintTemplateBuilder.tsx": {
+    "mtime": 1780742245.105732,
+    "ast_hash": "d52e25225efd952c7a2324b4815f1b34",
+    "semantic_hash": "d52e25225efd952c7a2324b4815f1b34"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\PurchaseInvoiceModule.tsx": {
+    "mtime": 1780731176.604568,
+    "ast_hash": "a65ace43a0fbd50b2ca1ad591d0edb13",
+    "semantic_hash": "a65ace43a0fbd50b2ca1ad591d0edb13"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\RefineryManagementModule.tsx": {
+    "mtime": 1780760997.2217698,
+    "ast_hash": "d2ef27108220256a7673bfa1716de06d",
+    "semantic_hash": "d2ef27108220256a7673bfa1716de06d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\RemindersAgeingModule.tsx": {
+    "mtime": 1780747254.2070735,
+    "ast_hash": "d6dde5fdc30fe97e9698363f3424fda2",
+    "semantic_hash": "d6dde5fdc30fe97e9698363f3424fda2"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\RepairDeskModule.tsx": {
+    "mtime": 1780648811.5923727,
+    "ast_hash": "30eef4977c05b10331dd1cc4f9ff1e63",
+    "semantic_hash": "30eef4977c05b10331dd1cc4f9ff1e63"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\ReportBuilderModule.tsx": {
+    "mtime": 1780633405.6087022,
+    "ast_hash": "866039017293e6c027b0f33e14236ff7",
+    "semantic_hash": "866039017293e6c027b0f33e14236ff7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\ReturnsModule.tsx": {
+    "mtime": 1780761473.1069863,
+    "ast_hash": "b4b79ab75f4d4d1b1357716d11f667b9",
+    "semantic_hash": "b4b79ab75f4d4d1b1357716d11f667b9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\StandaloneUrdVoucher.tsx": {
+    "mtime": 1780644031.7700326,
+    "ast_hash": "e9c85ad4e1ae9a75e97501ad1cbd6db6",
+    "semantic_hash": "e9c85ad4e1ae9a75e97501ad1cbd6db6"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\UdhariReceiptWindow.tsx": {
+    "mtime": 1780740895.36554,
+    "ast_hash": "cfc1bfac1e4473f72840b65928c5d677",
+    "semantic_hash": "cfc1bfac1e4473f72840b65928c5d677"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\UserManagementModule.tsx": {
+    "mtime": 1780761906.0785606,
+    "ast_hash": "b4df0180477bf10fe765cf66c550f4ff",
+    "semantic_hash": "b4df0180477bf10fe765cf66c550f4ff"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\layout\\MainLayout.tsx": {
+    "mtime": 1780814244.3174,
+    "ast_hash": "13cf70893d005b9669e155bfb6eb5053",
+    "semantic_hash": "13cf70893d005b9669e155bfb6eb5053"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\components\\ui.tsx": {
+    "mtime": 1780773917.0371087,
+    "ast_hash": "4e9aaa3b69bc11ef62e9dc71e7bf39f4",
+    "semantic_hash": "4e9aaa3b69bc11ef62e9dc71e7bf39f4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\context\\AuthContext.tsx": {
+    "mtime": 1780760609.8525028,
+    "ast_hash": "a929ea2a3083b5c20d0b7003d6118ea0",
+    "semantic_hash": "a929ea2a3083b5c20d0b7003d6118ea0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\db\\client.ts": {
+    "mtime": 1780633890.1040075,
+    "ast_hash": "968d59b635b2412f68c6d37f99ee2eb7",
+    "semantic_hash": "968d59b635b2412f68c6d37f99ee2eb7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\db\\schema.ts": {
+    "mtime": 1780747546.3102071,
+    "ast_hash": "6063616fa345294ade97cc6c7856d8aa",
+    "semantic_hash": "6063616fa345294ade97cc6c7856d8aa"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\documents\\routes.ts": {
+    "mtime": 1780744567.8142493,
+    "ast_hash": "0c9013ea274fd689407773a6670d976e",
+    "semantic_hash": "0c9013ea274fd689407773a6670d976e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\einvoice\\routes.ts": {
+    "mtime": 1780747754.0932198,
+    "ast_hash": "1777e48871ae6a416532b55fd5d5d905",
+    "semantic_hash": "1777e48871ae6a416532b55fd5d5d905"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\girvi\\routes.ts": {
+    "mtime": 1780724146.727212,
+    "ast_hash": "21c29cb9a2c7922799eeccacbbd528c5",
+    "semantic_hash": "21c29cb9a2c7922799eeccacbbd528c5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\gss\\routes.ts": {
+    "mtime": 1780647362.22142,
+    "ast_hash": "91132730d40120114c905387c275de10",
+    "semantic_hash": "91132730d40120114c905387c275de10"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\hardware\\deviceManager.ts": {
+    "mtime": 1780633405.6802697,
+    "ast_hash": "22ddd7f93393cf586f2a27fcced71487",
+    "semantic_hash": "22ddd7f93393cf586f2a27fcced71487"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\hardware\\routes.ts": {
+    "mtime": 1780633405.686009,
+    "ast_hash": "a5dbca239bc48140f23721f627662430",
+    "semantic_hash": "a5dbca239bc48140f23721f627662430"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\hardware\\scaleManager.ts": {
+    "mtime": 1780633405.692045,
+    "ast_hash": "b998e611fd21b21eefe5b0d40898fa9c",
+    "semantic_hash": "b998e611fd21b21eefe5b0d40898fa9c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\hooks\\useBarcodeScanner.ts": {
+    "mtime": 1780633405.7008789,
+    "ast_hash": "b4d2b17f38c13d9ec67fe78eec916800",
+    "semantic_hash": "b4d2b17f38c13d9ec67fe78eec916800"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\hooks\\useWeighingScale.ts": {
+    "mtime": 1780633405.7066627,
+    "ast_hash": "f1492b724c2704397ef99ec5a2ddb87d",
+    "semantic_hash": "f1492b724c2704397ef99ec5a2ddb87d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\inventory\\routes.ts": {
+    "mtime": 1780658895.6861045,
+    "ast_hash": "9bd388bd14cfbc2ce3468e05e64d1416",
+    "semantic_hash": "9bd388bd14cfbc2ce3468e05e64d1416"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\items\\routes.ts": {
+    "mtime": 1780633405.7274146,
+    "ast_hash": "4203668879bc4f7880077c6cce4603df",
+    "semantic_hash": "4203668879bc4f7880077c6cce4603df"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\items\\validation.ts": {
+    "mtime": 1780633405.732795,
+    "ast_hash": "86016ba4e2d8b00423747f0d08ca02be",
+    "semantic_hash": "86016ba4e2d8b00423747f0d08ca02be"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\karigar\\routes.ts": {
+    "mtime": 1780726431.7073457,
+    "ast_hash": "b5b099c36fee65646121d5602894714e",
+    "semantic_hash": "b5b099c36fee65646121d5602894714e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\main.tsx": {
+    "mtime": 1780633405.4477434,
+    "ast_hash": "a8a4d85714017fc9776bb1be9d462ddf",
+    "semantic_hash": "a8a4d85714017fc9776bb1be9d462ddf"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\media\\routes.ts": {
+    "mtime": 1780633405.7546062,
+    "ast_hash": "f73dec9deb97307b557420a8dedbc55f",
+    "semantic_hash": "f73dec9deb97307b557420a8dedbc55f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\metalLoans\\routes.ts": {
+    "mtime": 1780746439.362639,
+    "ast_hash": "848b7424b763672d479de975ab03053c",
+    "semantic_hash": "848b7424b763672d479de975ab03053c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\middlewares\\authMiddleware.ts": {
+    "mtime": 1780743630.7615452,
+    "ast_hash": "e40ac0932b86297048720099e2850ada",
+    "semantic_hash": "e40ac0932b86297048720099e2850ada"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\orders\\routes.ts": {
+    "mtime": 1780741431.693924,
+    "ast_hash": "0a49a8d6549dde0e86f2195cd08d5660",
+    "semantic_hash": "0a49a8d6549dde0e86f2195cd08d5660"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\pos\\POSCreditContext.tsx": {
+    "mtime": 1780633405.806852,
+    "ast_hash": "a2596c716f6577ec7808fdb265acc5d9",
+    "semantic_hash": "a2596c716f6577ec7808fdb265acc5d9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\pos\\routes.ts": {
+    "mtime": 1780812036.1337862,
+    "ast_hash": "a9543d9e794120a020c5def47c4d528f",
+    "semantic_hash": "a9543d9e794120a020c5def47c4d528f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\refinery\\routes.ts": {
+    "mtime": 1780745183.1262622,
+    "ast_hash": "035f46fd95412c00804f3c4400d0a306",
+    "semantic_hash": "035f46fd95412c00804f3c4400d0a306"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\reminders\\routes.ts": {
+    "mtime": 1780747153.2412124,
+    "ast_hash": "de2720622c2cdd866281fc4539736f76",
+    "semantic_hash": "de2720622c2cdd866281fc4539736f76"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\routes\\authRouter.ts": {
+    "mtime": 1780743659.5378146,
+    "ast_hash": "39b77a78e75dd7ec4a7d18cb0005f7ad",
+    "semantic_hash": "39b77a78e75dd7ec4a7d18cb0005f7ad"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\routes\\crmRouter.ts": {
+    "mtime": 1780774375.9582572,
+    "ast_hash": "a144b9383f25b8fcfa25f43216a6b1ab",
+    "semantic_hash": "a144b9383f25b8fcfa25f43216a6b1ab"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\routes\\ecommerceRouter.ts": {
+    "mtime": 1780633405.8350155,
+    "ast_hash": "3e530599c675e95f18169d4cf4190ff0",
+    "semantic_hash": "3e530599c675e95f18169d4cf4190ff0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\routes\\messageRouter.ts": {
+    "mtime": 1780741038.378146,
+    "ast_hash": "0c04ff9e1f9cdd7c1929ba54e9f99076",
+    "semantic_hash": "0c04ff9e1f9cdd7c1929ba54e9f99076"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\routes\\reportRouter.ts": {
+    "mtime": 1780733343.5753336,
+    "ast_hash": "2990f8100a79cab2bfd7be9b4cbb4bd0",
+    "semantic_hash": "2990f8100a79cab2bfd7be9b4cbb4bd0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\routes\\stoneRouter.ts": {
+    "mtime": 1780633405.8510954,
+    "ast_hash": "1b3a832571285f05fe206c9eb36c2c8b",
+    "semantic_hash": "1b3a832571285f05fe206c9eb36c2c8b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\server.ts": {
+    "mtime": 1780747688.4953187,
+    "ast_hash": "30cc493f630d68a455b4d432b437485d",
+    "semantic_hash": "30cc493f630d68a455b4d432b437485d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\settings\\routes.ts": {
+    "mtime": 1780744953.674218,
+    "ast_hash": "e1bda915bb2f5f97774538a934e42b0b",
+    "semantic_hash": "e1bda915bb2f5f97774538a934e42b0b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\suppliers\\routes.ts": {
+    "mtime": 1780729571.020662,
+    "ast_hash": "be36ea5406745a93c4c99a4a51c9a572",
+    "semantic_hash": "be36ea5406745a93c4c99a4a51c9a572"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\types\\pdfmake.d.ts": {
+    "mtime": 1780633405.8788323,
+    "ast_hash": "e5a535a457677b8da02c1c4fff91e415",
+    "semantic_hash": "e5a535a457677b8da02c1c4fff91e415"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\users\\routes.ts": {
+    "mtime": 1780633405.8874493,
+    "ast_hash": "f7580349d61146a4acbda6d8a3e94cde",
+    "semantic_hash": "f7580349d61146a4acbda6d8a3e94cde"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\auth.ts": {
+    "mtime": 1780633405.897571,
+    "ast_hash": "6742d4fd514026c5fab8643744fd0bcc",
+    "semantic_hash": "6742d4fd514026c5fab8643744fd0bcc"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\decimal.ts": {
+    "mtime": 1780633405.9046066,
+    "ast_hash": "937a2cb0e1965a75b0c3c36dffa73cc4",
+    "semantic_hash": "937a2cb0e1965a75b0c3c36dffa73cc4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\documentAuth.ts": {
+    "mtime": 1780643803.0293815,
+    "ast_hash": "3eafc4bfe2a981162ab55671583b8544",
+    "semantic_hash": "3eafc4bfe2a981162ab55671583b8544"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\marketRateFetcher.ts": {
+    "mtime": 1780633405.9086268,
+    "ast_hash": "4132016909458995dd468218caea9b0f",
+    "semantic_hash": "4132016909458995dd468218caea9b0f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\messageService.ts": {
+    "mtime": 1780740773.4113648,
+    "ast_hash": "22e5a99cd8f3d94a220ae1b1646e21ef",
+    "semantic_hash": "22e5a99cd8f3d94a220ae1b1646e21ef"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\pdfGenerator.ts": {
+    "mtime": 1780744558.010113,
+    "ast_hash": "986519c4875ba1a064ed371616a461c1",
+    "semantic_hash": "986519c4875ba1a064ed371616a461c1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\tallySync.ts": {
+    "mtime": 1780643759.2376409,
+    "ast_hash": "1ad12ff24c1b41f739b66036533dd07a",
+    "semantic_hash": "1ad12ff24c1b41f739b66036533dd07a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\utils\\webhookNotifier.ts": {
+    "mtime": 1780633405.925786,
+    "ast_hash": "dc32f0afbbd41d4c8d932ffc86f94f90",
+    "semantic_hash": "dc32f0afbbd41d4c8d932ffc86f94f90"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src\\workers\\syncWorker.ts": {
+    "mtime": 1780641373.8023021,
+    "ast_hash": "ff6ee98028d6122669d5a731f7f47bc0",
+    "semantic_hash": "ff6ee98028d6122669d5a731f7f47bc0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tailwind.config.js": {
+    "mtime": 1780749625.9903948,
+    "ast_hash": "eda1ddce8e8cf98a5545784b294bcaba",
+    "semantic_hash": "eda1ddce8e8cf98a5545784b294bcaba"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\accounting.test.ts": {
+    "mtime": 1780642507.3797896,
+    "ast_hash": "ae04b290dbab6d92808c0adf1e707b53",
+    "semantic_hash": "ae04b290dbab6d92808c0adf1e707b53"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\accounts-vouchers.test.ts": {
+    "mtime": 1780740322.0250266,
+    "ast_hash": "7359dace76cfccc30a3ae5143ee4b21c",
+    "semantic_hash": "7359dace76cfccc30a3ae5143ee4b21c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\approvals.test.ts": {
+    "mtime": 1780746274.309566,
+    "ast_hash": "6892033ba19f8f698c1a30139a0ee529",
+    "semantic_hash": "6892033ba19f8f698c1a30139a0ee529"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\auth-lock.test.ts": {
+    "mtime": 1780737409.6871977,
+    "ast_hash": "c02da898f4b7cca7e41dff28f05d27c6",
+    "semantic_hash": "c02da898f4b7cca7e41dff28f05d27c6"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\backup-recovery.test.ts": {
+    "mtime": 1780737218.7312593,
+    "ast_hash": "8c00565b845ec513e3f3ae4d34c2acf0",
+    "semantic_hash": "8c00565b845ec513e3f3ae4d34c2acf0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\barcode-stock.test.ts": {
+    "mtime": 1780633405.971791,
+    "ast_hash": "097ec566c615a12150312da9997b4e8d",
+    "semantic_hash": "097ec566c615a12150312da9997b4e8d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\checkout.spec.ts": {
+    "mtime": 1780642350.398786,
+    "ast_hash": "c94f0b5f4c6f9d397df6c7790eb8ea9c",
+    "semantic_hash": "c94f0b5f4c6f9d397df6c7790eb8ea9c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\compliance.test.ts": {
+    "mtime": 1780644473.5001893,
+    "ast_hash": "404c9fa3f4dfff09c3cfbf0f371411f1",
+    "semantic_hash": "404c9fa3f4dfff09c3cfbf0f371411f1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\crm-customer.test.ts": {
+    "mtime": 1780645476.9841113,
+    "ast_hash": "094a3f5d644942688e10e21e9fa17acb",
+    "semantic_hash": "094a3f5d644942688e10e21e9fa17acb"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\crm-loyalty-udhari.test.ts": {
+    "mtime": 1780777924.1583767,
+    "ast_hash": "db63617dd740301b63ea7ae85a9e5e9a",
+    "semantic_hash": "db63617dd740301b63ea7ae85a9e5e9a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\daybook-summary.test.ts": {
+    "mtime": 1780733482.4461894,
+    "ast_hash": "6c628e041cc77c204f44fe21993d9a70",
+    "semantic_hash": "6c628e041cc77c204f44fe21993d9a70"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\documents-auth.test.ts": {
+    "mtime": 1780644118.3278317,
+    "ast_hash": "17dafa8449cd3a496ad518e753914aa3",
+    "semantic_hash": "17dafa8449cd3a496ad518e753914aa3"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\einvoice.test.ts": {
+    "mtime": 1780748150.1306133,
+    "ast_hash": "6aca9bc207d1b0a2a06efd875ffa678f",
+    "semantic_hash": "6aca9bc207d1b0a2a06efd875ffa678f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\girvi-loan-number.test.ts": {
+    "mtime": 1780660132.2607434,
+    "ast_hash": "3d893979cf2703be17acafb9ff3f82b7",
+    "semantic_hash": "3d893979cf2703be17acafb9ff3f82b7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\girvi-pavati.test.ts": {
+    "mtime": 1780725531.7737312,
+    "ast_hash": "a01f6e9230d184071da3d796bfe062b4",
+    "semantic_hash": "a01f6e9230d184071da3d796bfe062b4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\gss-reporting.test.ts": {
+    "mtime": 1780635183.122261,
+    "ast_hash": "e030eeb7b7ba2f165a11911a4ab37464",
+    "semantic_hash": "e030eeb7b7ba2f165a11911a4ab37464"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\gss-scheme-builder.test.ts": {
+    "mtime": 1780647379.4621022,
+    "ast_hash": "7648c41f63360bd506f4581e4e1297b3",
+    "semantic_hash": "7648c41f63360bd506f4581e4e1297b3"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\gss.test.ts": {
+    "mtime": 1780642426.2826123,
+    "ast_hash": "3914a40a2170f2d2a689ac92d5876f4a",
+    "semantic_hash": "3914a40a2170f2d2a689ac92d5876f4a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\gst-reports.test.ts": {
+    "mtime": 1780736582.713799,
+    "ast_hash": "812a47c9797a218d0bdd9bd7cd169252",
+    "semantic_hash": "812a47c9797a218d0bdd9bd7cd169252"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\hardware-integration.test.ts": {
+    "mtime": 1780633405.9935975,
+    "ast_hash": "e1892ba1f5cf1ab101a36f7d590d3e53",
+    "semantic_hash": "e1892ba1f5cf1ab101a36f7d590d3e53"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\item-catalog.test.ts": {
+    "mtime": 1780659076.8396475,
+    "ast_hash": "bc471608aa7efd4e940121796fa6291f",
+    "semantic_hash": "bc471608aa7efd4e940121796fa6291f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\item-stones.test.ts": {
+    "mtime": 1780775344.9117417,
+    "ast_hash": "e371d65c1807be5cd0b786af5a443290",
+    "semantic_hash": "e371d65c1807be5cd0b786af5a443290"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\karigar-job-cancel.test.ts": {
+    "mtime": 1780641702.3742847,
+    "ast_hash": "b7bb52cd6303f41a7ffcff457dd0a65f",
+    "semantic_hash": "b7bb52cd6303f41a7ffcff457dd0a65f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\karigar-refinery.test.ts": {
+    "mtime": 1780635768.245893,
+    "ast_hash": "91af257d76bacc79a7390fa23628d017",
+    "semantic_hash": "91af257d76bacc79a7390fa23628d017"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\karigar.test.ts": {
+    "mtime": 1780726788.0815885,
+    "ast_hash": "222340f02204e2161136087d89b4e59c",
+    "semantic_hash": "222340f02204e2161136087d89b4e59c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\legal-print-documents.test.ts": {
+    "mtime": 1780633406.0094156,
+    "ast_hash": "6c16aed95e67c9d7354439302f45bb45",
+    "semantic_hash": "6c16aed95e67c9d7354439302f45bb45"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\messenger.test.ts": {
+    "mtime": 1780633406.0094156,
+    "ast_hash": "d36bad04d3835c2968f3336b0884b0f0",
+    "semantic_hash": "d36bad04d3835c2968f3336b0884b0f0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\metal-loans.test.ts": {
+    "mtime": 1780746675.9394712,
+    "ast_hash": "a7e8e77e2889c8d9816b36f81f0015f5",
+    "semantic_hash": "a7e8e77e2889c8d9816b36f81f0015f5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos-loyalty-redeem.test.ts": {
+    "mtime": 1780739921.1362834,
+    "ast_hash": "708782527bf32076a510f900f4b3d3cf",
+    "semantic_hash": "708782527bf32076a510f900f4b3d3cf"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos-loyalty.test.ts": {
+    "mtime": 1780739901.6059823,
+    "ast_hash": "5f2f68cc9a7efc4c97786b59b4ec243b",
+    "semantic_hash": "5f2f68cc9a7efc4c97786b59b4ec243b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos-maturity-documents.test.ts": {
+    "mtime": 1780731187.7812612,
+    "ast_hash": "b5709e21834903e46833e0ae9f92267a",
+    "semantic_hash": "b5709e21834903e46833e0ae9f92267a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos-notification.test.ts": {
+    "mtime": 1780646328.6694393,
+    "ast_hash": "03724a80d209aac0eade42c44ea341b9",
+    "semantic_hash": "03724a80d209aac0eade42c44ea341b9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos-old-dues.test.ts": {
+    "mtime": 1780646125.4640393,
+    "ast_hash": "a8fe0a8e2e000f76a1eb28c5f233ba5f",
+    "semantic_hash": "a8fe0a8e2e000f76a1eb28c5f233ba5f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos-race-condition.test.ts": {
+    "mtime": 1780640634.4212193,
+    "ast_hash": "e2e3906eb29a95b9ca7f113e7b74cbee",
+    "semantic_hash": "e2e3906eb29a95b9ca7f113e7b74cbee"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos-recycled-gold.test.ts": {
+    "mtime": 1780639544.3013484,
+    "ast_hash": "3a18a5cc41d74f7923c13e16c3745d5d",
+    "semantic_hash": "3a18a5cc41d74f7923c13e16c3745d5d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\pos.test.ts": {
+    "mtime": 1780642391.7565887,
+    "ast_hash": "f81caed2c5a6985166e980af617c8849",
+    "semantic_hash": "f81caed2c5a6985166e980af617c8849"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\rbac.test.ts": {
+    "mtime": 1780633406.0094156,
+    "ast_hash": "24ee4e1537c93475d4b9ec07618d9195",
+    "semantic_hash": "24ee4e1537c93475d4b9ec07618d9195"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\repair-intake.test.ts": {
+    "mtime": 1780647607.1254876,
+    "ast_hash": "4207ac012e78bc40e9f19cf00825174a",
+    "semantic_hash": "4207ac012e78bc40e9f19cf00825174a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\report-builder.test.ts": {
+    "mtime": 1780633406.0252783,
+    "ast_hash": "72853e9fabcd989b63eb9ab00932ab5b",
+    "semantic_hash": "72853e9fabcd989b63eb9ab00932ab5b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\sales-urd-parity.test.ts": {
+    "mtime": 1780633406.0252783,
+    "ast_hash": "fb63d321bef501130f2f64fc7f8562b0",
+    "semantic_hash": "fb63d321bef501130f2f64fc7f8562b0"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\suppliers.test.ts": {
+    "mtime": 1780729900.5388913,
+    "ast_hash": "f31967a79f1f93e39d288ed912f766c1",
+    "semantic_hash": "f31967a79f1f93e39d288ed912f766c1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\sync-queue.test.ts": {
+    "mtime": 1780640010.5606308,
+    "ast_hash": "756b33c943cb79b7783cda0b1bbb2315",
+    "semantic_hash": "756b33c943cb79b7783cda0b1bbb2315"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\tally.test.ts": {
+    "mtime": 1780636366.4041138,
+    "ast_hash": "d40a6590e069f48d9cbeab08f7ca0099",
+    "semantic_hash": "d40a6590e069f48d9cbeab08f7ca0099"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\udhari-ageing.test.ts": {
+    "mtime": 1780747420.6953037,
+    "ast_hash": "451d979c0a94bb296daa7bd14a6794db",
+    "semantic_hash": "451d979c0a94bb296daa7bd14a6794db"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\api\\voucher-audit-lock.test.ts": {
+    "mtime": 1780644131.5498774,
+    "ast_hash": "9cfe152f27da5cbb6b7286a499601864",
+    "semantic_hash": "9cfe152f27da5cbb6b7286a499601864"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e.test.ts": {
+    "mtime": 1780633405.9373813,
+    "ast_hash": "63899689c248339cd44de7181a8aee1d",
+    "semantic_hash": "63899689c248339cd44de7181a8aee1d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\auth.spec.ts": {
+    "mtime": 1780652444.1524992,
+    "ast_hash": "b248572a4975b9588d1f860d8a60d0b9",
+    "semantic_hash": "b248572a4975b9588d1f860d8a60d0b9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\bulk-qty-tag.spec.ts": {
+    "mtime": 1780659176.4036477,
+    "ast_hash": "0a8b1286c2786b74fab192a9de4623d3",
+    "semantic_hash": "0a8b1286c2786b74fab192a9de4623d3"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\checkout.spec.ts": {
+    "mtime": 1780652127.3282876,
+    "ast_hash": "c6deb1087806bf210de38d6c3af64165",
+    "semantic_hash": "c6deb1087806bf210de38d6c3af64165"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\compliance.spec.ts": {
+    "mtime": 1780652140.7957933,
+    "ast_hash": "a410168306ad09bcfac1c421bf8aa287",
+    "semantic_hash": "a410168306ad09bcfac1c421bf8aa287"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\customer.spec.ts": {
+    "mtime": 1780652578.6935084,
+    "ast_hash": "15d635775e22c158ef78f37dd05d3341",
+    "semantic_hash": "15d635775e22c158ef78f37dd05d3341"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\daybook.spec.ts": {
+    "mtime": 1780652188.2198741,
+    "ast_hash": "1f60cf0770a24f3f926e7eb5bad55db2",
+    "semantic_hash": "1f60cf0770a24f3f926e7eb5bad55db2"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\girvi-loan-number.spec.ts": {
+    "mtime": 1780660141.221179,
+    "ast_hash": "ee6fcfebc696374fc2bb53ab3080627e",
+    "semantic_hash": "ee6fcfebc696374fc2bb53ab3080627e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\helpers.ts": {
+    "mtime": 1780652035.02278,
+    "ast_hash": "fc9e1949e77835f7fd63338d1052ef8d",
+    "semantic_hash": "fc9e1949e77835f7fd63338d1052ef8d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\item-print-tag.spec.ts": {
+    "mtime": 1780658237.4825044,
+    "ast_hash": "8fb455cb1b13c879ef7bc3afc9ddd67f",
+    "semantic_hash": "8fb455cb1b13c879ef7bc3afc9ddd67f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\item-template.spec.ts": {
+    "mtime": 1780657186.3453474,
+    "ast_hash": "6cf77439edefc42350454a43ec018887",
+    "semantic_hash": "6cf77439edefc42350454a43ec018887"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\pos-billing-flow.spec.ts": {
+    "mtime": 1780655949.538961,
+    "ast_hash": "3aff45ebb5cf0786ec242e13a1068cc5",
+    "semantic_hash": "3aff45ebb5cf0786ec242e13a1068cc5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\pos-sale.spec.ts": {
+    "mtime": 1780652587.9903624,
+    "ast_hash": "da12f7bf42b75e2844017ad3b0c1d977",
+    "semantic_hash": "da12f7bf42b75e2844017ad3b0c1d977"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\e2e\\repair.spec.ts": {
+    "mtime": 1780652179.1006756,
+    "ast_hash": "ebec3dc6dd93bf498576040dbd8bf416",
+    "semantic_hash": "ebec3dc6dd93bf498576040dbd8bf416"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\global-setup.ts": {
+    "mtime": 1780652706.69341,
+    "ast_hash": "407dc8f71e3e2cf023b6534d51590056",
+    "semantic_hash": "407dc8f71e3e2cf023b6534d51590056"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tests\\setup.ts": {
+    "mtime": 1780747942.2320955,
+    "ast_hash": "672a4890e186bcf87b9ff860497d3a76",
+    "semantic_hash": "672a4890e186bcf87b9ff860497d3a76"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\tsconfig.json": {
+    "mtime": 1780633405.098837,
+    "ast_hash": "6cc422823670b194a9e4ea31c54aabe4",
+    "semantic_hash": "6cc422823670b194a9e4ea31c54aabe4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\vite.config.ts": {
+    "mtime": 1780765768.431487,
+    "ast_hash": "541b9f89edbe4280a3eda0f259c8c8de",
+    "semantic_hash": "541b9f89edbe4280a3eda0f259c8c8de"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\.agents\\skills\\caveman\\README.md": {
+    "mtime": 1780641082.278638,
+    "ast_hash": "3358f5119f61b24f5fa65a25de7b866b",
+    "semantic_hash": "3358f5119f61b24f5fa65a25de7b866b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\.agents\\skills\\caveman\\SKILL.md": {
+    "mtime": 1780641082.278638,
+    "ast_hash": "90e5f9d97791c2080495926731e0f5ad",
+    "semantic_hash": "90e5f9d97791c2080495926731e0f5ad"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\.claude\\skills\\caveman\\README.md": {
+    "mtime": 1780641082.278638,
+    "ast_hash": "3358f5119f61b24f5fa65a25de7b866b",
+    "semantic_hash": "3358f5119f61b24f5fa65a25de7b866b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\.claude\\skills\\caveman\\SKILL.md": {
+    "mtime": 1780641082.278638,
+    "ast_hash": "90e5f9d97791c2080495926731e0f5ad",
+    "semantic_hash": "90e5f9d97791c2080495926731e0f5ad"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\README.md": {
+    "mtime": 1780633405.0146244,
+    "ast_hash": "70f3771a4ad7ecb307ee6affcea7a6bc",
+    "semantic_hash": "70f3771a4ad7ecb307ee6affcea7a6bc"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\account_and_finance.md": {
+    "mtime": 1780633405.0193334,
+    "ast_hash": "eb30717ea799cd93a2f7bf50562d6b73",
+    "semantic_hash": "eb30717ea799cd93a2f7bf50562d6b73"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\compliance_and _regulatory.md": {
+    "mtime": 1780633405.0193334,
+    "ast_hash": "100004f1e19c371c099eb5d59b641fff",
+    "semantic_hash": "100004f1e19c371c099eb5d59b641fff"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\crm_customer_service.md": {
+    "mtime": 1780633405.0274653,
+    "ast_hash": "b17527edb27e971edde98e40f3b5f711",
+    "semantic_hash": "b17527edb27e971edde98e40f3b5f711"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\1_product_requirements.md": {
+    "mtime": 1780633405.109651,
+    "ast_hash": "e4b59079515e82cbbcdd5ff7333726bb",
+    "semantic_hash": "e4b59079515e82cbbcdd5ff7333726bb"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\2_architecture_design.md": {
+    "mtime": 1780633405.1136642,
+    "ast_hash": "c39d629c43f125ae8f29155470b2a6b4",
+    "semantic_hash": "c39d629c43f125ae8f29155470b2a6b4"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\3_database_schema.md": {
+    "mtime": 1780633405.1156704,
+    "ast_hash": "db44114370059d945884b74760d9fd8f",
+    "semantic_hash": "db44114370059d945884b74760d9fd8f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\4_benchmark_gap_analysis.md": {
+    "mtime": 1780633405.119684,
+    "ast_hash": "ff1420df879646b94bd77ea8b6cc9dff",
+    "semantic_hash": "ff1420df879646b94bd77ea8b6cc9dff"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\agent_directives.md": {
+    "mtime": 1780633405.1238909,
+    "ast_hash": "1157b4bf832921d9d31588f8f6937d63",
+    "semantic_hash": "1157b4bf832921d9d31588f8f6937d63"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\00-UI-GAPS.md": {
+    "mtime": 1780763456.1194813,
+    "ast_hash": "1b375fd9459ce804923d730f733abee9",
+    "semantic_hash": "1b375fd9459ce804923d730f733abee9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\01-auth-login-lock.md": {
+    "mtime": 1780773987.5880623,
+    "ast_hash": "0fc84af0e117ad7d74a7867158f0519d",
+    "semantic_hash": "0fc84af0e117ad7d74a7867158f0519d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\02-customer-master-crm.md": {
+    "mtime": 1780774537.9394462,
+    "ast_hash": "39b4e2d3dfe190011d66f629274f2f1e",
+    "semantic_hash": "39b4e2d3dfe190011d66f629274f2f1e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\03-item-inventory.md": {
+    "mtime": 1780775540.4060297,
+    "ast_hash": "36945f03f9bff78a17a885c9c4ee15c6",
+    "semantic_hash": "36945f03f9bff78a17a885c9c4ee15c6"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\04-pos-billing.md": {
+    "mtime": 1780812517.8769684,
+    "ast_hash": "89265ff771579c7e7bc86f88932f8a9c",
+    "semantic_hash": "89265ff771579c7e7bc86f88932f8a9c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\05-girvi-gold-loans.md": {
+    "mtime": 1780760250.5292873,
+    "ast_hash": "ea637ac25d1a4611b99ce982f0984056",
+    "semantic_hash": "ea637ac25d1a4611b99ce982f0984056"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\06-order-booking.md": {
+    "mtime": 1780772291.0137124,
+    "ast_hash": "8e1017d77844a85fcdbb38645d47e7a1",
+    "semantic_hash": "8e1017d77844a85fcdbb38645d47e7a1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\07-approval-memo.md": {
+    "mtime": 1780814335.1790388,
+    "ast_hash": "1f75b5d54e0984c5d34a336a8891fc28",
+    "semantic_hash": "1f75b5d54e0984c5d34a336a8891fc28"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\08-urd-old-gold-purchase.md": {
+    "mtime": 1780772346.9565518,
+    "ast_hash": "cba96cc606886a2e8831661e235ceb76",
+    "semantic_hash": "cba96cc606886a2e8831661e235ceb76"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\09-metal-loan.md": {
+    "mtime": 1780772363.6508925,
+    "ast_hash": "ad8e952a476daa4d105f63968fed5a62",
+    "semantic_hash": "ad8e952a476daa4d105f63968fed5a62"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\10-gold-saving-scheme.md": {
+    "mtime": 1780772402.5052922,
+    "ast_hash": "29ac4c0bb946fe5b0995669ced647990",
+    "semantic_hash": "29ac4c0bb946fe5b0995669ced647990"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\11-karigar-repairs.md": {
+    "mtime": 1780772421.365341,
+    "ast_hash": "21e937448ae6499b604efa4d81844944",
+    "semantic_hash": "21e937448ae6499b604efa4d81844944"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\12-refinery.md": {
+    "mtime": 1780772471.9940395,
+    "ast_hash": "831916c8a3f81b0ed1c0c1d2680d5e53",
+    "semantic_hash": "831916c8a3f81b0ed1c0c1d2680d5e53"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\13-accounts-daybook-udhari.md": {
+    "mtime": 1780772478.1202655,
+    "ast_hash": "9bf84bb04ba7aa345eb73c94c2ed9b4d",
+    "semantic_hash": "9bf84bb04ba7aa345eb73c94c2ed9b4d"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\14-gst-einvoice-eway-huid.md": {
+    "mtime": 1780772524.8701434,
+    "ast_hash": "5a17cba4aa44b3b7e9733973f1fdb7fc",
+    "semantic_hash": "5a17cba4aa44b3b7e9733973f1fdb7fc"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\15-reminders-messenger.md": {
+    "mtime": 1780772547.3195577,
+    "ast_hash": "3c5dbad8fc9ae523785d613fd246585b",
+    "semantic_hash": "3c5dbad8fc9ae523785d613fd246585b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\16-documents-print-templates-reports.md": {
+    "mtime": 1780772685.5715785,
+    "ast_hash": "d9a8f6c44b97fb0c70db8bc298bd355a",
+    "semantic_hash": "d9a8f6c44b97fb0c70db8bc298bd355a"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\17-hardware-security.md": {
+    "mtime": 1780772691.665594,
+    "ast_hash": "08800f7d5e3e9485b42e12d2d5310ba1",
+    "semantic_hash": "08800f7d5e3e9485b42e12d2d5310ba1"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\18-backup-recovery.md": {
+    "mtime": 1780772713.0623107,
+    "ast_hash": "ecab9642391f91e11b24b9175ca13c96",
+    "semantic_hash": "ecab9642391f91e11b24b9175ca13c96"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\19-settings.md": {
+    "mtime": 1780772742.7332022,
+    "ast_hash": "f13917ab022c97b1de53a2d2c0c65473",
+    "semantic_hash": "f13917ab022c97b1de53a2d2c0c65473"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\docs\\cowork-tests\\README.md": {
+    "mtime": 1780772761.7375238,
+    "ast_hash": "b28b7126958fb9cb6b46d6fe6e42ced8",
+    "semantic_hash": "b28b7126958fb9cb6b46d6fe6e42ced8"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\e-commerce-and-omnichannel.md": {
+    "mtime": 1780633405.0352635,
+    "ast_hash": "b46da01ad7e94f0950324bbb0cb2d234",
+    "semantic_hash": "b46da01ad7e94f0950324bbb0cb2d234"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\fonts\\README.txt": {
+    "mtime": 1780744689.652475,
+    "ast_hash": "d5f6608f9627d8d061d5fe916e646086",
+    "semantic_hash": "d5f6608f9627d8d061d5fe916e646086"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\gemstone_and_diamond_management.md": {
+    "mtime": 1780633405.0352635,
+    "ast_hash": "2093ec246510bef4fcb956b66b598685",
+    "semantic_hash": "2093ec246510bef4fcb956b66b598685"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\gold_saving_scheme.md": {
+    "mtime": 1780633405.045679,
+    "ast_hash": "652325658c1f07df129616159c21f01b",
+    "semantic_hash": "652325658c1f07df129616159c21f01b"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\index.html": {
+    "mtime": 1780633405.045679,
+    "ast_hash": "3ef82a4abb30e1e4fa1af3b4787a1095",
+    "semantic_hash": "3ef82a4abb30e1e4fa1af3b4787a1095"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\inventory_and_stock.txt": {
+    "mtime": 1780633405.045679,
+    "ast_hash": "5559be4c916006f825fe526d9bbb1d04",
+    "semantic_hash": "5559be4c916006f825fe526d9bbb1d04"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\karigar_and manufacturing.txt": {
+    "mtime": 1780633405.0623238,
+    "ast_hash": "e1d6d613aea08965c9ba30f56bd70ff3",
+    "semantic_hash": "e1d6d613aea08965c9ba30f56bd70ff3"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\master_setup.md": {
+    "mtime": 1780633405.0665858,
+    "ast_hash": "f7e0897dd1a5b6223826efdca928a569",
+    "semantic_hash": "f7e0897dd1a5b6223826efdca928a569"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\pos_and_hybrid_billing.txt": {
+    "mtime": 1780633405.0864635,
+    "ast_hash": "0c7d806cb29cf3f787bcd796f8563411",
+    "semantic_hash": "0c7d806cb29cf3f787bcd796f8563411"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\reports_dashboard_settings.md": {
+    "mtime": 1780633405.092446,
+    "ast_hash": "e48c14ff157bd7e40bba75432527c16e",
+    "semantic_hash": "e48c14ff157bd7e40bba75432527c16e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\128x128.png": {
+    "mtime": 1780633405.3428154,
+    "ast_hash": "3a0071e4ad670fad0329d3a5e83d0bf9",
+    "semantic_hash": "3a0071e4ad670fad0329d3a5e83d0bf9"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\128x128@2x.png": {
+    "mtime": 1780633405.3511863,
+    "ast_hash": "eab2be12c5f8aeaf104a4695dd9171df",
+    "semantic_hash": "eab2be12c5f8aeaf104a4695dd9171df"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\32x32.png": {
+    "mtime": 1780633405.3574808,
+    "ast_hash": "faf8ee6541b945b98db35239b8a75715",
+    "semantic_hash": "faf8ee6541b945b98db35239b8a75715"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square107x107Logo.png": {
+    "mtime": 1780633405.3622935,
+    "ast_hash": "d4bc38359e2c01daa08354c55fa4df7c",
+    "semantic_hash": "d4bc38359e2c01daa08354c55fa4df7c"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square142x142Logo.png": {
+    "mtime": 1780633405.3677046,
+    "ast_hash": "1e9c0358705085439e5c989fcbd6e988",
+    "semantic_hash": "1e9c0358705085439e5c989fcbd6e988"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square150x150Logo.png": {
+    "mtime": 1780633405.3730438,
+    "ast_hash": "084d20bce8096367fc694dfdf72c8ac5",
+    "semantic_hash": "084d20bce8096367fc694dfdf72c8ac5"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square284x284Logo.png": {
+    "mtime": 1780633405.3785615,
+    "ast_hash": "6a936fe84398f24b7a63a36bddfd58d7",
+    "semantic_hash": "6a936fe84398f24b7a63a36bddfd58d7"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square30x30Logo.png": {
+    "mtime": 1780633405.3825722,
+    "ast_hash": "011e9cb456309157a9fc78c978248e00",
+    "semantic_hash": "011e9cb456309157a9fc78c978248e00"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square310x310Logo.png": {
+    "mtime": 1780633405.3882039,
+    "ast_hash": "832231852e8e683e6aa2b690d194bdd2",
+    "semantic_hash": "832231852e8e683e6aa2b690d194bdd2"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square44x44Logo.png": {
+    "mtime": 1780633405.393517,
+    "ast_hash": "a06297a35014e770cc33756fafa3b3a8",
+    "semantic_hash": "a06297a35014e770cc33756fafa3b3a8"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square71x71Logo.png": {
+    "mtime": 1780633405.3996432,
+    "ast_hash": "a3c80a0af688359094aa685881570eed",
+    "semantic_hash": "a3c80a0af688359094aa685881570eed"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\Square89x89Logo.png": {
+    "mtime": 1780633405.4047618,
+    "ast_hash": "9f91ee8e1c1232ebde61c64d7923038f",
+    "semantic_hash": "9f91ee8e1c1232ebde61c64d7923038f"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\StoreLogo.png": {
+    "mtime": 1780633405.4085212,
+    "ast_hash": "387b412d411bbd532dd3302d3948bf0e",
+    "semantic_hash": "387b412d411bbd532dd3302d3948bf0e"
+  },
+  "C:\\Users\\mrkau\\Downloads\\jewellery-erp-main (1)\\jewellery-erp-main\\src-tauri\\icons\\icon.png": {
+    "mtime": 1780633405.4260998,
+    "ast_hash": "9fdc4367276aafdd2c05ac214e9553c7",
+    "semantic_hash": "9fdc4367276aafdd2c05ac214e9553c7"
+  }
+}
