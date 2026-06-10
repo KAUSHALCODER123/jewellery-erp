@@ -53,6 +53,8 @@ type CaptureTarget =
   | { kind: "loanField"; field: "customerPhotoPath" | "thumbprintPath" }
   | { kind: "collateral"; key: string };
 
+type GirviPrintLanguage = "en" | "mr" | "hi" | "gu";
+
 type ActiveLoan = {
   id: number;
   loan_number: string;
@@ -139,8 +141,11 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
   const [activeCaptureField, setActiveCaptureField] = useState<CaptureTarget | null>(null);
 
   // Localization for print documents
-  const [pavatiLanguage, setPavatiLanguage] = useState<"en" | "mr" | "hi">("en");
-  const [noticeLanguage, setNoticeLanguage] = useState<"en" | "mr" | "hi">("en");
+  const [pavatiLanguage, setPavatiLanguage] = useState<GirviPrintLanguage>("en");
+  const [noticeLanguage, setNoticeLanguage] = useState<GirviPrintLanguage>("en");
+
+  // Moneylending licence details printed on statements and statutory forms.
+  const [licenceForm, setLicenceForm] = useState({ number: "", authority: "", expiry: "" });
 
   // Closed (Settled) & Defaulted loan registries (Tab 3)
   const [settledLoans, setSettledLoans] = useState<ActiveLoan[]>([]);
@@ -191,6 +196,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
     void loadCustomers();
     void loadRates();
     void loadNextLoanNumber();
+    void loadLicence();
     reloadAllLoans();
   }, []);
 
@@ -309,6 +315,51 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       }
     } catch {
       setLiveGoldRateRupees("0.00");
+    }
+  }
+
+  async function loadLicence() {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/settings/moneylending-licence`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as {
+        moneylending_licence_number?: string;
+        moneylending_licence_authority?: string;
+        moneylending_licence_expiry?: string;
+      } | null;
+
+      if (response.ok && result) {
+        setLicenceForm({
+          number: result.moneylending_licence_number ?? "",
+          authority: result.moneylending_licence_authority ?? "",
+          expiry: result.moneylending_licence_expiry ?? ""
+        });
+      }
+    } catch {
+      // Licence stays editable with blank defaults.
+    }
+  }
+
+  async function saveLicence() {
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/settings/moneylending-licence`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({
+          moneylending_licence_number: licenceForm.number,
+          moneylending_licence_authority: licenceForm.authority,
+          moneylending_licence_expiry: licenceForm.expiry
+        })
+      });
+      const result = (await response.json().catch(() => null)) as { errors?: string[] } | null;
+      if (!response.ok) {
+        setError(result?.errors?.join(" ") || "Failed to save licence details.");
+        return;
+      }
+      setMessage("Moneylending licence details saved.");
+    } catch {
+      setError("Failed to save licence details.");
     }
   }
 
@@ -1032,12 +1083,13 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                     <div className="flex items-center gap-2">
                       <select
                         value={pavatiLanguage}
-                        onChange={(e) => setPavatiLanguage(e.target.value as "en" | "mr" | "hi")}
+                        onChange={(e) => setPavatiLanguage(e.target.value as GirviPrintLanguage)}
                         className="h-10 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none rounded"
                       >
                         <option value="en">English Pavati</option>
                         <option value="mr">मराठी (Marathi)</option>
                         <option value="hi">हिन्दी (Hindi)</option>
+                        <option value="gu">Gujarati Pavati</option>
                       </select>
                       <a
                         href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${selectedLoanId}/pavati?lang=${pavatiLanguage}`)}
@@ -1046,6 +1098,22 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                         className="inline-flex items-center justify-center px-4 h-10 bg-blue-600 hover:bg-blue-700 text-xs font-semibold uppercase text-slate-50 rounded"
                       >
                         🖨️ Print Pawn Ticket (A4)
+                      </a>
+                      <a
+                        href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${selectedLoanId}/statement`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center px-4 h-10 bg-slate-700 hover:bg-slate-600 text-xs font-semibold uppercase text-slate-50 rounded"
+                      >
+                        Account Statement
+                      </a>
+                      <a
+                        href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${selectedLoanId}/statutory/LOAN_DECLARATION`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center px-4 h-10 bg-slate-700 hover:bg-slate-600 text-xs font-semibold uppercase text-slate-50 rounded"
+                      >
+                        Statutory Form
                       </a>
                     </div>
                   )}
@@ -1072,6 +1140,31 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                         className="h-8 px-4 bg-red-600 hover:bg-red-700 text-xs font-semibold uppercase text-slate-50 rounded"
                       >
                         ⚠️ Mark As Defaulted
+                      </button>
+                    </div>
+                    <h3 className="mt-4 text-xs font-semibold uppercase text-slate-400 mb-2">Moneylending Licence (printed on statements &amp; forms)</h3>
+                    <div className="flex items-end gap-3 bg-slate-900/60 p-3 border border-slate-800 rounded">
+                      <div className="flex-1">
+                        <Field label="Licence No.">
+                          <input value={licenceForm.number} onChange={(e) => setLicenceForm({ ...licenceForm, number: e.target.value })} className={controlClassName} />
+                        </Field>
+                      </div>
+                      <div className="flex-1">
+                        <Field label="Issuing Authority">
+                          <input value={licenceForm.authority} onChange={(e) => setLicenceForm({ ...licenceForm, authority: e.target.value })} className={controlClassName} />
+                        </Field>
+                      </div>
+                      <div className="w-44">
+                        <Field label="Valid Till">
+                          <input type="date" value={licenceForm.expiry} onChange={(e) => setLicenceForm({ ...licenceForm, expiry: e.target.value })} className={controlClassName} />
+                        </Field>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={saveLicence}
+                        className="h-8 px-4 bg-slate-700 hover:bg-slate-600 text-xs font-semibold uppercase text-slate-50 rounded"
+                      >
+                        Save Licence
                       </button>
                     </div>
                   </div>
@@ -1223,12 +1316,13 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                           <div className="flex items-center gap-3 pt-2">
                             <select
                               value={noticeLanguage}
-                              onChange={(e) => setNoticeLanguage(e.target.value as "en" | "mr" | "hi")}
+                              onChange={(e) => setNoticeLanguage(e.target.value as GirviPrintLanguage)}
                               className="h-10 border border-slate-700 bg-slate-900 px-2 text-xs text-slate-50 outline-none rounded"
                             >
                               <option value="en">English Notice</option>
                               <option value="mr">मराठी (Marathi)</option>
                               <option value="hi">हिन्दी (Hindi)</option>
+                              <option value="gu">Gujarati Notice</option>
                             </select>
                             <a
                               href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${loan.id}/legal-notice?lang=${noticeLanguage}`)}
@@ -1276,12 +1370,13 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
               <div className="flex items-center gap-2">
                 <select
                   value={pavatiLanguage}
-                  onChange={(e) => setPavatiLanguage(e.target.value as "en" | "mr" | "hi")}
+                  onChange={(e) => setPavatiLanguage(e.target.value as GirviPrintLanguage)}
                   className="h-8 border border-slate-300 bg-white px-2 text-xs text-slate-50 outline-none rounded"
                 >
                   <option value="en">English Pavati</option>
                   <option value="mr">मराठी (Marathi)</option>
                   <option value="hi">हिन्दी (Hindi)</option>
+                  <option value="gu">Gujarati Pavati</option>
                 </select>
                 <a
                   href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${pavatiLoan.id}/pavati?lang=${pavatiLanguage}`)}
@@ -1294,10 +1389,11 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                 <button type="button" onClick={() => setPavatiLoan(null)} className="border border-slate-400 px-2 py-1 text-xs uppercase rounded">Close</button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-xs text-slate-900">
+            <div className="grid grid-cols-4 gap-3 text-xs text-slate-900">
               <ReceiptColumn title="English" loan={pavatiLoan.loanNumber} />
               <ReceiptColumn title="Marathi" loan={pavatiLoan.loanNumber} />
               <ReceiptColumn title="Hindi" loan={pavatiLoan.loanNumber} />
+              <ReceiptColumn title="Gujarati" loan={pavatiLoan.loanNumber} />
             </div>
           </div>
         </div>

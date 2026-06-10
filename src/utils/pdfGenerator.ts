@@ -808,26 +808,321 @@ export async function generateTemplateInvoice(invoiceData: InvoiceDocumentData, 
   });
 }
 
-export async function generateBarcodeLabel(item: LabelItemDocumentData, organizationData: OrganizationData, template: PrintTemplateData) {
+function buildBarcodeLabelContent(item: LabelItemDocumentData, organizationData: OrganizationData, template: PrintTemplateData) {
   const tokenMap: Record<string, string> = templateLabelTokenMap(item, organizationData);
   const fields = template.content.fields.length ? template.content.fields : ["item.barcode", "item.category", "item.purity", "item.netWeight"];
 
+  return [
+    ...(template.content.showHeader ? template.content.headerLines.map((line) => ({ text: templateText(line, tokenMap), bold: true, alignment: "center", margin: [0, 0, 0, 1] })) : []),
+    { canvas: templateBarcodeCanvas(item.barcode, template.page_size === "LABEL_50X25" ? 34 : 46), alignment: "center", margin: [0, 1, 0, 2] },
+    { text: item.barcode, alignment: "center", bold: true, fontSize: 8, margin: [0, 0, 0, 1] },
+    ...fields.filter((field) => field !== "item.barcode").map((field) => ({ text: tokenMap[field] ?? field, alignment: "center", noWrap: true })),
+    ...(template.content.showFooter && template.content.footerText ? [{ text: templateText(template.content.footerText, tokenMap), alignment: "center", margin: [0, 2, 0, 0] }] : [])
+  ];
+}
+
+export async function generateBarcodeLabel(item: LabelItemDocumentData, organizationData: OrganizationData, template: PrintTemplateData) {
   return createPdfBuffer({
     pageSize: templatePdfPageSize(template.page_size),
     pageMargins: [6, 5, 6, 5],
     defaultStyle: { font: "Roboto", fontSize: template.page_size === "LABEL_50X25" ? 6 : 8 },
-    content: [
-      ...(template.content.showHeader ? template.content.headerLines.map((line) => ({ text: templateText(line, tokenMap), bold: true, alignment: "center", margin: [0, 0, 0, 1] })) : []),
-      { canvas: templateBarcodeCanvas(item.barcode, template.page_size === "LABEL_50X25" ? 34 : 46), alignment: "center", margin: [0, 1, 0, 2] },
-      { text: item.barcode, alignment: "center", bold: true, fontSize: 8, margin: [0, 0, 0, 1] },
-      ...fields.filter((field) => field !== "item.barcode").map((field) => ({ text: tokenMap[field] ?? field, alignment: "center", noWrap: true })),
-      ...(template.content.showFooter && template.content.footerText ? [{ text: templateText(template.content.footerText, tokenMap), alignment: "center", margin: [0, 2, 0, 0] }] : [])
-    ]
+    content: buildBarcodeLabelContent(item, organizationData, template)
+  });
+}
+
+// One PDF, one label page per item — used by the "Print All Labels" batch action.
+export async function generateBarcodeLabelBatch(labelItems: LabelItemDocumentData[], organizationData: OrganizationData, template: PrintTemplateData) {
+  return createPdfBuffer({
+    pageSize: templatePdfPageSize(template.page_size),
+    pageMargins: [6, 5, 6, 5],
+    defaultStyle: { font: "Roboto", fontSize: template.page_size === "LABEL_50X25" ? 6 : 8 },
+    content: labelItems.map((item, index) => ({
+      stack: buildBarcodeLabelContent(item, organizationData, template),
+      ...(index < labelItems.length - 1 ? { pageBreak: "after" as const } : {})
+    }))
   });
 }
 
 async function createPdfBuffer(documentDefinition: unknown) {
   return Buffer.from(await pdfMake.createPdf(documentDefinition).getBuffer());
+}
+
+export type GirviStatementEntry = {
+  payment_date: string;
+  amount_paise: number;
+  interest_allocated_paise: number;
+  principal_allocated_paise: number;
+  discount_paise: number;
+  fees_paid_paise: number;
+};
+
+export type GirviStatementData = {
+  loan_number: string;
+  issue_date: string;
+  status: string;
+  interest_rate_percentage: number;
+  interest_type: string;
+  rate_period: string;
+  principal_amount_paise: number;
+  customer: { name: string; phone: string | null; address: string | null };
+  collateral_summary: { pieces: number; total_net_weight_mg: number };
+  from_date: string | null;
+  to_date: string | null;
+  as_of_date: string;
+  entries: GirviStatementEntry[];
+  totals: {
+    total_repaid_paise: number;
+    total_interest_paid_paise: number;
+    total_principal_paid_paise: number;
+    total_discount_paise: number;
+  };
+  outstanding_principal_paise: number;
+  accrued_interest_paise: number;
+  outstanding_fees_paise: number;
+  total_due_paise: number;
+  moneylending_licence_number?: string | null;
+};
+
+// Yearly/periodic account statement for a girvi loan — the customer-facing ledger of
+// principal, repayments, interest accrued and balance, required by moneylending audits.
+export async function generateGirviAccountStatement(data: GirviStatementData, org: OrganizationData) {
+  const rupees = (paise: number) => `Rs ${(paise / 100).toFixed(2)}`;
+
+  const entryRows = data.entries.map((entry) => [
+    { text: entry.payment_date, fontSize: 8 },
+    { text: rupees(entry.amount_paise), alignment: "right", fontSize: 8 },
+    { text: rupees(entry.interest_allocated_paise), alignment: "right", fontSize: 8 },
+    { text: rupees(entry.principal_allocated_paise), alignment: "right", fontSize: 8 },
+    { text: rupees(entry.discount_paise), alignment: "right", fontSize: 8 },
+    { text: rupees(entry.fees_paid_paise), alignment: "right", fontSize: 8 }
+  ]);
+
+  return createPdfBuffer({
+    pageSize: "A4",
+    pageMargins: [28, 32, 28, 36],
+    defaultStyle: { font: "Roboto", fontSize: 9 },
+    styles: {
+      shopName: { fontSize: 14, bold: true },
+      title: { fontSize: 13, bold: true, alignment: "center" },
+      tableHeader: { bold: true, fillColor: "#e2e8f0", color: "#0f172a", fontSize: 8 },
+      meta: { fontSize: 8.5 }
+    },
+    content: [
+      {
+        columns: [
+          {
+            width: "*",
+            stack: [
+              { text: org.shop_name, style: "shopName" },
+              { text: org.address, style: "meta", margin: [0, 2, 0, 0] },
+              { text: `Phone: ${org.contact_number}${data.moneylending_licence_number ? ` | Licence: ${data.moneylending_licence_number}` : ""}`, style: "meta" }
+            ]
+          },
+          {
+            width: 170,
+            stack: [
+              { text: "GIRVI ACCOUNT STATEMENT", style: "title" },
+              { text: `Period: ${data.from_date ?? data.issue_date}  to  ${data.to_date ?? data.as_of_date}`, fontSize: 8, alignment: "center", color: "#475569", margin: [0, 3, 0, 0] }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 10]
+      },
+      {
+        table: {
+          widths: ["auto", "*", "auto", "*"],
+          body: [
+            [
+              { text: "Loan No.", style: "tableHeader" }, { text: data.loan_number, fontSize: 8 },
+              { text: "Customer", style: "tableHeader" }, { text: `${data.customer.name}${data.customer.phone ? ` (${data.customer.phone})` : ""}`, fontSize: 8 }
+            ],
+            [
+              { text: "Issue Date", style: "tableHeader" }, { text: data.issue_date, fontSize: 8 },
+              { text: "Address", style: "tableHeader" }, { text: data.customer.address ?? "-", fontSize: 8 }
+            ],
+            [
+              { text: "Principal", style: "tableHeader" }, { text: rupees(data.principal_amount_paise), fontSize: 8 },
+              { text: "Interest", style: "tableHeader" }, { text: `${data.interest_rate_percentage}% ${data.rate_period} (${data.interest_type})`, fontSize: 8 }
+            ],
+            [
+              { text: "Collateral", style: "tableHeader" }, { text: `${data.collateral_summary.pieces} piece(s), net ${(data.collateral_summary.total_net_weight_mg / 1000).toFixed(3)} g`, fontSize: 8 },
+              { text: "Status", style: "tableHeader" }, { text: data.status, fontSize: 8 }
+            ]
+          ]
+        },
+        layout: "lightHorizontalLines",
+        margin: [0, 0, 0, 10]
+      },
+      { text: "Repayments in period", bold: true, fontSize: 10, margin: [0, 0, 0, 4] },
+      {
+        table: {
+          headerRows: 1,
+          widths: ["auto", "*", "*", "*", "*", "*"],
+          body: [
+            ["Date", "Amount", "Interest", "Principal", "Discount", "Fees"].map((heading) => ({ text: heading, style: "tableHeader" })),
+            ...(entryRows.length ? entryRows : [[{ text: "No repayments in this period", colSpan: 6, fontSize: 8, color: "#64748b" }, {}, {}, {}, {}, {}]])
+          ]
+        },
+        layout: "lightHorizontalLines",
+        margin: [0, 0, 0, 10]
+      },
+      {
+        table: {
+          widths: ["*", "auto"],
+          body: [
+            [{ text: "Total repaid", fontSize: 8 }, { text: rupees(data.totals.total_repaid_paise), alignment: "right", fontSize: 8 }],
+            [{ text: "Interest paid", fontSize: 8 }, { text: rupees(data.totals.total_interest_paid_paise), alignment: "right", fontSize: 8 }],
+            [{ text: "Principal repaid", fontSize: 8 }, { text: rupees(data.totals.total_principal_paid_paise), alignment: "right", fontSize: 8 }],
+            [{ text: "Discount allowed", fontSize: 8 }, { text: rupees(data.totals.total_discount_paise), alignment: "right", fontSize: 8 }],
+            [{ text: `Outstanding principal (as of ${data.as_of_date})`, fontSize: 8, bold: true }, { text: rupees(data.outstanding_principal_paise), alignment: "right", fontSize: 8, bold: true }],
+            [{ text: "Accrued interest due", fontSize: 8, bold: true }, { text: rupees(data.accrued_interest_paise), alignment: "right", fontSize: 8, bold: true }],
+            [{ text: "Fees due", fontSize: 8 }, { text: rupees(data.outstanding_fees_paise), alignment: "right", fontSize: 8 }],
+            [{ text: "TOTAL DUE", fontSize: 9, bold: true }, { text: rupees(data.total_due_paise), alignment: "right", fontSize: 9, bold: true }]
+          ]
+        },
+        layout: "lightHorizontalLines"
+      },
+      { text: "This is a computer-generated statement. E&OE.", fontSize: 7, color: "#64748b", margin: [0, 10, 0, 0] }
+    ]
+  });
+}
+
+export type StatutoryFormPdfData = {
+  code: string;
+  title: string;
+  field_rows: Array<[string, string]>;
+  collateral_rows: Array<[string, string, string, string]>;
+  paragraphs: string[];
+};
+
+// Renders a declarative statutory moneylending form (see src/girvi/statutoryForms.ts).
+export async function generateGirviStatutoryForm(data: StatutoryFormPdfData, org: OrganizationData) {
+  return createPdfBuffer({
+    pageSize: "A4",
+    pageMargins: [28, 32, 28, 36],
+    defaultStyle: { font: "Roboto", fontSize: 9 },
+    styles: {
+      title: { fontSize: 13, bold: true, alignment: "center" },
+      tableHeader: { bold: true, fillColor: "#e2e8f0", color: "#0f172a", fontSize: 8 }
+    },
+    content: [
+      { text: org.shop_name, fontSize: 14, bold: true, alignment: "center" },
+      { text: org.address, fontSize: 8.5, alignment: "center", margin: [0, 2, 0, 8] },
+      { text: data.title, style: "title", margin: [0, 0, 0, 2] },
+      { text: `Form code: ${data.code}`, fontSize: 7.5, alignment: "center", color: "#64748b", margin: [0, 0, 0, 10] },
+      {
+        table: {
+          widths: ["auto", "*"],
+          body: data.field_rows.map(([label, value]) => [
+            { text: label, style: "tableHeader" },
+            { text: value, fontSize: 8.5 }
+          ])
+        },
+        layout: "lightHorizontalLines",
+        margin: [0, 0, 0, 10]
+      },
+      ...(data.collateral_rows.length
+        ? [
+            { text: "Pledged articles", bold: true, fontSize: 10, margin: [0, 0, 0, 4] },
+            {
+              table: {
+                headerRows: 1,
+                widths: ["*", "auto", "auto", "auto"],
+                body: [
+                  ["Description", "Metal / Purity", "Net Weight (g)", "Valuation"].map((heading) => ({ text: heading, style: "tableHeader" })),
+                  ...data.collateral_rows.map((row) => row.map((cell) => ({ text: cell, fontSize: 8 })))
+                ]
+              },
+              layout: "lightHorizontalLines",
+              margin: [0, 0, 0, 10]
+            }
+          ]
+        : []),
+      ...data.paragraphs.map((paragraph) => ({ text: paragraph, fontSize: 8.5, margin: [0, 4, 0, 0], alignment: "justify" })),
+      {
+        columns: [
+          { text: "Signature of Borrower", fontSize: 8.5, margin: [0, 40, 0, 0] },
+          { text: "Signature of Licensee", fontSize: 8.5, alignment: "right", margin: [0, 40, 0, 0] }
+        ]
+      }
+    ]
+  });
+}
+
+export type GstrReportSection = {
+  heading: string;
+  columns: string[];
+  rows: Array<Array<string | number>>;
+  boldLastRow?: boolean;
+};
+
+export type GstrReportData = {
+  title: string;
+  period_from: string | null;
+  period_to: string | null;
+  sections: GstrReportSection[];
+};
+
+// Generic tabular GST-return PDF (GSTR-1 HSN, GSTR-3B) for filing hand-off to the CA.
+export async function generateGstrReportPdf(data: GstrReportData, org: OrganizationData) {
+  const sectionBlocks = data.sections.flatMap((section) => [
+    { text: section.heading, bold: true, fontSize: 10, margin: [0, 8, 0, 4] },
+    {
+      table: {
+        headerRows: 1,
+        widths: section.columns.map(() => "*"),
+        body: [
+          section.columns.map((column) => ({ text: column, style: "tableHeader" })),
+          ...(section.rows.length
+            ? section.rows.map((row, rowIndex) =>
+                row.map((cell) => ({
+                  text: String(cell),
+                  fontSize: 8,
+                  bold: Boolean(section.boldLastRow && rowIndex === section.rows.length - 1)
+                }))
+              )
+            : [[{ text: "No data for this period", colSpan: section.columns.length, fontSize: 8, color: "#64748b" }, ...section.columns.slice(1).map(() => ({}))]])
+        ]
+      },
+      layout: "lightHorizontalLines"
+    }
+  ]);
+
+  return createPdfBuffer({
+    pageSize: "A4",
+    pageOrientation: "landscape",
+    pageMargins: [28, 32, 28, 36],
+    defaultStyle: { font: "Roboto", fontSize: 9 },
+    styles: {
+      shopName: { fontSize: 14, bold: true },
+      title: { fontSize: 13, bold: true, alignment: "center" },
+      tableHeader: { bold: true, fillColor: "#e2e8f0", color: "#0f172a", fontSize: 8 },
+      meta: { fontSize: 8.5 }
+    },
+    content: [
+      {
+        columns: [
+          {
+            width: "*",
+            stack: [
+              { text: org.shop_name, style: "shopName" },
+              { text: org.address, style: "meta", margin: [0, 2, 0, 0] },
+              { text: `GSTIN: ${org.gstin ?? "-"} | Phone: ${org.contact_number}`, style: "meta" }
+            ]
+          },
+          {
+            width: 200,
+            stack: [
+              { text: data.title, style: "title" },
+              { text: `Period: ${data.period_from ?? "beginning"}  to  ${data.period_to ?? "today"}`, fontSize: 8, alignment: "center", color: "#475569", margin: [0, 3, 0, 0] }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 6]
+      },
+      ...sectionBlocks
+    ]
+  });
 }
 
 export type CustomerStatementEntry = {
@@ -1335,6 +1630,36 @@ const LOCALIZED_LABELS: Record<string, Record<string, string>> = {
     photoHeader: "फोटो",
     authSign: "साहूकार के हस्ताक्षर",
     borrowerSign: "ऋणदाता के हस्ताक्षर"
+  },
+  gu: {
+    pawnTicket: "ગિરવી પાવતી (Pawn Ticket)",
+    borrowerDetails: "કરજદાર / ગ્રાહક વિગતો",
+    name: "નામ (Name)",
+    phone: "ફોન (Phone)",
+    address: "સરનામું (Address)",
+    pan: "PAN નંબર",
+    aadhaar: "આધાર નંબર",
+    photo: "ફોટો",
+    thumbprint: "અંગૂઠાનો નિશાન",
+    loanTerms: "લોનની શરતો",
+    principal: "મૂળ રકમ (Principal)",
+    interestRate: "વ્યાજ દર (Interest Rate)",
+    interestPeriod: "વ્યાજ અવધિ",
+    interestType: "વ્યાજનો પ્રકાર",
+    letterFee: "લોન પત્ર ફી",
+    noticeFee: "નોટિસ ફી",
+    nextDue: "આગામી ચુકવણી તારીખ",
+    collateralTitle: "ગિરવી રાખેલા દાગીના",
+    sno: "ક્રમ",
+    desc: "દાગીનાનું વર્ણન",
+    metal: "ધાતુ (Metal)",
+    purity: "શુદ્ધતા (Purity)",
+    weight: "વજન (Weight)",
+    grossWeight: "કુલ વજન (Gross)",
+    netWeight: "ચોખ્ખું વજન (Net)",
+    photoHeader: "ફોટો",
+    authSign: "અધિકૃત સહી",
+    borrowerSign: "કરજદારની સહી"
   }
 };
 
@@ -1343,6 +1668,11 @@ export async function generateGirviPavati(loanData: GirviLoanDocumentData, organ
   const thumbprintBase64 = getImageBase64(loanData.thumbprint_path);
   
   const labels = LOCALIZED_LABELS[lang] ?? LOCALIZED_LABELS.en;
+  const documentFont = lang === "gu"
+    ? fontForLanguage("gujarati")
+    : lang === "mr" || lang === "hi"
+      ? fontForLanguage(lang === "mr" ? "marathi" : "hindi")
+      : "Roboto";
 
   const customerPhotoCell = customerPhotoBase64
     ? { image: customerPhotoBase64, fit: [70, 70], alignment: "center" }
@@ -1375,7 +1705,7 @@ export async function generateGirviPavati(loanData: GirviLoanDocumentData, organ
   return createPdfBuffer({
     pageSize: "A4",
     pageMargins: [36, 40, 36, 40],
-    defaultStyle: { font: "Roboto", fontSize: 9 },
+    defaultStyle: { font: documentFont, fontSize: 9 },
     styles: {
       title: { fontSize: 16, bold: true, alignment: "center" },
       shopName: { fontSize: 14, bold: true },
@@ -1703,6 +2033,8 @@ export type GirviNoticeDocumentData = GirviLoanDocumentData & {
 export async function generateGirviLegalNotice(noticeData: GirviNoticeDocumentData, organizationData: OrganizationData, lang = "en") {
   const isMr = lang === "mr";
   const isHi = lang === "hi";
+  const isGu = lang === "gu";
+  const documentFont = isGu ? fontForLanguage("gujarati") : isMr || isHi ? fontForLanguage(isMr ? "marathi" : "hindi") : "Roboto";
 
   const title = isMr 
     ? "गहाण थकबाकी अंतिम चेतावणी नोटीस" 
@@ -1713,6 +2045,11 @@ export async function generateGirviLegalNotice(noticeData: GirviNoticeDocumentDa
   const noticeDateLabel = isMr ? "नोटीस तारीख" : isHi ? "नोटिस तिथि" : "Notice Date";
   const loanNumLabel = isMr ? "गहाण क्रमांक" : isHi ? "गिरवी संख्या" : "Pawn Ticket No";
   const issueDateLabel = isMr ? "तारीख" : isHi ? "ऋण तिथि" : "Issue Date";
+
+  const noticeTitle = isGu ? "ગિરવી લોન ચુકવણી અંતિમ ચેતવણી નોટિસ" : title;
+  const resolvedNoticeDateLabel = isGu ? "નોટિસ તારીખ" : noticeDateLabel;
+  const resolvedLoanNumLabel = isGu ? "ગિરવી પાવતી નંબર" : loanNumLabel;
+  const resolvedIssueDateLabel = isGu ? "લોન તારીખ" : issueDateLabel;
 
   const letterBody = isMr
     ? `प्रिय ${noticeData.customer.name},\n\n` +
@@ -1741,12 +2078,23 @@ export async function generateGirviLegalNotice(noticeData: GirviNoticeDocumentDa
         `• Total Outstanding Balance: ${formatPaise(noticeData.total_due_paise)}\n\n` +
         `Please be advised that you are required to clear the entire outstanding balance within 15 days from the date of this notice to redeem your collateral. Failure to settle this account will result in the public auction of your pledged articles as per government regulations.`;
 
+  const resolvedLetterBody = isGu
+    ? `પ્રિય ${noticeData.customer.name},\n\n` +
+      `આ ગિરવી ખાતા નંબર ${noticeData.loan_number} અંગેની કાનૂની નોટિસ છે. આ લોન ${formatDate(noticeData.issue_date)}ના રોજ સોના/ચાંદીના દાગીના સામે આપવામાં આવી હતી.\n\n` +
+      `હાલના હિસાબ મુજબ તમારી લોન બાકી અને મુદતવીતી છે:\n` +
+      `• બાકી મૂળ રકમ: ${formatPaise(noticeData.outstanding_principal_paise)}\n` +
+      `• બાકી વ્યાજ: ${formatPaise(noticeData.accrued_interest_paise)}\n` +
+      `• નોટિસ અને વહીવટી ફી: ${formatPaise(noticeData.notice_fee_paise + noticeData.loan_letter_fee_paise)}\n` +
+      `• કુલ બાકી રકમ: ${formatPaise(noticeData.total_due_paise)}\n\n` +
+      `આ નોટિસ મળ્યાથી 15 દિવસની અંદર સંપૂર્ણ બાકી રકમ ચૂકવી ગિરવી દાગીના છોડાવી લેવા જણાવવામાં આવે છે. સમયસર ચુકવણી ન થાય તો નિયમ મુજબ ગિરવી દાગીનાનો જાહેર હરાજી દ્વારા નિકાલ કરવામાં આવશે.`
+    : letterBody;
+
   return createPdfBuffer({
     pageSize: "A4",
     pageMargins: [36, 40, 36, 40],
-    defaultStyle: { font: "Roboto", fontSize: 10, lineHeight: 1.3 },
+    defaultStyle: { font: documentFont, fontSize: 10, lineHeight: 1.3 },
     content: [
-      { text: title, fontSize: 15, bold: true, alignment: "center", color: "#b91c1c", margin: [0, 0, 0, 15] },
+      { text: noticeTitle, fontSize: 15, bold: true, alignment: "center", color: "#b91c1c", margin: [0, 0, 0, 15] },
       {
         columns: [
           {
@@ -1762,9 +2110,9 @@ export async function generateGirviLegalNotice(noticeData: GirviNoticeDocumentDa
             table: {
               widths: [80, "*"],
               body: [
-                metaRow(noticeDateLabel, formatDate(noticeData.notice_date)),
-                metaRow(loanNumLabel, noticeData.loan_number),
-                metaRow(issueDateLabel, formatDate(noticeData.issue_date))
+                metaRow(resolvedNoticeDateLabel, formatDate(noticeData.notice_date)),
+                metaRow(resolvedLoanNumLabel, noticeData.loan_number),
+                metaRow(resolvedIssueDateLabel, formatDate(noticeData.issue_date))
               ]
             },
             layout: "lightHorizontalLines"
@@ -1773,7 +2121,7 @@ export async function generateGirviLegalNotice(noticeData: GirviNoticeDocumentDa
         margin: [0, 0, 0, 20]
       },
       { canvas: [{ type: "line", x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 1, strokeColor: "#cbd5e1" }], margin: [0, 0, 0, 15] },
-      { text: letterBody, whiteSpace: "pre-line", margin: [0, 10, 0, 20] },
+      { text: resolvedLetterBody, whiteSpace: "pre-line", margin: [0, 10, 0, 20] },
       { text: isMr ? "गहाण ठेवलेल्या दागिन्यांची यादी:" : isHi ? "गिरवी रखे आभूषणों की सूची:" : "Pledged Collateral Inventory:", bold: true, margin: [0, 10, 0, 6] },
       {
         table: {

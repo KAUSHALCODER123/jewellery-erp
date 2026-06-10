@@ -212,6 +212,14 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
     }
   }
 
+  function printAllLabels() {
+    const targetTemplateId = labelTemplates.find((template) => template.is_default)?.id ?? labelTemplates[0]?.id;
+    if (targetTemplateId && createdItems.length > 0) {
+      const ids = createdItems.map((item) => item.id).join(",");
+      window.open(withDocumentToken(`${apiBaseUrl}/api/documents/labels/batch/${targetTemplateId}?ids=${ids}`), "_blank", "noopener,noreferrer");
+    }
+  }
+
   async function createBarcodes(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -512,9 +520,20 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
               </Field>
             </div>
 
-            <button type="submit" className="h-9 bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400">
-              Create Barcode Tags
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="submit" className="h-9 bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400">
+                Create Barcode Tags
+              </button>
+              {createdItems.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={printAllLabels}
+                  className="h-9 border border-emerald-500 px-4 text-xs font-bold uppercase text-emerald-300 hover:bg-emerald-500/10"
+                >
+                  Print All Labels ({createdItems.length})
+                </button>
+              ) : null}
+            </div>
           </form>
 
           <div className="min-h-0 overflow-auto border border-slate-800">
@@ -590,7 +609,10 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
           </div>
 
           <div className="grid min-h-0 grid-cols-2 gap-3">
-            <VerificationTable title="Missing Tags" items={summary?.missing_items ?? []} tone="missing" />
+            <VerificationBoard
+              foundItems={summary?.found_items ?? []}
+              missingItems={summary?.missing_items ?? []}
+            />
             <div className="min-h-0 overflow-auto border border-slate-800">
               <div className="sticky top-0 border-b border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase text-slate-50">Scan Log</div>
               <table className="w-full text-left text-xs">
@@ -779,21 +801,37 @@ function Metric({ label, value, tone = "neutral" }: { label: string; value: stri
   );
 }
 
-function VerificationTable({ title, items, tone }: { title: string; items: InventoryItem[]; tone: "missing" }) {
+function VerificationBoard({ foundItems, missingItems }: { foundItems: InventoryItem[]; missingItems: InventoryItem[] }) {
+  const rows = [
+    ...foundItems.map((item) => ({ item, auditStatus: "FOUND" as const })),
+    ...missingItems.map((item) => ({ item, auditStatus: "MISSING" as const }))
+  ].sort((left, right) => left.item.barcode.localeCompare(right.item.barcode));
+
   return (
     <div className="min-h-0 overflow-auto border border-slate-800">
-      <div className="sticky top-0 border-b border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase text-slate-50">{title}</div>
+      <div className="sticky top-0 border-b border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase text-slate-50">Expected Stock Status</div>
       <table className="w-full text-left text-xs">
+        <thead className="sticky top-8 bg-slate-950 text-[10px] uppercase text-slate-500">
+          <tr>
+            <th className="px-2 py-1.5">Tag</th>
+            <th className="px-2 py-1.5">Item</th>
+            <th className="px-2 py-1.5">Net</th>
+            <th className="px-2 py-1.5">Audit</th>
+          </tr>
+        </thead>
         <tbody>
-          {items.map((item) => (
-            <tr key={item.id} className="border-b border-slate-900">
-              <td className={`px-2 py-2 font-mono ${tone === "missing" ? "text-red-300" : "text-emerald-300"}`}>{item.barcode}</td>
+          {rows.map(({ item, auditStatus }) => (
+            <tr
+              key={`${auditStatus}-${item.id}`}
+              className={`border-b border-slate-900 ${auditStatus === "FOUND" ? "bg-emerald-950/20" : "bg-red-950/25"}`}
+            >
+              <td className={`px-2 py-2 font-mono font-semibold ${auditStatus === "FOUND" ? "text-emerald-300" : "text-red-300"}`}>{item.barcode}</td>
               <td className="px-2 py-2">{item.category} {item.purity_karat}K {item.metal_type}</td>
               <td className="px-2 py-2 font-mono">{item.net_weight_g}</td>
-              <td className="px-2 py-2">{item.status}</td>
+              <td className={`px-2 py-2 font-semibold ${auditStatus === "FOUND" ? "text-emerald-300" : "text-red-300"}`}>{auditStatus}</td>
             </tr>
           ))}
-          {items.length === 0 && <tr><td className="px-3 py-8 text-center text-slate-500">No items.</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-500">Start a session to load expected stock.</td></tr>}
         </tbody>
       </table>
     </div>

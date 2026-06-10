@@ -7,7 +7,7 @@ type AccountsDayBookModuleProps = {
   apiBaseUrl?: string;
 };
 
-type ActiveTab = "daybook" | "udhari" | "vouchers" | "ledger_reports" | "financials";
+type ActiveTab = "daybook" | "expenses" | "udhari" | "vouchers" | "ledger_reports" | "financials";
 
 type FinancialsResponse = {
   from: string;
@@ -58,6 +58,24 @@ type DaybookResponse = {
   entries: DaybookEntry[];
 };
 
+type ExpenseRow = {
+  id: number;
+  expense_date: string;
+  category: string;
+  description: string | null;
+  amount_paise: number;
+  amount_rupees?: string;
+  payment_mode: "CASH" | "BANK";
+};
+
+type ExpensesResponse = {
+  date: string;
+  expenses: ExpenseRow[];
+  total_paise: number;
+  cash_total_paise: number;
+  bank_total_paise: number;
+};
+
 type UdhariRow = {
   ledger_id: number;
   customer_id: number | null;
@@ -82,6 +100,14 @@ type VoucherForm = {
   amountPaise: number;
   narration: string;
   voucherDate: string;
+};
+
+type ExpenseForm = {
+  expenseDate: string;
+  category: string;
+  description: string;
+  amountRupees: string;
+  paymentMode: "CASH" | "BANK";
 };
 
 type LedgerReportEntry = {
@@ -148,11 +174,22 @@ const initialVoucher = (): VoucherForm => ({
   voucherDate: getToday()
 });
 
+const initialExpense = (): ExpenseForm => ({
+  expenseDate: getToday(),
+  category: "Shop Maintenance",
+  description: "",
+  amountRupees: "",
+  paymentMode: "CASH"
+});
+
 export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBookModuleProps) {
   const { session } = useAuthSession();
   const [activeTab, setActiveTab] = useState<ActiveTab>("daybook");
   const [selectedDate, setSelectedDate] = useState(getToday());
   const [daybook, setDaybook] = useState<DaybookResponse>(initialDaybook);
+  const [expenseDate, setExpenseDate] = useState(getToday());
+  const [expenses, setExpenses] = useState<ExpensesResponse | null>(null);
+  const [expenseForm, setExpenseForm] = useState<ExpenseForm>(initialExpense());
   const [udhari, setUdhari] = useState<UdhariRow[]>([]);
   const [ledgers, setLedgers] = useState<LedgerOption[]>([]);
   const [voucher, setVoucher] = useState<VoucherForm>(initialVoucher());
@@ -192,10 +229,20 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
       void loadUdhari();
     }
 
+    if (activeTab === "expenses") {
+      void loadExpenses(expenseDate);
+    }
+
     if (activeTab === "vouchers" || activeTab === "ledger_reports") {
       void loadLedgerOptions();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "expenses") {
+      void loadExpenses(expenseDate);
+    }
+  }, [activeTab, expenseDate]);
 
   useEffect(() => {
     if (activeTab === "ledger_reports" && ledgers.length > 0 && !reportLedgerId) {
@@ -262,6 +309,22 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
       setUdhari(result.udhari);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load Udhari ledger.");
+    }
+  }
+
+  async function loadExpenses(date: string) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/accounts/expenses?date=${encodeURIComponent(date)}`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as ExpensesResponse | { errors?: string[] } | null;
+
+      if (!response.ok || !result || "errors" in result) {
+        throw new Error(getErrorMessage(result, "Could not load expenses."));
+      }
+
+      setExpenses(result as ExpensesResponse);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not load expenses.");
+      setExpenses(null);
     }
   }
 
@@ -404,6 +467,45 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
     }
   }
 
+  async function saveExpense(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    const amountPaise = rupeesInputToPaise(expenseForm.amountRupees);
+    if (!expenseForm.category.trim() || amountPaise <= 0) {
+      setError("Expense category and positive amount are required.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/accounts/expenses`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expense_date: expenseForm.expenseDate,
+          category: expenseForm.category.trim(),
+          description: expenseForm.description.trim() || null,
+          amount_paise: amountPaise,
+          payment_mode: expenseForm.paymentMode
+        })
+      });
+      const result = (await response.json().catch(() => null)) as { errors?: string[] } | null;
+
+      if (!response.ok) {
+        throw new Error(getErrorMessage(result, "Could not save expense."));
+      }
+
+      setMessage("Expense saved and posted to the day book.");
+      setExpenseDate(expenseForm.expenseDate);
+      setExpenseForm((current) => ({ ...initialExpense(), expenseDate: current.expenseDate }));
+      void loadExpenses(expenseForm.expenseDate);
+      void loadDaybook(selectedDate);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save expense.");
+    }
+  }
+
   async function sendReminder(row: UdhariRow) {
     setError("");
     setMessage("");
@@ -507,6 +609,7 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
           </button>
           <nav className="flex border border-slate-700 text-xs">
             <TabButton active={activeTab === "daybook"} onClick={() => setActiveTab("daybook")}>Daily Day Book</TabButton>
+            <TabButton active={activeTab === "expenses"} onClick={() => setActiveTab("expenses")}>Expenses</TabButton>
             <TabButton active={activeTab === "udhari"} onClick={() => setActiveTab("udhari")}>Udhari (Debtors) Ledger</TabButton>
             <TabButton active={activeTab === "vouchers"} onClick={() => setActiveTab("vouchers")}>Manual Vouchers</TabButton>
             <TabButton active={activeTab === "ledger_reports"} onClick={() => setActiveTab("ledger_reports")}>Ledger Statements</TabButton>
@@ -545,6 +648,17 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
             totalOutstandingPaise={totalUdhariPaise}
             onSendReminder={sendReminder}
             onViewStatement={(row) => { if (row.ledger_id) viewCustomerStatement(row.ledger_id); }}
+          />
+        )}
+
+        {activeTab === "expenses" && (
+          <ExpensesView
+            date={expenseDate}
+            setDate={setExpenseDate}
+            expenses={expenses}
+            form={expenseForm}
+            setForm={setExpenseForm}
+            onSubmit={saveExpense}
           />
         )}
 
@@ -717,6 +831,119 @@ function UdhariView({
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function ExpensesView({
+  date,
+  setDate,
+  expenses,
+  form,
+  setForm,
+  onSubmit
+}: {
+  date: string;
+  setDate: (date: string) => void;
+  expenses: ExpensesResponse | null;
+  form: ExpenseForm;
+  setForm: (form: ExpenseForm) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <div className="grid h-full grid-cols-[360px_1fr] overflow-hidden">
+      <form onSubmit={onSubmit} className="grid content-start gap-3 border-r border-slate-800 bg-slate-900 p-3">
+        <div>
+          <h2 className="text-sm font-semibold uppercase text-slate-50">Kharch Master</h2>
+          <p className="text-xs text-slate-400">Daily cash and bank outflows for final till matching</p>
+        </div>
+        <Field label="Expense Date">
+          <input
+            type="date"
+            value={form.expenseDate}
+            onChange={(event) => setForm({ ...form, expenseDate: event.target.value })}
+            className={wideControlClassName}
+          />
+        </Field>
+        <Field label="Category">
+          <select
+            value={form.category}
+            onChange={(event) => setForm({ ...form, category: event.target.value })}
+            className={wideControlClassName}
+          >
+            <option>Shop Maintenance</option>
+            <option>Electricity Bill</option>
+            <option>Staff Refreshments</option>
+            <option>Courier</option>
+            <option>Rent</option>
+            <option>Miscellaneous</option>
+          </select>
+        </Field>
+        <Field label="Amount (Rs)">
+          <input
+            value={form.amountRupees}
+            onChange={(event) => setForm({ ...form, amountRupees: event.target.value.replace(/[^\d.]/g, "") })}
+            inputMode="decimal"
+            className={wideControlClassName}
+          />
+        </Field>
+        <Field label="Paid From">
+          <select
+            value={form.paymentMode}
+            onChange={(event) => setForm({ ...form, paymentMode: event.target.value as ExpenseForm["paymentMode"] })}
+            className={wideControlClassName}
+          >
+            <option value="CASH">Cash</option>
+            <option value="BANK">Bank</option>
+          </select>
+        </Field>
+        <Field label="Narration">
+          <textarea
+            value={form.description}
+            onChange={(event) => setForm({ ...form, description: event.target.value })}
+            className={`${wideControlClassName} min-h-20 py-2`}
+          />
+        </Field>
+        <button type="submit" className="h-9 bg-emerald-500 px-4 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400">
+          Save Expense
+        </button>
+      </form>
+
+      <div className="grid min-h-0 grid-rows-[auto_auto_1fr] overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900 px-3 py-2">
+          <label className="text-xs font-semibold uppercase text-slate-400">View Date</label>
+          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className={controlClassName} />
+        </div>
+        <div className="grid grid-cols-3 border-b border-slate-800">
+          <MetricBox label="Total Kharch" value={formatPaise(expenses?.total_paise ?? 0)} tone="payment" />
+          <MetricBox label="Cash Outflow" value={formatPaise(expenses?.cash_total_paise ?? 0)} tone="payment" />
+          <MetricBox label="Bank Outflow" value={formatPaise(expenses?.bank_total_paise ?? 0)} />
+        </div>
+        <div className="min-h-0 overflow-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="sticky top-0 bg-slate-900 text-slate-400">
+              <tr>
+                {["Category", "Narration", "Mode", "Amount"].map((heading) => (
+                  <th key={heading} className="border-b border-slate-800 px-2 py-2 font-semibold uppercase">{heading}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(expenses?.expenses ?? []).map((expense) => (
+                <tr key={expense.id} className="border-b border-slate-900 transition-colors hover:bg-slate-900/50">
+                  <td className="px-2 py-2 font-semibold text-slate-100">{expense.category}</td>
+                  <td className="px-2 py-2 text-slate-300">{expense.description ?? "-"}</td>
+                  <td className="px-2 py-2 font-mono text-slate-300">{expense.payment_mode}</td>
+                  <td className="px-2 py-2 font-mono font-semibold text-red-300">{formatPaise(expense.amount_paise)}</td>
+                </tr>
+              ))}
+              {(expenses?.expenses ?? []).length === 0 && (
+                <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-500">No expenses recorded for this date.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
