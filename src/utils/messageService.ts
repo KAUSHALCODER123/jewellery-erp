@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { messageTemplates, messageLogs, organizationSettings } from "../db/schema.js";
 
@@ -47,6 +47,11 @@ const defaultTemplates = [
     name: "BIRTHDAY_WISHES",
     channel: "WHATSAPP",
     content: "Happy Birthday, {{customer_name}}! Wishing you joy and prosperity. From {{shop_name}}."
+  },
+  {
+    name: "ANNIVERSARY_WISHES",
+    channel: "WHATSAPP",
+    content: "Happy Anniversary, {{customer_name}}! Warm wishes from all of us at {{shop_name}}."
   }
 ];
 
@@ -114,6 +119,24 @@ export function triggerMessage(
     console.error("[Messenger] Failed to trigger message:", error);
     return null;
   }
+}
+
+// True if a SENT message for this customer+template already exists on the given
+// date — used to make automated greetings idempotent (one send per occasion/day).
+export function wasMessageSentOn(customerId: number, templateName: string, dateStr: string): boolean {
+  const existing = db
+    .select({ id: messageLogs.id })
+    .from(messageLogs)
+    .where(
+      and(
+        eq(messageLogs.customer_id, customerId),
+        eq(messageLogs.template_name, templateName),
+        eq(messageLogs.status, "SENT"),
+        sql`date(${messageLogs.created_at}) = ${dateStr}`
+      )
+    )
+    .get();
+  return Boolean(existing);
 }
 
 export function getWhatsAppLink(phone: string, text: string): string {

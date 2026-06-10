@@ -608,11 +608,11 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
             Export Tally
           </button>
           <nav className="flex border border-slate-700 text-xs">
-            <TabButton active={activeTab === "daybook"} onClick={() => setActiveTab("daybook")}>Daily Day Book</TabButton>
-            <TabButton active={activeTab === "expenses"} onClick={() => setActiveTab("expenses")}>Expenses</TabButton>
+            <TabButton active={activeTab === "daybook"} onClick={() => setActiveTab("daybook")}>Daily Day Book (Rokad / रोकड)</TabButton>
+            <TabButton active={activeTab === "expenses"} onClick={() => setActiveTab("expenses")}>Expenses (Kharch / खर्च)</TabButton>
             <TabButton active={activeTab === "udhari"} onClick={() => setActiveTab("udhari")}>Udhari (Debtors) Ledger</TabButton>
             <TabButton active={activeTab === "vouchers"} onClick={() => setActiveTab("vouchers")}>Manual Vouchers</TabButton>
-            <TabButton active={activeTab === "ledger_reports"} onClick={() => setActiveTab("ledger_reports")}>Ledger Statements</TabButton>
+            <TabButton active={activeTab === "ledger_reports"} onClick={() => setActiveTab("ledger_reports")}>Ledger Statements (Khatauni / खतावणी)</TabButton>
             <TabButton active={activeTab === "financials"} onClick={() => setActiveTab("financials")}>Financials (P&amp;L / Balance Sheet)</TabButton>
           </nav>
         </div>

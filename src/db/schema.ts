@@ -53,6 +53,21 @@ export const customers = sqliteTable("customers", {
   opening_balance_type: text("opening_balance_type", { enum: ["DEBIT", "CREDIT"] }).notNull().default("DEBIT"),
   // Maximum udhari (credit) the shop allows this customer; 0 = no limit set.
   credit_limit_paise: integer("credit_limit_paise").notNull().default(0),
+  // Blacklisted customers cannot take girvi loans or buy on udhari (cash sales stay allowed).
+  is_blacklisted: integer("is_blacklisted", { mode: "boolean" }).notNull().default(false),
+  blacklist_reason: text("blacklist_reason"),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+// Metal-wise opening balances (fine weight owed to/by the customer), separate from
+// the monetary opening balance — jewellers routinely carry gold/silver weight accounts.
+export const customerMetalBalances = sqliteTable("customer_metal_balances", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  customer_id: integer("customer_id").notNull().references(() => customers.id),
+  metal_type: text("metal_type").notNull(),
+  fine_weight_mg: integer("fine_weight_mg").notNull().default(0),
+  direction: text("direction", { enum: ["TO_RECEIVE", "TO_PAY"] }).notNull().default("TO_RECEIVE"),
+  notes: text("notes"),
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
@@ -99,7 +114,9 @@ export const items = sqliteTable("items", {
   // Catalog dimensions: weight-priced jewellery vs fixed per-piece articles (coins, etc.).
   sale_mode: text("sale_mode", { enum: ["WEIGHT_WISE", "QUANTITY_WISE"] }).notNull().default("WEIGHT_WISE"),
   uom: text("uom", { enum: ["GRAM", "CARAT", "PIECE"] }).notNull().default("GRAM"),
-  unit_price_paise: integer("unit_price_paise").notNull().default(0)
+  unit_price_paise: integer("unit_price_paise").notNull().default(0),
+  // LOOSE = untagged bulk stock (e.g. a LOT-mode purchase line); TAGGED = barcoded piece.
+  stock_form: text("stock_form", { enum: ["TAGGED", "LOOSE"] }).notNull().default("TAGGED")
 });
 
 export const itemGroups = sqliteTable("item_groups", {
@@ -376,6 +393,18 @@ export const suppliers = sqliteTable("suppliers", {
   gstin: text("gstin"),
   address: text("address"),
   is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  opening_balance_paise: integer("opening_balance_paise").notNull().default(0),
+  opening_balance_type: text("opening_balance_type", { enum: ["DEBIT", "CREDIT"] }).notNull().default("CREDIT"),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const supplierMetalBalances = sqliteTable("supplier_metal_balances", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  supplier_id: integer("supplier_id").notNull().references(() => suppliers.id),
+  metal_type: text("metal_type").notNull(),
+  fine_weight_mg: integer("fine_weight_mg").notNull().default(0),
+  direction: text("direction", { enum: ["TO_RECEIVE", "TO_PAY"] }).notNull().default("TO_RECEIVE"),
+  notes: text("notes"),
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
@@ -392,6 +421,8 @@ export const purchaseInvoices = sqliteTable("purchase_invoices", {
   payment_reference: text("payment_reference"),
   gross_total_paise: integer("gross_total_paise").notNull(),
   gst_amount_paise: integer("gst_amount_paise").notNull().default(0),
+  tds_percent: real("tds_percent").notNull().default(0),
+  tds_amount_paise: integer("tds_amount_paise").notNull().default(0),
   total_amount_paise: integer("total_amount_paise").notNull(),
   status: text("status", { enum: ["DRAFT", "POSTED", "CANCELLED", "CONVERTED"] }).notNull().default("POSTED"),
   created_by: integer("created_by").references(() => users.id),
@@ -480,7 +511,7 @@ export const purchaseReturnLines = sqliteTable("purchase_return_lines", {
 export const kycVault = sqliteTable("kyc_vault", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   customer_id: integer("customer_id").notNull().references(() => customers.id),
-  document_type: text("document_type", { enum: ["PAN", "AADHAAR", "PASSPORT", "DRIVING_LICENSE"] }).notNull(),
+  document_type: text("document_type", { enum: ["PAN", "AADHAAR", "PASSPORT", "DRIVING_LICENSE", "VOTER_ID"] }).notNull(),
   document_number_masked: text("document_number_masked").notNull(),
   document_image_path: text("document_image_path"),
   uploaded_at: text("uploaded_at").default(sql`CURRENT_TIMESTAMP`),
@@ -547,6 +578,14 @@ export const organizationSettings = sqliteTable("organization_settings", {
   loyalty_earn_mode: text("loyalty_earn_mode", { enum: ["PER_HUNDRED_RUPEES", "PER_GRAM_GOLD"] }).notNull().default("PER_HUNDRED_RUPEES"),
   loyalty_points_per_gram_gold: integer("loyalty_points_per_gram_gold").notNull().default(1),
   print_language: text("print_language").notNull().default("english"),
+  // Moneylending (girvi) licence details printed on statutory forms and statements.
+  moneylending_licence_number: text("moneylending_licence_number"),
+  moneylending_licence_authority: text("moneylending_licence_authority"),
+  moneylending_licence_expiry: text("moneylending_licence_expiry"),
+  // Statutory redemption period (months) — drives a pledge's auction-eligible date.
+  girvi_redemption_months: integer("girvi_redemption_months").notNull().default(12),
+  // When on, a daily worker auto-sends birthday/anniversary greetings.
+  auto_greetings_enabled: integer("auto_greetings_enabled", { mode: "boolean" }).notNull().default(false),
   updated_at: text("updated_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
@@ -660,6 +699,8 @@ export const girviLoans = sqliteTable("girvi_loans", {
   status: text("status", { enum: ["ACTIVE", "SETTLED", "DEFAULTED"] }).notNull().default("ACTIVE"),
   total_repaid_paise: integer("total_repaid_paise").notNull().default(0),
   next_due_date: text("next_due_date"),
+  // Date after which an unredeemed pledge may be auctioned (statutory redemption period).
+  redemption_deadline: text("redemption_deadline"),
   created_by: integer("created_by").references(() => users.id)
 });
 

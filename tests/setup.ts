@@ -52,6 +52,8 @@ import {
   huidLifecycleEvents,
   gstAuditPeriodLocks,
   customers,
+  customerMetalBalances,
+  supplierMetalBalances,
   gssReceipts,
   gssAccounts,
   gssTemplates,
@@ -133,6 +135,7 @@ beforeEach(async () => {
   db.delete(salesReturns).run();
   db.delete(purchaseInvoiceLines).run();
   db.delete(purchaseInvoices).run();
+  db.delete(supplierMetalBalances).run();
   db.delete(suppliers).run();
   db.delete(quotationLines).run();
   db.delete(quotations).run();
@@ -163,6 +166,7 @@ beforeEach(async () => {
   db.delete(printTemplates).run();
   db.delete(auditLogs).run();
   db.delete(expenses).run();
+  db.delete(customerMetalBalances).run();
   db.delete(customers).run();
   db.delete(tokenBlacklist).run();
   db.delete(items).run();

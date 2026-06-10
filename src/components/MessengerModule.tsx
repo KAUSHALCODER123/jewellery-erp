@@ -66,6 +66,7 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
   const [composeChannel, setComposeChannel] = useState<"WHATSAPP" | "SMS">("WHATSAPP");
   const [composeSending, setComposeSending] = useState(false);
   const [composeWhatsAppLink, setComposeWhatsAppLink] = useState("");
+  const [autoGreetings, setAutoGreetings] = useState(false);
 
   const authHeaders = {
     Authorization: `Bearer ${session?.token ?? ""}`,
@@ -75,7 +76,55 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
   useEffect(() => {
     void loadTemplates();
     void loadLogs();
+    void loadAutoGreetings();
   }, []);
+
+  async function loadAutoGreetings() {
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/messenger/auto-greetings`, { headers: authHeaders });
+      const result = (await res.json().catch(() => null)) as { auto_greetings_enabled?: boolean } | null;
+      if (res.ok && result) setAutoGreetings(Boolean(result.auto_greetings_enabled));
+    } catch {
+      // Toggle stays off; non-fatal.
+    }
+  }
+
+  async function toggleAutoGreetings(next: boolean) {
+    setError("");
+    setMessage("");
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/messenger/auto-greetings`, {
+        method: "PUT",
+        headers: authHeaders,
+        body: JSON.stringify({ auto_greetings_enabled: next })
+      });
+      const result = (await res.json().catch(() => null)) as { auto_greetings_enabled?: boolean; errors?: string[] } | null;
+      if (!res.ok) throw new Error(result?.errors?.join(" ") || "Failed to update auto-greetings.");
+      setAutoGreetings(Boolean(result?.auto_greetings_enabled));
+      setMessage(next ? "Automated birthday & anniversary greetings enabled." : "Automated greetings disabled.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update auto-greetings.");
+    }
+  }
+
+  async function runAutoGreetingsNow() {
+    setError("");
+    setMessage("");
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/messenger/auto-greetings/run`, { method: "POST", headers: authHeaders });
+      const result = (await res.json().catch(() => null)) as { result?: { enabled: boolean; birthdays_sent: number; anniversaries_sent: number; skipped_already_sent: number }; errors?: string[] } | null;
+      if (!res.ok) throw new Error(result?.errors?.join(" ") || "Failed to run greetings.");
+      const r = result?.result;
+      if (r && !r.enabled) {
+        setMessage("Automated greetings are disabled — enable the toggle first.");
+      } else if (r) {
+        setMessage(`Sent ${r.birthdays_sent} birthday, ${r.anniversaries_sent} anniversary greeting(s). ${r.skipped_already_sent} already sent today.`);
+      }
+      void loadLogs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run greetings.");
+    }
+  }
 
   useEffect(() => {
     if (activeTab === "reminders") {
@@ -319,7 +368,26 @@ export default function MessengerModule({ apiBaseUrl = "" }: MessengerModuleProp
         )}
 
         {activeTab === "reminders" && (
-          <div className="grid h-full grid-rows-[auto_1fr] p-4 gap-3">
+          <div className="grid h-full grid-rows-[auto_auto_1fr] p-4 gap-3">
+            <div className={`flex items-center justify-between gap-3 rounded border p-3 ${autoGreetings ? "border-emerald-600 bg-emerald-950/30" : "border-slate-700 bg-slate-900/60"}`}>
+              <div>
+                <p className="text-xs font-bold uppercase text-slate-200">Automated Birthday &amp; Anniversary Greetings</p>
+                <p className="text-[11px] text-slate-400">When on, a daily worker auto-sends wishes to customers on their special day — no manual action. Idempotent (one send per occasion per day).</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={runAutoGreetingsNow}
+                  className="h-8 px-3 rounded border border-slate-600 bg-slate-800 text-[11px] font-semibold uppercase text-slate-200 hover:bg-slate-700"
+                >
+                  Run Now
+                </button>
+                <label className="flex items-center gap-2 text-[11px] font-semibold uppercase text-slate-300">
+                  <input type="checkbox" checked={autoGreetings} onChange={(e) => toggleAutoGreetings(e.target.checked)} className="h-4 w-4 accent-emerald-500" />
+                  {autoGreetings ? "Enabled" : "Disabled"}
+                </label>
+              </div>
+            </div>
             <div className="flex gap-2 border-b border-slate-800 pb-3 items-center justify-between">
               <div className="flex border border-slate-700 text-xs">
                 <button onClick={() => setReminderType("birthdays")} className={`h-8 px-4 font-semibold uppercase ${reminderType === "birthdays" ? "bg-emerald-500 text-slate-50" : "bg-slate-950 text-slate-300"}`}>

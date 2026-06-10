@@ -82,6 +82,17 @@ function parseScaleSocketMessage(data: unknown): ScaleSocketMessage | null {
   }
 }
 
+// In the packaged desktop app the page origin (tauri.localhost) is not the
+// backend, so the socket URL must be derived from apiBaseUrl rather than
+// window.location.
+export function scaleSocketUrl(apiBaseUrl: string) {
+  if (apiBaseUrl) {
+    return `${apiBaseUrl.replace(/^http/, "ws")}/ws/scale`;
+  }
+
+  return defaultScaleSocketUrl();
+}
+
 function defaultScaleSocketUrl() {
   if (typeof window === "undefined") {
     return "ws://localhost:4000/ws/scale";

@@ -144,7 +144,22 @@ export function startScheduler() {
   if (process.env.NODE_ENV === "test" && process.env.PLAYWRIGHT !== "true") {
     return;
   }
+  failOrphanedBackupLogs();
   reschedule();
+}
+
+// A backup interrupted by the process being killed (e.g. the desktop shell
+// stops the sidecar while an exit backup is still running) leaves its log row
+// stuck in UPLOADING. Nothing can still be uploading at boot, so mark them failed.
+function failOrphanedBackupLogs() {
+  db.update(backupLogs)
+    .set({
+      status: "FAILED",
+      error_message: "Interrupted — the application stopped before this backup finished.",
+      completed_at: new Date().toISOString()
+    })
+    .where(eq(backupLogs.status, "UPLOADING"))
+    .run();
 }
 
 export function stopScheduler() {

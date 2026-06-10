@@ -1,5 +1,5 @@
 import { desc, eq, sql } from "drizzle-orm";
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import { addMonths, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { Router } from "express";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
@@ -61,6 +61,53 @@ girviRouter.get("/next-loan-number", (_request, response) => {
   return response.json({ loan_number: nextLoanNumber() });
 });
 
+// Loans past their statutory redemption period — the worklist for issuing auction
+// notices before liquidating unredeemed pledges. Drives the "Auction Due" panel and
+// the batch auction-notice PDF.
+girviRouter.get("/auction-due", (request, response) => {
+  const asOf = typeof request.query.as_of === "string" && /^\d{4}-\d{2}-\d{2}$/.test(request.query.as_of)
+    ? request.query.as_of
+    : new Date().toISOString().slice(0, 10);
+
+  const settings = db.query.organizationSettings.findFirst().sync();
+  const redemptionMonths = settings?.girvi_redemption_months ?? 12;
+
+  const rows = db
+    .select({ loan: girviLoans, customer_name: customers.name, phone: customers.phone })
+    .from(girviLoans)
+    .leftJoin(customers, eq(girviLoans.customer_id, customers.id))
+    .where(eq(girviLoans.status, "ACTIVE"))
+    .all();
+
+  const due = rows
+    .map((row) => {
+      const deadline =
+        row.loan.redemption_deadline ??
+        format(addMonths(parseISO(row.loan.issue_date), redemptionMonths), "yyyy-MM-dd");
+      if (deadline >= asOf) return null;
+
+      const breakdown = calculateRepaymentBreakdown(row.loan, asOf);
+      return {
+        loan_id: row.loan.id,
+        loan_number: row.loan.loan_number,
+        customer_id: row.loan.customer_id,
+        customer_name: row.customer_name ?? "Customer",
+        phone: row.phone,
+        issue_date: row.loan.issue_date,
+        redemption_deadline: deadline,
+        days_overdue: Math.max(differenceInCalendarDays(parseISO(asOf), parseISO(deadline)), 0),
+        outstanding_principal_paise: breakdown.outstanding_principal_paise,
+        accrued_interest_paise: breakdown.accrued_interest_paise,
+        total_due_paise: breakdown.total_due_paise,
+        total_due_rupees: paiseToRupees(breakdown.total_due_paise)
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .sort((left, right) => right.days_overdue - left.days_overdue);
+
+  return response.json({ as_of: asOf, count: due.length, loans: due });
+});
+
 girviRouter.post("/issue", requireAdmin, (request, response) => {
   const authUser = (request as AuthenticatedRequest).user;
   const validation = validateIssuePayload(request.body);
@@ -75,6 +122,12 @@ girviRouter.post("/issue", requireAdmin, (request, response) => {
 
   if (!customer) {
     return response.status(404).json({ errors: ["Customer not found."] });
+  }
+
+  if (customer.is_blacklisted) {
+    return response.status(422).json({
+      errors: [`Customer is blacklisted${customer.blacklist_reason ? `: ${customer.blacklist_reason}` : ""}. Loans cannot be issued.`]
+    });
   }
 
   const duplicateLoan = db.query.girviLoans.findFirst({
@@ -134,6 +187,11 @@ girviRouter.post("/issue", requireAdmin, (request, response) => {
         thumbprint_path: validation.issue.thumbprintPath,
         issue_date: validation.issue.issueDate,
         next_due_date: validation.issue.nextDueDate,
+        // Default the auction-eligible date to issue date + the shop's statutory
+        // redemption period when the caller doesn't supply one explicitly.
+        redemption_deadline:
+          validation.issue.redemptionDeadline ??
+          format(addMonths(parseISO(validation.issue.issueDate), settings.girvi_redemption_months ?? 12), "yyyy-MM-dd"),
         created_by: authUser.id,
         status: "ACTIVE",
         total_repaid_paise: 0
@@ -629,6 +687,7 @@ function validateIssuePayload(body: unknown): IssueValidation {
     : null;
   const issueDate = requiredDate(body.issue_date, "issue_date", errors);
   const nextDueDate = optionalDate(body.next_due_date, "next_due_date", errors);
+  const redemptionDeadline = optionalDate(body.redemption_deadline, "redemption_deadline", errors);
   const collateral = Array.isArray(body.collateral)
     ? body.collateral.map((item, index) => validateCollateral(item, index, errors))
     : [];
@@ -670,6 +729,7 @@ function validateIssuePayload(body: unknown): IssueValidation {
       thumbprintPath,
       issueDate,
       nextDueDate,
+      redemptionDeadline,
       collateral
     }
   };
@@ -743,6 +803,7 @@ type IssueValidation =
         thumbprintPath: string | null;
         issueDate: string;
         nextDueDate: string | null;
+        redemptionDeadline: string | null;
         collateral: CollateralPayload[];
       };
     }

@@ -44,6 +44,14 @@ fn append_sidecar_log(message: impl AsRef<str>) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        // Must be the first plugin. A second launch would spawn a second backend
+        // that dies on the busy port and then piggyback on this instance's
+        // backend — which dies with this window. Focus the existing window instead.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_focus();
+            }
+        }))
         .manage(SidecarState(Mutex::new(None)))
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {

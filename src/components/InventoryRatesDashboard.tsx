@@ -77,6 +77,12 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [showKeyEditor, setShowKeyEditor] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
+  const [looseTagged, setLooseTagged] = useState<{
+    totals: {
+      loose: { pieces: number; net_weight_mg: number };
+      tagged: { pieces: number; net_weight_mg: number };
+    };
+  } | null>(null);
   const isAdmin = session?.user.role === "ADMIN";
 
   const authHeaders = useMemo(
@@ -90,7 +96,18 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
     void loadRates();
     void loadInventory();
     void loadRateProvider();
+    void loadLooseTagged();
   }, []);
+
+  async function loadLooseTagged() {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/reports/stock/loose-vs-tagged`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as typeof looseTagged & { errors?: string[] } | null;
+      if (response.ok && result?.totals) setLooseTagged(result);
+    } catch {
+      // Strip simply stays hidden; report endpoint is ADMIN/MANAGER-only.
+    }
+  }
 
   const metrics = useMemo(() => {
     const inStockItems = items.filter((item) => item.status === "IN_STOCK");
@@ -356,7 +373,7 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
         )}
       </form>
 
-      <main className="grid min-h-0 grid-rows-[auto_auto_1fr]">
+      <main className="grid min-h-0 grid-rows-[auto_auto_auto_1fr]">
         <div className="grid grid-cols-3 gap-3 border-b border-slate-800 bg-slate-950 p-3">
           <MetricCard label="Items In-Stock" icon={Boxes} accent="sky">
             <CountUp value={metrics.inStockCount} />
@@ -368,6 +385,18 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
             <CountUp value={metrics.totalSilverWeightG} format={(n) => `${n.toFixed(3)} g`} />
           </MetricCard>
         </div>
+
+        {looseTagged && (looseTagged.totals.loose.pieces > 0 || looseTagged.totals.tagged.pieces > 0) && (
+          <div className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-400">
+            <span className="font-semibold uppercase">Loose vs Tagged Stock:</span>
+            <span>
+              Tagged — <span className="font-mono text-slate-200">{looseTagged.totals.tagged.pieces} pcs · {(looseTagged.totals.tagged.net_weight_mg / 1000).toFixed(3)} g net</span>
+            </span>
+            <span>
+              Loose — <span className="font-mono text-amber-300">{looseTagged.totals.loose.pieces} lot(s) · {(looseTagged.totals.loose.net_weight_mg / 1000).toFixed(3)} g net</span>
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 border-b border-slate-800 bg-slate-900 p-2">
           <FilterInput placeholder="Search barcode/HUID" value={filters.search} onChange={(search) => updateFilters({ ...filters, search })} />

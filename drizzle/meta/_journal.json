@@ -351,6 +351,20 @@
       "when": 1780902300000,
       "tag": "0049_gold_api_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1780902400000,
+      "tag": "0050_competitor_parity",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "6",
+      "when": 1780902500000,
+      "tag": "0051_girvi_redemption_auto_greetings",
+      "breakpoints": true
     }
   ]
 }

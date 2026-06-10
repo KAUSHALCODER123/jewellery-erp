@@ -55,6 +55,8 @@ type PaymentState = {
   cash: string;
   upi: string;
   card: string;
+  cheque: string;
+  neft: string;
   udhari: string;
 };
 
@@ -88,6 +90,8 @@ const emptyPayments: PaymentState = {
   cash: "",
   upi: "",
   card: "",
+  cheque: "",
+  neft: "",
   udhari: ""
 };
 
@@ -842,10 +846,14 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           <PaymentInput label="Cash" value={payments.cash} onChange={(cash) => setPayments({ ...payments, cash })} />
           <PaymentInput label="UPI" value={payments.upi} onChange={(upi) => setPayments({ ...payments, upi })} />
           <PaymentInput label="Card" value={payments.card} onChange={(card) => setPayments({ ...payments, card })} />
+          <PaymentInput label="Cheque" value={payments.cheque} onChange={(cheque) => setPayments({ ...payments, cheque })} />
+          <PaymentInput label="NEFT" value={payments.neft} onChange={(neft) => setPayments({ ...payments, neft })} />
           <PaymentInput label="Udhari" value={payments.udhari} onChange={(udhari) => setPayments({ ...payments, udhari })} />
           <input placeholder="Bank name" value={paymentReferences.bankName} onChange={(event) => setPaymentReferences({ ...paymentReferences, bankName: event.target.value })} className={controlClassName} />
           <input placeholder="UPI Ref" value={paymentReferences.upiReference} onChange={(event) => setPaymentReferences({ ...paymentReferences, upiReference: event.target.value })} className={controlClassName} />
-          <input placeholder="Card / Cheque / NEFT Ref" value={paymentReferences.cardReference || paymentReferences.chequeReference || paymentReferences.neftReference} onChange={(event) => setPaymentReferences({ ...paymentReferences, cardReference: event.target.value, chequeReference: event.target.value, neftReference: event.target.value })} className={controlClassName} />
+          <input placeholder="Card Ref" value={paymentReferences.cardReference} onChange={(event) => setPaymentReferences({ ...paymentReferences, cardReference: event.target.value })} className={controlClassName} />
+          <input placeholder="Cheque No." value={paymentReferences.chequeReference} onChange={(event) => setPaymentReferences({ ...paymentReferences, chequeReference: event.target.value })} className={controlClassName} />
+          <input placeholder="NEFT Ref" value={paymentReferences.neftReference} onChange={(event) => setPaymentReferences({ ...paymentReferences, neftReference: event.target.value })} className={controlClassName} />
         </section>
 
         <section className="grid content-start gap-2 py-3">
@@ -1104,7 +1112,13 @@ function calculateTotals(
   const boundedLoyaltyRedeemPaise = Math.min(Math.max(loyaltyRedeemPaise, 0), netAfterGssPaise);
   const netPayablePaise = Math.max(netAfterGssPaise - boundedLoyaltyRedeemPaise, 0);
   const cashPaidPaise = rupeesToPaise(payments.cash);
-  const paidPaise = cashPaidPaise + rupeesToPaise(payments.upi) + rupeesToPaise(payments.card) + rupeesToPaise(payments.udhari);
+  const paidPaise =
+    cashPaidPaise +
+    rupeesToPaise(payments.upi) +
+    rupeesToPaise(payments.card) +
+    rupeesToPaise(payments.cheque) +
+    rupeesToPaise(payments.neft) +
+    rupeesToPaise(payments.udhari);
 
   return {
     grossTotalPaise,
@@ -1221,6 +1235,8 @@ function buildCheckoutPayload({
       cash: rupeesToPaise(payments.cash),
       upi: rupeesToPaise(payments.upi),
       card: rupeesToPaise(payments.card),
+      cheque: rupeesToPaise(payments.cheque),
+      neft: rupeesToPaise(payments.neft),
       udhari: rupeesToPaise(payments.udhari),
       gss_credit: totals.gssCreditAppliedPaise
     },

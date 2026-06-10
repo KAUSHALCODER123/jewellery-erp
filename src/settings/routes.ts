@@ -483,6 +483,63 @@ settingsRouter.put("/tally", requireAuth, requireAdmin, (request, response) => {
   });
 });
 
+// --- Moneylending (girvi) licence — printed on statutory forms and statements ---
+
+settingsRouter.get("/moneylending-licence", requireAuth, (_request, response) => {
+  const settings = db.query.organizationSettings.findFirst().sync();
+
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  return response.json({
+    moneylending_licence_number: settings.moneylending_licence_number ?? "",
+    moneylending_licence_authority: settings.moneylending_licence_authority ?? "",
+    moneylending_licence_expiry: settings.moneylending_licence_expiry ?? ""
+  });
+});
+
+settingsRouter.put("/moneylending-licence", requireAuth, requireAdmin, (request, response) => {
+  const body = request.body as {
+    moneylending_licence_number?: string;
+    moneylending_licence_authority?: string;
+    moneylending_licence_expiry?: string;
+  };
+
+  const settings = db.query.organizationSettings.findFirst().sync();
+
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  const updates: Partial<typeof organizationSettings.$inferInsert> = {};
+  if (typeof body.moneylending_licence_number === "string") {
+    updates.moneylending_licence_number = body.moneylending_licence_number.trim() || null;
+  }
+  if (typeof body.moneylending_licence_authority === "string") {
+    updates.moneylending_licence_authority = body.moneylending_licence_authority.trim() || null;
+  }
+  if (typeof body.moneylending_licence_expiry === "string") {
+    updates.moneylending_licence_expiry = body.moneylending_licence_expiry.trim() || null;
+  }
+
+  db.update(organizationSettings)
+    .set({
+      ...updates,
+      updated_at: sql`CURRENT_TIMESTAMP`
+    })
+    .where(eq(organizationSettings.id, settings.id))
+    .run();
+
+  const refreshed = db.query.organizationSettings.findFirst().sync();
+
+  return response.json({
+    moneylending_licence_number: refreshed?.moneylending_licence_number ?? "",
+    moneylending_licence_authority: refreshed?.moneylending_licence_authority ?? "",
+    moneylending_licence_expiry: refreshed?.moneylending_licence_expiry ?? ""
+  });
+});
+
 // --- Firms / Company Entities (multi-firm) ---
 
 const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;

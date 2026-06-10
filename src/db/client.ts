@@ -77,7 +77,9 @@ function writeCrashLog(error: unknown) {
     const crashDir = path.join(os.homedir(), ".shree-erp");
     fs.mkdirSync(crashDir, { recursive: true });
     const detail = error instanceof Error ? error.stack ?? error.message : String(error);
-    fs.writeFileSync(path.join(crashDir, "crash_log.txt"), `[${new Date().toISOString()}]\n${detail}\n`, "utf8");
+    // Append — the Tauri shell logs launch context to the same file, and a
+    // crash must not wipe it.
+    fs.appendFileSync(path.join(crashDir, "crash_log.txt"), `[${new Date().toISOString()}]\n${detail}\n`, "utf8");
   } catch {
     // Avoid masking the original database startup error.
   }

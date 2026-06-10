@@ -2152,6 +2152,134 @@ export async function generateGirviLegalNotice(noticeData: GirviNoticeDocumentDa
   });
 }
 
+export type GirviAuctionNoticeData = GirviNoticeDocumentData & {
+  redemption_deadline: string;
+  auction_after_date: string;
+};
+
+// Formal "Item Notice / Auction Warning" for a pledge that has crossed its
+// statutory redemption period, issued before the jeweller may auction the
+// collateral. Multilingual (en/mr/hi/gu).
+export async function generateGirviAuctionNotice(noticeData: GirviAuctionNoticeData, organizationData: OrganizationData, lang = "en") {
+  return createPdfBuffer({
+    pageSize: "A4",
+    pageMargins: [36, 40, 36, 40],
+    defaultStyle: { font: auctionNoticeFont(lang), fontSize: 10, lineHeight: 1.3 },
+    content: buildAuctionNoticeContent(noticeData, organizationData, lang)
+  });
+}
+
+// One PDF, one auction notice per page — for the "Print All Notices" batch action.
+export async function generateGirviAuctionNoticeBatch(
+  notices: Array<{ noticeData: GirviAuctionNoticeData; lang: string }>,
+  organizationData: OrganizationData
+) {
+  return createPdfBuffer({
+    pageSize: "A4",
+    pageMargins: [36, 40, 36, 40],
+    defaultStyle: { font: "Roboto", fontSize: 10, lineHeight: 1.3 },
+    content: notices.flatMap((notice, index) => [
+      { stack: buildAuctionNoticeContent(notice.noticeData, organizationData, notice.lang) },
+      ...(index < notices.length - 1 ? [{ text: "", pageBreak: "after" as const }] : [])
+    ])
+  });
+}
+
+function auctionNoticeFont(lang: string) {
+  return lang === "gu" ? fontForLanguage("gujarati") : lang === "mr" ? fontForLanguage("marathi") : lang === "hi" ? fontForLanguage("hindi") : "Roboto";
+}
+
+function buildAuctionNoticeContent(noticeData: GirviAuctionNoticeData, organizationData: OrganizationData, lang = "en") {
+  const isMr = lang === "mr";
+  const isHi = lang === "hi";
+  const isGu = lang === "gu";
+
+  const title = isMr
+    ? "गहाण दागिने लिलाव पूर्व सूचना"
+    : isHi
+      ? "गिरवी वस्तु नीलामी पूर्व सूचना"
+      : isGu
+        ? "ગિરવી દાગીના હરાજી પૂર્વ સૂચના"
+        : "ITEM NOTICE — PLEDGE PAST REDEMPTION, AUCTION WARNING";
+
+  const noticeDateLabel = isMr ? "नोटीस तारीख" : isHi ? "नोटिस तिथि" : isGu ? "નોટિસ તારીખ" : "Notice Date";
+  const loanNumLabel = isMr ? "गहाण क्रमांक" : isHi ? "गिरवी संख्या" : isGu ? "ગિરવી પાવતી નંબર" : "Pawn Ticket No";
+  const deadlineLabel = isMr ? "सोडवणूक मुदत" : isHi ? "मोचन अवधि" : isGu ? "છોડાવવાની મુદત" : "Redemption Deadline";
+
+  const body = isMr
+    ? `प्रिय ${noticeData.customer.name},\n\n` +
+      `आपण कर्ज क्रमांक ${noticeData.loan_number} अन्वये तारीख ${formatDate(noticeData.issue_date)} रोजी दागिने गहाण ठेवले होते. या गहाणाची सोडवणूक मुदत ${formatDate(noticeData.redemption_deadline)} रोजी संपली असून दागिने अद्याप सोडवलेले नाहीत.\n\n` +
+      `आजपर्यंतची एकूण थकबाकी: ${formatPaise(noticeData.total_due_paise)}\n\n` +
+      `याद्वारे आपणास अंतिम सूचना देण्यात येते की, दिनांक ${formatDate(noticeData.auction_after_date)} पर्यंत संपूर्ण थकबाकी भरून दागिने सोडवून घ्यावेत. अन्यथा, सावकारी कायद्यानुसार सदर दागिन्यांचा जाहीर लिलाव करण्यात येईल, याची नोंद घ्यावी.`
+    : isHi
+      ? `प्रिय ${noticeData.customer.name},\n\n` +
+        `आपने ऋण संख्या ${noticeData.loan_number} के तहत दिनांक ${formatDate(noticeData.issue_date)} को आभूषण गिरवी रखे थे। इस गिरवी की मोचन अवधि ${formatDate(noticeData.redemption_deadline)} को समाप्त हो चुकी है और आभूषण अब तक नहीं छुड़ाए गए हैं।\n\n` +
+        `आज तक की कुल बकाया राशि: ${formatPaise(noticeData.total_due_paise)}\n\n` +
+        `आपको यह अंतिम सूचना दी जाती है कि दिनांक ${formatDate(noticeData.auction_after_date)} तक संपूर्ण बकाया चुकाकर आभूषण छुड़ा लें। अन्यथा नियमानुसार गिरवी आभूषणों की सार्वजनिक नीलामी कर दी जाएगी।`
+      : isGu
+        ? `પ્રિય ${noticeData.customer.name},\n\n` +
+          `તમે લોન નંબર ${noticeData.loan_number} હેઠળ તારીખ ${formatDate(noticeData.issue_date)}ના રોજ દાગીના ગિરવી મૂક્યા હતા. આ ગિરવીની છોડાવવાની મુદત ${formatDate(noticeData.redemption_deadline)}ના રોજ પૂરી થઈ ગઈ છે અને દાગીના હજુ છોડાવ્યા નથી.\n\n` +
+          `આજ સુધીની કુલ બાકી રકમ: ${formatPaise(noticeData.total_due_paise)}\n\n` +
+          `આથી અંતિમ સૂચના આપવામાં આવે છે કે તારીખ ${formatDate(noticeData.auction_after_date)} સુધીમાં સંપૂર્ણ બાકી રકમ ચૂકવી દાગીના છોડાવી લો. અન્યથા નિયમ મુજબ ગિરવી દાગીનાની જાહેર હરાજી કરવામાં આવશે.`
+        : `Dear ${noticeData.customer.name},\n\n` +
+          `You pledged articles against loan number ${noticeData.loan_number} issued on ${formatDate(noticeData.issue_date)}. The statutory redemption period for this pledge expired on ${formatDate(noticeData.redemption_deadline)} and the articles remain unredeemed.\n\n` +
+          `Total amount outstanding as of today: ${formatPaise(noticeData.total_due_paise)}\n\n` +
+          `This is a final notice that unless the entire outstanding amount is paid and the articles redeemed on or before ${formatDate(noticeData.auction_after_date)}, the pledged articles will be sold by public auction as permitted under the applicable money-lending regulations.`;
+
+  return [
+    { text: title, fontSize: 15, bold: true, alignment: "center", color: "#b45309", margin: [0, 0, 0, 15] },
+    {
+      columns: [
+        {
+          width: "*",
+          stack: [
+            { text: organizationData.shop_name, fontSize: 13, bold: true },
+            { text: organizationData.address },
+            { text: `Contact: ${organizationData.contact_number}` }
+          ]
+        },
+        {
+          width: 200,
+          table: {
+            widths: [95, "*"],
+            body: [
+              metaRow(noticeDateLabel, formatDate(noticeData.notice_date)),
+              metaRow(loanNumLabel, noticeData.loan_number),
+              metaRow(deadlineLabel, formatDate(noticeData.redemption_deadline))
+            ]
+          },
+          layout: "lightHorizontalLines"
+        }
+      ],
+      margin: [0, 0, 0, 20]
+    },
+    { canvas: [{ type: "line", x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 1, strokeColor: "#cbd5e1" }], margin: [0, 0, 0, 15] },
+    { text: body, whiteSpace: "pre-line", margin: [0, 10, 0, 20] },
+    { text: isMr ? "गहाण ठेवलेल्या दागिन्यांची यादी:" : isHi ? "गिरवी रखे आभूषणों की सूची:" : isGu ? "ગિરવી દાગીનાની યાદી:" : "Pledged Collateral Inventory:", bold: true, margin: [0, 10, 0, 6] },
+    {
+      table: {
+        widths: [30, "*", 100],
+        body: [
+          [isMr ? "अ.क्र." : isHi ? "क्र." : isGu ? "ક્રમ" : "S.No", isMr ? "वर्णन" : isHi ? "विवरण" : isGu ? "વર્ણન" : "Description", isMr ? "वजन" : isHi ? "वजन" : isGu ? "વજન" : "Weight"].map((t) => ({
+            text: t,
+            style: "tableHeader",
+            bold: true,
+            fillColor: "#f1f5f9"
+          })),
+          ...noticeData.collateral.map((item, index) => [String(index + 1), item.item_description, formatMg(item.weight_mg)])
+        ]
+      },
+      layout: "lightHorizontalLines",
+      margin: [0, 0, 0, 30]
+    },
+    {
+      columns: [
+        { text: isMr ? "सावकाराची स्वाक्षरी" : isHi ? "साहूक़ार के हस्ताक्षर" : isGu ? "શાહુકારની સહી" : "Authorized Signatory", alignment: "right", decoration: "overline", margin: [0, 30, 0, 0] }
+      ]
+    }
+  ];
+}
+
 export async function generateGirviReceipt(repaymentData: GirviRepaymentDocumentData, organizationData: OrganizationData) {
   return createPdfBuffer({
     pageSize: "A5",

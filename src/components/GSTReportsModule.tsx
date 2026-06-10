@@ -1420,6 +1420,32 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
             >
               Export GST CSV
             </button>
+            {(activeTab === "gstr1" || activeTab === "gstr3b" || activeTab === "b2b_b2c") && (
+              <button
+                type="button"
+                onClick={() => {
+                  const path = activeTab === "gstr1" ? "gstr1.xlsx" : activeTab === "gstr3b" ? "gstr3b.xlsx" : "b2b-b2c.xlsx";
+                  window.open(withDocumentToken(`${apiBaseUrl}/api/documents/gst/${path}?from=${fromDate}&to=${toDate}`), "_blank", "noopener,noreferrer");
+                }}
+                disabled={loading}
+                className="h-8 border border-emerald-500 text-emerald-300 hover:bg-emerald-500/10 font-bold px-4 rounded uppercase text-[10px] tracking-wide disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Export XLSX
+              </button>
+            )}
+            {(activeTab === "gstr1" || activeTab === "gstr3b") && (
+              <button
+                type="button"
+                onClick={() => {
+                  const path = activeTab === "gstr1" ? "gstr1.pdf" : "gstr3b.pdf";
+                  window.open(withDocumentToken(`${apiBaseUrl}/api/documents/gst/${path}?from=${fromDate}&to=${toDate}`), "_blank", "noopener,noreferrer");
+                }}
+                disabled={loading}
+                className="h-8 border border-emerald-500 text-emerald-300 hover:bg-emerald-500/10 font-bold px-4 rounded uppercase text-[10px] tracking-wide disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Export PDF
+              </button>
+            )}
           </div>
         )}
 

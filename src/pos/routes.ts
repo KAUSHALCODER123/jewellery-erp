@@ -60,6 +60,13 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
     if (!customer) {
       return response.status(404).json({ errors: ["Customer not found."] });
     }
+
+    // Blacklist is a credit-risk control: block credit (udhari) sales, allow paid-in-full sales.
+    if (customer.is_blacklisted && validation.checkout.payments.udhari > 0) {
+      return response.status(422).json({
+        errors: [`Customer is blacklisted${customer.blacklist_reason ? `: ${customer.blacklist_reason}` : ""}. Udhari (credit) is not allowed.`]
+      });
+    }
   }
 
   const settings = db.select().from(organizationSettings).get();
@@ -140,8 +147,8 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
           wastage_total_paise: 0,
           urd_deduction_paise: validation.checkout.totals.urdDeductionPaise,
           gss_credit_paise: validation.checkout.payments.gssCredit,
-          cheque_amount_paise: 0,
-          neft_amount_paise: 0,
+          cheque_amount_paise: validation.checkout.payments.cheque,
+          neft_amount_paise: validation.checkout.payments.neft,
           invoice_type: "SALE",
           bill_prefix: validation.checkout.invoice.billPrefix,
           manual_number: validation.checkout.invoice.manualNumber,
@@ -163,21 +170,38 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
         .returning()
         .get();
 
-      const createdInvoiceLines = validation.checkout.salesItems.map((line) => {
+      // Precompute per-line GST splits so line CGST/SGST sums reconcile exactly with
+      // the invoice header: flooring each line independently can undershoot the
+      // header CGST by up to lines-1 paise, which surfaces as a GSTR-1 mismatch.
+      const lineGsts = validation.checkout.salesItems.map(
+        (line) => line.gstPaise ?? calculateInclusiveTaxPaise(line.itemTotalPaise, gstPercentage)
+      );
+      const lineCgsts = lineGsts.map((gst) => Math.floor(gst / 2));
+      if (gstSupplyType === "INTRA_STATE" && lineGsts.reduce((a, b) => a + b, 0) === gstAmountPaise) {
+        let remainder = cgstAmountPaise - lineCgsts.reduce((a, b) => a + b, 0);
+        for (let i = 0; i < lineCgsts.length && remainder > 0; i += 1) {
+          if (lineGsts[i] % 2 === 1) {
+            lineCgsts[i] += 1;
+            remainder -= 1;
+          }
+        }
+      }
+
+      const createdInvoiceLines = validation.checkout.salesItems.map((line, lineIndex) => {
         const item = tx.select().from(items).where(eq(items.id, line.itemId)).get();
 
         if (!item) {
           throw new CheckoutConflictError(`Item ${line.barcode} was not found.`);
         }
 
-        const lineGst = line.gstPaise ?? calculateInclusiveTaxPaise(line.itemTotalPaise, gstPercentage);
+        const lineGst = lineGsts[lineIndex];
         const lineTaxable = Math.max(line.itemTotalPaise - lineGst, 0);
         let lineCgst = 0;
         let lineSgst = 0;
         let lineIgst = 0;
 
         if (gstSupplyType === "INTRA_STATE") {
-          lineCgst = Math.floor(lineGst / 2);
+          lineCgst = lineCgsts[lineIndex];
           lineSgst = lineGst - lineCgst;
         } else {
           lineIgst = lineGst;
@@ -1170,6 +1194,8 @@ posRouter.post("/purchases", requireAuth, (request, response) => {
         payment_reference: validation.document.paymentReference,
         gross_total_paise: validation.document.grossTotalPaise,
         gst_amount_paise: validation.document.gstAmountPaise,
+        tds_percent: validation.document.tdsPercent,
+        tds_amount_paise: validation.document.tdsAmountPaise,
         total_amount_paise: validation.document.totalAmountPaise,
         created_by: userId
       })
@@ -1399,6 +1425,8 @@ type CheckoutPayload = {
     cash: number;
     upi: number;
     card: number;
+    cheque: number;
+    neft: number;
     udhari: number;
     gssCredit: number;
   };
@@ -1496,6 +1524,9 @@ type CommercialDocumentPayload = {
   discountPaise: number;
   gstAmountPaise: number;
   totalAmountPaise: number;
+  // Income-tax TDS withheld from the supplier payment (purchases only).
+  tdsPercent: number;
+  tdsAmountPaise: number;
   lines: CommercialDocumentLine[];
 };
 
@@ -1598,7 +1629,7 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
     const calculatedUrdDeduction = urdItems.reduce((total, line) => total + line.totalValuePaise, 0);
     const payableBeforeLoyalty = calculatedGrossTotal - totals.discountPaise - calculatedUrdDeduction - payments.gssCredit;
     const calculatedNetPayable = Math.max(payableBeforeLoyalty - loyaltyRedeemPaise, 0);
-    const totalPaid = payments.cash + payments.upi + payments.card + payments.udhari;
+    const totalPaid = payments.cash + payments.upi + payments.card + payments.cheque + payments.neft + payments.udhari;
 
     if (loyaltyRedeemPaise > Math.max(payableBeforeLoyalty, 0)) {
       errors.push("loyalty redemption cannot exceed the payable amount.");
@@ -1974,10 +2005,13 @@ function validatePayments(value: unknown, errors: string[]): PaymentsPayload | u
   const cash = requiredNonNegativeInteger(value.cash, "payments.cash", errors);
   const upi = requiredNonNegativeInteger(value.upi, "payments.upi", errors);
   const card = requiredNonNegativeInteger(value.card, "payments.card", errors);
+  // Optional for backward compatibility — older clients never send these modes.
+  const cheque = optionalNonNegativeInteger(value.cheque, "payments.cheque", errors) ?? 0;
+  const neft = optionalNonNegativeInteger(value.neft, "payments.neft", errors) ?? 0;
   const udhari = requiredNonNegativeInteger(value.udhari, "payments.udhari", errors);
   const gssCredit = optionalNonNegativeInteger(value.gss_credit ?? value.gssCredit, "payments.gss_credit", errors) ?? 0;
 
-  if (cash === undefined || upi === undefined || card === undefined || udhari === undefined || gssCredit === undefined) {
+  if (cash === undefined || upi === undefined || card === undefined || udhari === undefined || gssCredit === undefined || cheque === undefined || neft === undefined) {
     return undefined;
   }
 
@@ -1985,6 +2019,8 @@ function validatePayments(value: unknown, errors: string[]): PaymentsPayload | u
     cash,
     upi,
     card,
+    cheque,
+    neft,
     udhari,
     gssCredit
   };
@@ -2034,6 +2070,8 @@ function getInvoicePaymentMode(payments: CheckoutPayload["payments"]) {
     payments.cash > 0 ? "CASH" : null,
     payments.upi > 0 ? "UPI" : null,
     payments.card > 0 ? "CARD" : null,
+    payments.cheque > 0 ? "CHEQUE" : null,
+    payments.neft > 0 ? "NEFT" : null,
     payments.udhari > 0 ? "UDHARI" : null,
     payments.gssCredit > 0 ? "GSS_CREDIT" : null
   ].filter(isDefined);
@@ -2081,6 +2119,26 @@ function buildPosSaleVoucherLines(checkout: CheckoutPayload, gstAmountPaise: num
       transactionType: "DEBIT",
       amountPaise: checkout.payments.card,
       description: `Card receipt for ${invoiceNumber}`
+    });
+  }
+
+  if (checkout.payments.cheque > 0) {
+    lines.push({
+      ledgerName: "Bank",
+      accountType: "BANK",
+      transactionType: "DEBIT",
+      amountPaise: checkout.payments.cheque,
+      description: `Cheque receipt for ${invoiceNumber}${checkout.paymentReferences.cheque ? ` (${checkout.paymentReferences.cheque})` : ""}`
+    });
+  }
+
+  if (checkout.payments.neft > 0) {
+    lines.push({
+      ledgerName: "Bank",
+      accountType: "BANK",
+      transactionType: "DEBIT",
+      amountPaise: checkout.payments.neft,
+      description: `NEFT receipt for ${invoiceNumber}${checkout.paymentReferences.neft ? ` (${checkout.paymentReferences.neft})` : ""}`
     });
   }
 
@@ -2208,7 +2266,9 @@ function createPurchaseStockItems(
             vendor_id: document.supplierId,
             purchase_rate_paise: line.metalRatePaisePerGram,
             purchase_date: document.documentDate,
-            status: "IN_STOCK"
+            status: "IN_STOCK",
+            // A LOT line is untagged bulk stock carried as one weight-wise item.
+            stock_form: line.stockMode === "LOT" ? "LOOSE" : "TAGGED"
           })
           .returning()
           .get()
@@ -2260,11 +2320,23 @@ function buildPurchaseVoucherLines(document: CommercialDocumentPayload, purchase
     });
   }
 
+  // TDS withheld from the supplier payment: pay (total - TDS), owe the TDS to the
+  // tax department until deposited.
+  if (document.tdsAmountPaise > 0) {
+    lines.push({
+      ledgerName: "TDS Payable",
+      accountType: "TAX",
+      transactionType: "CREDIT",
+      amountPaise: document.tdsAmountPaise,
+      description: `TDS @ ${document.tdsPercent}% on ${purchaseNumber}`
+    });
+  }
+
   lines.push({
     ledgerName: paymentLedger.ledgerName,
     accountType: paymentLedger.accountType,
     transactionType: "CREDIT",
-    amountPaise: document.totalAmountPaise,
+    amountPaise: Math.max(document.totalAmountPaise - document.tdsAmountPaise, 0),
     description: `Purchase settlement ${purchaseNumber}`
   });
 
@@ -2411,6 +2483,20 @@ function validateCommercialDocumentPayload(body: unknown, documentType: "quotati
   const gstAmountPaise = optionalNonNegativeInteger(body.gst_amount_paise ?? body.gstAmountPaise, "gst_amount_paise", errors) ?? lines.reduce((total, line) => total + line.gstPaise, 0);
   const totalAmountPaise = requiredNonNegativeInteger(body.total_amount_paise ?? body.totalAmountPaise, "total_amount_paise", errors);
 
+  // TDS percent on purchases (e.g. 0.1% under 194Q); amount is always computed server-side.
+  const tdsPercentRaw = body.tds_percent ?? body.tdsPercent;
+  let tdsPercent = 0;
+  if (tdsPercentRaw !== undefined && tdsPercentRaw !== null && tdsPercentRaw !== "") {
+    const parsed = Number(tdsPercentRaw);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 30) {
+      errors.push("tds_percent must be a number between 0 and 30.");
+    } else if (documentType !== "purchase" && parsed > 0) {
+      errors.push("tds_percent is only valid on purchase invoices.");
+    } else {
+      tdsPercent = parsed;
+    }
+  }
+
   if (customerId !== null && !Number.isInteger(customerId)) {
     errors.push("customer_id must be an integer or null.");
   }
@@ -2467,6 +2553,8 @@ function validateCommercialDocumentPayload(body: unknown, documentType: "quotati
       discountPaise,
       gstAmountPaise,
       totalAmountPaise,
+      tdsPercent,
+      tdsAmountPaise: Math.round((grossTotalPaise * tdsPercent) / 100),
       lines
     }
   };

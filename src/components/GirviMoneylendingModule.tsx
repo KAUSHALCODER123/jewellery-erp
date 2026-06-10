@@ -7,7 +7,17 @@ type GirviMoneylendingModuleProps = {
   apiBaseUrl?: string;
 };
 
-type ActiveTab = "issue" | "active" | "closed";
+type ActiveTab = "issue" | "active" | "closed" | "auction";
+
+type AuctionDueLoan = {
+  loan_id: number;
+  loan_number: string;
+  customer_name: string;
+  issue_date: string;
+  redemption_deadline: string;
+  days_overdue: number;
+  total_due_rupees: string;
+};
 
 type CustomerOption = {
   id: number;
@@ -120,6 +130,8 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
   const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
   const [selectedLoanId, setSelectedLoanId] = useState("");
   const [loanSearch, setLoanSearch] = useState("");
+  const [auctionDue, setAuctionDue] = useState<AuctionDueLoan[]>([]);
+  const [auctionLoading, setAuctionLoading] = useState(false);
 
   // Repayment form states
   const [repaymentRupees, setRepaymentRupees] = useState("");
@@ -199,6 +211,10 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
     void loadLicence();
     reloadAllLoans();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "auction") void loadAuctionDue();
+  }, [activeTab]);
 
   async function loadNextLoanNumber() {
     try {
@@ -360,6 +376,19 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
       setMessage("Moneylending licence details saved.");
     } catch {
       setError("Failed to save licence details.");
+    }
+  }
+
+  async function loadAuctionDue() {
+    setAuctionLoading(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/girvi/auction-due`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as { loans?: AuctionDueLoan[] } | null;
+      setAuctionDue(response.ok && result?.loans ? result.loans : []);
+    } catch {
+      setAuctionDue([]);
+    } finally {
+      setAuctionLoading(false);
     }
   }
 
@@ -775,6 +804,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
         <nav className="flex border border-slate-700 text-xs text-slate-50">
           <TabButton active={activeTab === "issue"} onClick={() => setActiveTab("issue")}>Issue New Loan</TabButton>
           <TabButton active={activeTab === "active"} onClick={() => setActiveTab("active")}>Active Loans & Repayments</TabButton>
+          <TabButton active={activeTab === "auction"} onClick={() => setActiveTab("auction")}>Auction Due</TabButton>
           <TabButton active={activeTab === "closed"} onClick={() => setActiveTab("closed")}>Defaulted/Settled</TabButton>
         </nav>
       </header>
@@ -1185,6 +1215,79 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
               </div>
             </section>
           </form>
+        )}
+
+        {activeTab === "auction" && (
+          <div className="grid h-full grid-rows-[auto_1fr] gap-3 overflow-hidden p-3">
+            <div className="flex items-center justify-between gap-3 rounded border border-amber-700 bg-amber-950/20 p-3">
+              <div>
+                <h2 className="text-xs font-bold uppercase text-amber-200">Pledges Past Redemption — Auction Worklist</h2>
+                <p className="text-[11px] text-slate-400">Loans whose statutory redemption period has lapsed. Issue an Item / Auction Notice before liquidating unredeemed collateral.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={noticeLanguage}
+                  onChange={(e) => setNoticeLanguage(e.target.value as "en" | "mr" | "hi" | "gu")}
+                  className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none rounded"
+                >
+                  <option value="en">English</option>
+                  <option value="mr">मराठी</option>
+                  <option value="hi">हिन्दी</option>
+                  <option value="gu">ગુજરાતી</option>
+                </select>
+                <button type="button" onClick={loadAuctionDue} className="h-8 px-3 rounded border border-slate-600 bg-slate-800 text-[11px] font-semibold uppercase text-slate-200 hover:bg-slate-700">
+                  Refresh
+                </button>
+                {auctionDue.length > 0 && (
+                  <a
+                    href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/auction-notices?ids=${auctionDue.map((l) => l.loan_id).join(",")}&lang=${noticeLanguage}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-8 items-center justify-center rounded bg-amber-600 px-3 text-[11px] font-bold uppercase text-slate-50 hover:bg-amber-700"
+                  >
+                    Print All Notices ({auctionDue.length})
+                  </a>
+                )}
+              </div>
+            </div>
+            <div className="min-h-0 overflow-auto rounded border border-slate-800">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 bg-slate-900 text-slate-400">
+                  <tr>
+                    {["Loan No.", "Customer", "Issued", "Redemption Deadline", "Days Overdue", "Total Due", "Notice"].map((heading) => (
+                      <th key={heading} className="border-b border-slate-800 px-2 py-2 uppercase">{heading}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {auctionLoading ? (
+                    <tr><td colSpan={7} className="px-3 py-8 text-center text-slate-500">Scanning overdue pledges…</td></tr>
+                  ) : auctionDue.length === 0 ? (
+                    <tr><td colSpan={7} className="px-3 py-8 text-center text-slate-500">No pledges are past their redemption period.</td></tr>
+                  ) : auctionDue.map((loan) => (
+                    <tr key={loan.loan_id} className="border-b border-slate-900">
+                      <td className="px-2 py-2 font-mono text-emerald-300">{loan.loan_number}</td>
+                      <td className="px-2 py-2">{loan.customer_name}</td>
+                      <td className="px-2 py-2 font-mono">{loan.issue_date}</td>
+                      <td className="px-2 py-2 font-mono text-amber-300">{loan.redemption_deadline}</td>
+                      <td className="px-2 py-2 font-mono text-red-300">{loan.days_overdue}</td>
+                      <td className="px-2 py-2 font-mono">₹{loan.total_due_rupees}</td>
+                      <td className="px-2 py-2">
+                        <a
+                          href={withDocumentToken(`${apiBaseUrl}/api/documents/girvi/${loan.loan_id}/auction-notice?lang=${noticeLanguage}`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-amber-300 hover:text-amber-200"
+                        >
+                          Print Notice
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         {activeTab === "closed" && (

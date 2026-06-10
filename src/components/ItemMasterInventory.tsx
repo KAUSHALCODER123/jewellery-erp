@@ -53,7 +53,7 @@ const metals = ["Gold", "Silver", "Platinum"];
 const purityOptions = ["14", "18", "20", "22", "24"];
 const huidPattern = /^[A-Z0-9]{6}$/;
 
-export default function ItemMasterInventory({ apiBaseUrl = "http://localhost:4000" }: ItemMasterInventoryProps) {
+export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInventoryProps) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [fieldErrors, setFieldErrors] = useState<string[]>([]);
   const [submitState, setSubmitState] = useState<SubmitState>({ status: "idle", message: "" });

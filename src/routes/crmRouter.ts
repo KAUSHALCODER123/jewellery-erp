@@ -1,17 +1,19 @@
 import { and, desc, eq, or, like, sql } from "drizzle-orm";
 import { Router } from "express";
-import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
+import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { logAction } from "../audit/logAction.js";
 import { getOrCreateLedger } from "../accounts/posting.js";
 import { db } from "../db/client.js";
 import {
   customers,
+  customerMetalBalances,
   gssAccounts,
   gssTemplates,
   girviLoans,
   girviCollateral,
   invoices,
   journalEntries,
+  kycVault,
   ledgers,
   loyaltyLedger
 } from "../db/schema.js";
@@ -197,13 +199,20 @@ crmRouter.get("/customers/:id/360", (request, response) => {
 
     const { gssAccounts: _g, girviLoans: _l, invoices: _i, ledgers: _led, ...profile } = customerData;
 
+    const metalBalances = db
+      .select()
+      .from(customerMetalBalances)
+      .where(eq(customerMetalBalances.customer_id, customerId))
+      .all();
+
     return response.json({
       customer: profile,
       gss_accounts: activeMaturedGss,
       girvi_loans: customerData.girviLoans,
       invoice_history: lifetimeInvoiceHistory,
       loyalty_ledger: loyaltyHistory,
-      udhari_balance_paise: udhariBalancePaise
+      udhari_balance_paise: udhariBalancePaise,
+      metal_balances: metalBalances
     });
   } catch (error) {
     console.error(`Failed to fetch 360 view for customer ${customerId}`, error);
@@ -298,6 +307,193 @@ crmRouter.put("/customers/:id", (request, response) => {
 
   const updated = db.update(customers).set(editable).where(eq(customers.id, customerId)).returning().get();
   logAction(authUser.id, "UPDATE_CUSTOMER", "customers", customerId, existing, updated);
+  return response.json({ customer: updated });
+});
+
+/**
+ * Metal-wise opening balances: fine weight the shop owes the customer or vice versa,
+ * carried separately from the monetary udhari ledger.
+ */
+crmRouter.get("/customers/:id/metal-balances", (request, response) => {
+  const customerId = Number(request.params.id);
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return response.status(400).json({ errors: ["Customer ID must be a positive integer."] });
+  }
+
+  const balances = db
+    .select()
+    .from(customerMetalBalances)
+    .where(eq(customerMetalBalances.customer_id, customerId))
+    .all();
+
+  return response.json({ metal_balances: balances });
+});
+
+crmRouter.post("/customers/:id/metal-balances", requireAdmin, (request, response) => {
+  const customerId = Number(request.params.id);
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return response.status(400).json({ errors: ["Customer ID must be a positive integer."] });
+  }
+
+  const customer = db.query.customers.findFirst({ where: eq(customers.id, customerId) }).sync();
+  if (!customer) {
+    return response.status(404).json({ errors: ["Customer not found."] });
+  }
+
+  const body = isRecord(request.body) ? request.body : {};
+  const errors: string[] = [];
+
+  const metalType = typeof body.metal_type === "string" ? body.metal_type.trim() : "";
+  if (!["Gold", "Silver", "Platinum"].includes(metalType)) {
+    errors.push("metal_type must be Gold, Silver or Platinum.");
+  }
+
+  const fineWeightMg = Number(body.fine_weight_mg);
+  if (!Number.isInteger(fineWeightMg) || fineWeightMg <= 0) {
+    errors.push("fine_weight_mg must be a positive integer.");
+  }
+
+  const direction = body.direction === "TO_PAY" ? "TO_PAY" : body.direction === "TO_RECEIVE" || body.direction === undefined ? "TO_RECEIVE" : null;
+  if (!direction) {
+    errors.push("direction must be TO_RECEIVE or TO_PAY.");
+  }
+
+  if (errors.length > 0) {
+    return response.status(400).json({ errors });
+  }
+
+  const authUser = (request as AuthenticatedRequest).user;
+  const created = db
+    .insert(customerMetalBalances)
+    .values({
+      customer_id: customerId,
+      metal_type: metalType,
+      fine_weight_mg: fineWeightMg,
+      direction: direction as "TO_RECEIVE" | "TO_PAY",
+      notes: optionalText(body.notes)
+    })
+    .returning()
+    .get();
+
+  logAction(authUser.id, "CREATE_CUSTOMER_METAL_BALANCE", "customer_metal_balances", created.id, null, created);
+  return response.status(201).json({ metal_balance: created });
+});
+
+crmRouter.delete("/customers/:id/metal-balances/:balanceId", requireAdmin, (request, response) => {
+  const customerId = Number(request.params.id);
+  const balanceId = Number(request.params.balanceId);
+  if (!Number.isInteger(customerId) || customerId <= 0 || !Number.isInteger(balanceId) || balanceId <= 0) {
+    return response.status(400).json({ errors: ["Customer ID and balance ID must be positive integers."] });
+  }
+
+  const existing = db.query.customerMetalBalances.findFirst({
+    where: and(eq(customerMetalBalances.id, balanceId), eq(customerMetalBalances.customer_id, customerId))
+  }).sync();
+
+  if (!existing) {
+    return response.status(404).json({ errors: ["Metal balance entry not found."] });
+  }
+
+  db.delete(customerMetalBalances).where(eq(customerMetalBalances.id, balanceId)).run();
+
+  const authUser = (request as AuthenticatedRequest).user;
+  logAction(authUser.id, "DELETE_CUSTOMER_METAL_BALANCE", "customer_metal_balances", balanceId, existing, null);
+  return response.json({ deleted: true });
+});
+
+const KYC_DOCUMENT_TYPES = new Set(["PAN", "AADHAAR", "PASSPORT", "DRIVING_LICENSE", "VOTER_ID"]);
+
+/**
+ * POST /api/crm/customers/:id/kyc
+ * Store a KYC document record (number is masked at rest). Accepts PAN, Aadhaar,
+ * passport, driving licence and voter ID.
+ */
+crmRouter.post("/customers/:id/kyc", (request, response) => {
+  const customerId = Number(request.params.id);
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return response.status(400).json({ errors: ["Customer ID must be a positive integer."] });
+  }
+
+  const customer = db.query.customers.findFirst({ where: eq(customers.id, customerId) }).sync();
+  if (!customer) {
+    return response.status(404).json({ errors: ["Customer not found."] });
+  }
+
+  const body = isRecord(request.body) ? request.body : {};
+  const documentType = typeof body.document_type === "string" ? body.document_type.trim().toUpperCase() : "";
+  const documentNumber = typeof body.document_number === "string" ? body.document_number.trim() : "";
+
+  if (!KYC_DOCUMENT_TYPES.has(documentType)) {
+    return response.status(400).json({ errors: ["document_type must be PAN, AADHAAR, PASSPORT, DRIVING_LICENSE or VOTER_ID."] });
+  }
+  if (documentNumber.length < 4) {
+    return response.status(400).json({ errors: ["document_number must be at least 4 characters."] });
+  }
+
+  const masked = `${"*".repeat(Math.max(documentNumber.length - 4, 0))}${documentNumber.slice(-4)}`;
+  const authUser = (request as unknown as AuthenticatedRequest).user;
+
+  const record = db
+    .insert(kycVault)
+    .values({
+      customer_id: customerId,
+      document_type: documentType as typeof kycVault.$inferInsert.document_type,
+      document_number_masked: masked,
+      document_image_path: optionalText(body.document_image_path),
+      verified_by: authUser.id
+    })
+    .returning()
+    .get();
+
+  logAction(authUser.id, "CREATE_KYC_RECORD", "kyc_vault", record.id, null, { document_type: documentType });
+  return response.status(201).json({ kyc_record: record });
+});
+
+/**
+ * PATCH /api/crm/customers/:id/blacklist
+ * Admin-only credit-risk control: a blacklisted customer cannot take girvi loans
+ * or buy on udhari (cash sales remain allowed).
+ */
+crmRouter.patch("/customers/:id/blacklist", requireAdmin, (request, response) => {
+  const customerId = Number(request.params.id);
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return response.status(400).json({ errors: ["Customer ID must be a positive integer."] });
+  }
+
+  const existing = db.query.customers.findFirst({ where: eq(customers.id, customerId) }).sync();
+  if (!existing) {
+    return response.status(404).json({ errors: ["Customer not found."] });
+  }
+
+  const body = isRecord(request.body) ? request.body : {};
+  if (typeof body.is_blacklisted !== "boolean") {
+    return response.status(400).json({ errors: ["is_blacklisted must be a boolean."] });
+  }
+
+  const reason = optionalText(body.reason);
+  if (body.is_blacklisted && !reason) {
+    return response.status(400).json({ errors: ["reason is required when blacklisting a customer."] });
+  }
+
+  const updated = db
+    .update(customers)
+    .set({
+      is_blacklisted: body.is_blacklisted,
+      blacklist_reason: body.is_blacklisted ? reason : null
+    })
+    .where(eq(customers.id, customerId))
+    .returning()
+    .get();
+
+  const authUser = (request as AuthenticatedRequest).user;
+  logAction(
+    authUser.id,
+    body.is_blacklisted ? "BLACKLIST_CUSTOMER" : "UNBLACKLIST_CUSTOMER",
+    "customers",
+    customerId,
+    { is_blacklisted: existing.is_blacklisted, blacklist_reason: existing.blacklist_reason },
+    { is_blacklisted: updated.is_blacklisted, blacklist_reason: updated.blacklist_reason }
+  );
   return response.json({ customer: updated });
 });
 

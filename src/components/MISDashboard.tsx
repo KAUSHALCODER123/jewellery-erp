@@ -28,6 +28,7 @@ import {
 
 type KPISummary = {
   total_gold_mg: number;
+  total_gold_net_mg?: number;
   total_market_value_paise: number;
   total_outstanding_udhari_paise: number;
   total_karigar_liability_mg: number;
@@ -182,10 +183,10 @@ export default function MISDashboard({ apiBaseUrl = "" }: { apiBaseUrl?: string 
           
           {/* Card 1: Vault Value */}
           <KPICard
-            title="Total Vault Value"
+            title="Total Vault Value (net wt)"
             value={kpis.total_market_value_paise}
             format={formatRupees}
-            subtitle={`Weight: ${formatGrams(kpis.total_gold_mg)}`}
+            subtitle={`Gross: ${formatGrams(kpis.total_gold_mg)} · Net: ${formatGrams(kpis.total_gold_net_mg ?? kpis.total_gold_mg)}`}
             icon={Boxes}
             tone="emerald"
             delayMs={0}

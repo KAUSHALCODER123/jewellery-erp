@@ -31,7 +31,8 @@ import {
   voucherLines
 } from "../db/schema.js";
 import type { InvoiceDocumentData, PaymentDocumentData, PrintTemplateData } from "../utils/pdfGenerator.js";
-import { verifyTokenAllowQueryToken } from "../middlewares/authMiddleware.js";
+import { verifyTokenAllowQueryToken, type AuthenticatedRequest } from "../middlewares/authMiddleware.js";
+import { buildB2bB2cRows, buildGstr3bSummary, buildHsnRows, validateDateRange } from "../compliance/gstReportData.js";
 
 export const documentRouter = Router();
 
@@ -151,30 +152,86 @@ documentRouter.get("/label/item/:id/:templateId", async (request, response) => {
   }
 
   const { generateBarcodeLabel } = await import("../utils/pdfGenerator.js");
-  const pdfBuffer = await generateBarcodeLabel(
-    {
-      barcode: item.barcode,
-      huid: item.huid,
-      category: item.category,
-      metal_type: item.metal_type,
-      purity_karat: item.purity_karat,
-      gross_weight_mg: item.gross_weight_mg,
-      net_weight_mg: item.net_weight_mg,
-      fine_weight_mg: item.fine_weight_mg || item.net_weight_mg,
-      location: item.location
-    },
-    {
-      shop_name: organization.shop_name,
-      address: organization.address,
-      gstin: organization.gstin,
-      contact_number: organization.contact_number,
-      print_language: organization.print_language ?? null
-    },
+  const pdfBuffer = await generateBarcodeLabel(buildLabelItemData(item), buildLabelOrganizationData(organization), template);
+
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `inline; filename="${item.barcode}-label.pdf"`);
+  return response.send(pdfBuffer);
+});
+
+function buildLabelItemData(item: typeof items.$inferSelect) {
+  return {
+    barcode: item.barcode,
+    huid: item.huid,
+    category: item.category,
+    metal_type: item.metal_type,
+    purity_karat: item.purity_karat,
+    gross_weight_mg: item.gross_weight_mg,
+    net_weight_mg: item.net_weight_mg,
+    // Net-weight fallback only applies to weight-priced jewellery; quantity-wise
+    // articles may legitimately carry fine weight 0.
+    fine_weight_mg: item.sale_mode === "QUANTITY_WISE" ? item.fine_weight_mg : item.fine_weight_mg || item.net_weight_mg,
+    location: item.location
+  };
+}
+
+function buildLabelOrganizationData(organization: typeof organizationSettings.$inferSelect) {
+  return {
+    shop_name: organization.shop_name,
+    address: organization.address,
+    gstin: organization.gstin,
+    contact_number: organization.contact_number,
+    print_language: organization.print_language ?? null
+  };
+}
+
+// Batch labels: one PDF with one label page per item, for "Print All" after a tagging run.
+documentRouter.get("/labels/batch/:templateId", async (request, response) => {
+  const templateId = parseInvoiceId(request.params.templateId);
+  if (!templateId) {
+    return response.status(400).json({ errors: ["Template id must be a positive integer."] });
+  }
+
+  const idsParam = typeof request.query.ids === "string" ? request.query.ids : "";
+  const ids = idsParam
+    .split(",")
+    .map((part) => Number.parseInt(part.trim(), 10))
+    .filter((value) => Number.isInteger(value) && value > 0);
+
+  if (ids.length === 0) {
+    return response.status(400).json({ errors: ["ids must be a comma-separated list of positive integers."] });
+  }
+  if (ids.length > 200) {
+    return response.status(400).json({ errors: ["At most 200 labels can be printed per batch."] });
+  }
+
+  const organization = db.select().from(organizationSettings).get();
+  const template = loadPrintTemplate(templateId);
+
+  if (!organization) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+  if (!template || template.document_type !== "LABEL") {
+    return response.status(404).json({ errors: ["Label template not found."] });
+  }
+
+  const batchItems = ids
+    .map((id) => db.query.items.findFirst({ where: eq(items.id, id) }).sync())
+    .filter((item): item is typeof items.$inferSelect => Boolean(item));
+
+  if (batchItems.length === 0) {
+    return response.status(404).json({ errors: ["No items found for the requested ids."] });
+  }
+
+  const { generateBarcodeLabelBatch } = await import("../utils/pdfGenerator.js");
+  const pdfBuffer = await generateBarcodeLabelBatch(
+    batchItems.map(buildLabelItemData),
+    buildLabelOrganizationData(organization),
     template
   );
 
   response.setHeader("Content-Type", "application/pdf");
-  response.setHeader("Content-Disposition", `inline; filename="${item.barcode}-label.pdf"`);
+  response.setHeader("Content-Disposition", `inline; filename="labels-batch-${batchItems.length}.pdf"`);
   return response.send(pdfBuffer);
 });
 
@@ -472,6 +529,289 @@ documentRouter.get("/girvi/:id/legal-notice", async (request, response) => {
 
   response.setHeader("Content-Type", "application/pdf");
   response.setHeader("Content-Disposition", `inline; filename="girvi-notice-${loanId}.pdf"`);
+  return response.send(pdfBuffer);
+});
+
+// Builds the figures + dates for an auction notice on a single loan, or null if
+// the loan is missing. Shared by the per-loan and batch endpoints.
+async function buildAuctionNoticeForLoan(loanId: number) {
+  const documentData = loadGirviDocumentData(loanId);
+  if (!documentData) return null;
+
+  const { addDays, addMonths, differenceInCalendarDays, format, parseISO } = await import("date-fns");
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const repayments = db.select().from(girviRepayments).where(eq(girviRepayments.loan_id, loanId)).all();
+  const principalRepaid = repayments.reduce((sum, r) => sum + r.principal_allocated_paise, 0);
+  const outstandingPrincipal = Math.max(0, documentData.loan.principal_amount_paise - principalRepaid);
+
+  const lastRepayment = repayments.length > 0 ? repayments[repayments.length - 1] : null;
+  const fromDate = lastRepayment?.payment_date ?? documentData.loan.issue_date;
+  const elapsedDays = Math.max(differenceInCalendarDays(parseISO(todayStr), parseISO(fromDate)), 0);
+  const periodType = documentData.loan.interest_period_type || documentData.loan.rate_period || "MONTHLY";
+  const periodDays = periodType === "DAILY" ? 1 : periodType === "WEEKLY" ? 7 : periodType === "ANNUALLY" ? 365 : 30;
+  const rateBasisPoints = Math.round(documentData.loan.interest_rate_percentage * 100);
+  const accruedInterestPaise = Math.round((outstandingPrincipal * rateBasisPoints * elapsedDays) / (10000 * periodDays));
+  const totalDuePaise = outstandingPrincipal + accruedInterestPaise + documentData.loan.notice_fee_paise + documentData.loan.loan_letter_fee_paise;
+
+  const settings = db.select().from(organizationSettings).get();
+  const redemptionMonths = settings?.girvi_redemption_months ?? 12;
+  const redemptionDeadline =
+    documentData.loan.redemption_deadline ?? format(addMonths(parseISO(documentData.loan.issue_date), redemptionMonths), "yyyy-MM-dd");
+  // Give the borrower a 15-day grace window from today before auction.
+  const auctionAfterDate = format(addDays(parseISO(todayStr), 15), "yyyy-MM-dd");
+
+  const noticeData = {
+    ...documentData.loan,
+    outstanding_principal_paise: outstandingPrincipal,
+    accrued_interest_paise: accruedInterestPaise,
+    total_due_paise: totalDuePaise,
+    notice_date: todayStr,
+    redemption_deadline: redemptionDeadline,
+    auction_after_date: auctionAfterDate
+  };
+
+  return { noticeData, organization: documentData.organization };
+}
+
+// Per-loan auction / item notice (warns before liquidating an unredeemed pledge).
+documentRouter.get("/girvi/:id/auction-notice", async (request, response) => {
+  const loanId = Number(request.params.id);
+  const lang = typeof request.query.lang === "string" ? request.query.lang : "en";
+
+  if (!Number.isInteger(loanId) || loanId <= 0) {
+    return response.status(400).json({ errors: ["Loan id must be a positive integer."] });
+  }
+
+  const built = await buildAuctionNoticeForLoan(loanId);
+  if (!built) {
+    return response.status(404).json({ errors: ["Girvi loan not found."] });
+  }
+
+  const { generateGirviAuctionNotice } = await import("../utils/pdfGenerator.js");
+  const pdfBuffer = await generateGirviAuctionNotice(built.noticeData as any, built.organization, lang);
+
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `inline; filename="girvi-auction-notice-${loanId}.pdf"`);
+  return response.send(pdfBuffer);
+});
+
+// Batch auction notices — one PDF, one notice per loan page, for the overdue worklist.
+documentRouter.get("/girvi/auction-notices", async (request, response) => {
+  const lang = typeof request.query.lang === "string" ? request.query.lang : "en";
+  const idsParam = typeof request.query.ids === "string" ? request.query.ids : "";
+  const ids = idsParam
+    .split(",")
+    .map((part) => Number.parseInt(part.trim(), 10))
+    .filter((value) => Number.isInteger(value) && value > 0);
+
+  if (ids.length === 0) {
+    return response.status(400).json({ errors: ["ids must be a comma-separated list of positive integers."] });
+  }
+  if (ids.length > 200) {
+    return response.status(400).json({ errors: ["At most 200 notices can be printed per batch."] });
+  }
+
+  const built = (await Promise.all(ids.map((id) => buildAuctionNoticeForLoan(id)))).filter(
+    (entry): entry is NonNullable<typeof entry> => entry !== null
+  );
+
+  if (built.length === 0) {
+    return response.status(404).json({ errors: ["No girvi loans found for the requested ids."] });
+  }
+
+  const { generateGirviAuctionNoticeBatch } = await import("../utils/pdfGenerator.js");
+  const pdfBuffer = await generateGirviAuctionNoticeBatch(
+    built.map((entry) => ({ noticeData: entry.noticeData as any, lang })),
+    built[0].organization
+  );
+
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `inline; filename="girvi-auction-notices-${built.length}.pdf"`);
+  return response.send(pdfBuffer);
+});
+
+// Periodic (default: loan-to-date) account statement: repayments, interest accrued, balance.
+documentRouter.get("/girvi/:id/statement", async (request, response) => {
+  const loanId = Number(request.params.id);
+
+  if (!Number.isInteger(loanId) || loanId <= 0) {
+    return response.status(400).json({ errors: ["Loan id must be a positive integer."] });
+  }
+
+  const documentData = loadGirviDocumentData(loanId);
+
+  if (!documentData) {
+    return response.status(404).json({ errors: ["Girvi loan not found."] });
+  }
+
+  const fromDate = typeof request.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(request.query.from) ? request.query.from : null;
+  const toDate = typeof request.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(request.query.to) ? request.query.to : null;
+  const asOfDate = toDate ?? new Date().toISOString().slice(0, 10);
+
+  const allRepayments = db.select()
+    .from(girviRepayments)
+    .where(eq(girviRepayments.loan_id, loanId))
+    .all()
+    .sort((left, right) => left.payment_date.localeCompare(right.payment_date));
+
+  const inPeriod = allRepayments.filter(
+    (repayment) => (!fromDate || repayment.payment_date >= fromDate) && (!toDate || repayment.payment_date <= toDate)
+  );
+
+  // Outstanding + accrual as of the statement date — same interest math as the legal notice.
+  const repaymentsToDate = allRepayments.filter((repayment) => repayment.payment_date <= asOfDate);
+  const principalRepaid = repaymentsToDate.reduce((sum, r) => sum + r.principal_allocated_paise, 0);
+  const outstandingPrincipal = Math.max(0, documentData.loan.principal_amount_paise - principalRepaid);
+  const lastRepayment = repaymentsToDate.length > 0 ? repaymentsToDate[repaymentsToDate.length - 1] : null;
+  const accrualFromDate = lastRepayment?.payment_date ?? documentData.loan.issue_date;
+
+  const { differenceInCalendarDays, parseISO } = await import("date-fns");
+  const elapsedDays = Math.max(differenceInCalendarDays(parseISO(asOfDate), parseISO(accrualFromDate)), 0);
+  const periodType = documentData.loan.interest_period_type || documentData.loan.rate_period || "MONTHLY";
+  const periodDays = periodType === "DAILY" ? 1 : periodType === "WEEKLY" ? 7 : periodType === "ANNUALLY" ? 365 : 30;
+  const rateBasisPoints = Math.round(documentData.loan.interest_rate_percentage * 100);
+  const accruedInterestPaise = documentData.loan.interest_type === "COMPOUND"
+    ? Math.round(outstandingPrincipal * (Math.pow(1 + rateBasisPoints / (10000 * periodDays), elapsedDays) - 1))
+    : Math.round((outstandingPrincipal * rateBasisPoints * elapsedDays) / (10000 * periodDays));
+
+  const letterFeePaid = repaymentsToDate.reduce((sum, r) => sum + (r.loan_letter_fee_paid_paise ?? 0), 0);
+  const noticeFeePaid = repaymentsToDate.reduce((sum, r) => sum + (r.notice_fee_paid_paise ?? 0), 0);
+  const outstandingFees =
+    Math.max(0, documentData.loan.loan_letter_fee_paise - letterFeePaid) +
+    Math.max(0, documentData.loan.notice_fee_paise - noticeFeePaid);
+
+  const organization = db.select().from(organizationSettings).get();
+
+  const statementData = {
+    loan_number: documentData.loan.loan_number,
+    issue_date: documentData.loan.issue_date,
+    status: documentData.loan.status,
+    interest_rate_percentage: documentData.loan.interest_rate_percentage,
+    interest_type: documentData.loan.interest_type,
+    rate_period: documentData.loan.interest_period_type || documentData.loan.rate_period || "MONTHLY",
+    principal_amount_paise: documentData.loan.principal_amount_paise,
+    customer: {
+      name: documentData.loan.customer.name,
+      phone: documentData.loan.customer.phone,
+      address: documentData.loan.customer.address
+    },
+    collateral_summary: {
+      pieces: documentData.loan.collateral.length,
+      total_net_weight_mg: documentData.loan.collateral.reduce((sum, piece) => sum + piece.weight_mg, 0)
+    },
+    from_date: fromDate,
+    to_date: toDate,
+    as_of_date: asOfDate,
+    entries: inPeriod.map((repayment) => ({
+      payment_date: repayment.payment_date,
+      amount_paise: repayment.amount_paise,
+      interest_allocated_paise: repayment.interest_allocated_paise,
+      principal_allocated_paise: repayment.principal_allocated_paise,
+      discount_paise: repayment.discount_paise,
+      fees_paid_paise: (repayment.loan_letter_fee_paid_paise ?? 0) + (repayment.notice_fee_paid_paise ?? 0)
+    })),
+    totals: {
+      total_repaid_paise: inPeriod.reduce((sum, r) => sum + r.amount_paise, 0),
+      total_interest_paid_paise: inPeriod.reduce((sum, r) => sum + r.interest_allocated_paise, 0),
+      total_principal_paid_paise: inPeriod.reduce((sum, r) => sum + r.principal_allocated_paise, 0),
+      total_discount_paise: inPeriod.reduce((sum, r) => sum + r.discount_paise, 0)
+    },
+    outstanding_principal_paise: outstandingPrincipal,
+    accrued_interest_paise: accruedInterestPaise,
+    outstanding_fees_paise: outstandingFees,
+    total_due_paise: outstandingPrincipal + accruedInterestPaise + outstandingFees,
+    moneylending_licence_number: organization?.moneylending_licence_number ?? null
+  };
+
+  const { generateGirviAccountStatement } = await import("../utils/pdfGenerator.js");
+  const pdfBuffer = await generateGirviAccountStatement(statementData, documentData.organization);
+
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `inline; filename="girvi-statement-${loanId}.pdf"`);
+  return response.send(pdfBuffer);
+});
+
+// Statutory moneylending forms, rendered from the declarative registry. The legal
+// wording is licensee-supplied (see src/girvi/statutoryForms.ts).
+documentRouter.get("/girvi/:id/statutory/:formCode", async (request, response) => {
+  const loanId = Number(request.params.id);
+
+  if (!Number.isInteger(loanId) || loanId <= 0) {
+    return response.status(400).json({ errors: ["Loan id must be a positive integer."] });
+  }
+
+  const { findStatutoryForm } = await import("../girvi/statutoryForms.js");
+  const form = findStatutoryForm(request.params.formCode ?? "");
+
+  if (!form) {
+    return response.status(404).json({ errors: ["Statutory form not found. Configure it in the form registry first."] });
+  }
+
+  const documentData = loadGirviDocumentData(loanId);
+
+  if (!documentData) {
+    return response.status(404).json({ errors: ["Girvi loan not found."] });
+  }
+
+  const organization = db.select().from(organizationSettings).get();
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const bindingValues: Record<string, string> = {
+    loan_number: documentData.loan.loan_number,
+    issue_date: documentData.loan.issue_date,
+    customer_name: documentData.loan.customer.name,
+    customer_address: documentData.loan.customer.address ?? "-",
+    customer_phone: documentData.loan.customer.phone ?? "-",
+    principal_rupees: `Rs ${(documentData.loan.principal_amount_paise / 100).toFixed(2)}`,
+    interest_rate: `${documentData.loan.interest_rate_percentage}% ${documentData.loan.interest_period_type || documentData.loan.rate_period || "MONTHLY"} (${documentData.loan.interest_type})`,
+    licence_number: organization?.moneylending_licence_number ?? "-",
+    licence_authority: organization?.moneylending_licence_authority ?? "-",
+    licence_expiry: organization?.moneylending_licence_expiry ?? "-",
+    shop_name: documentData.organization.shop_name,
+    shop_address: documentData.organization.address,
+    statement_date: todayStr
+  };
+
+  const fieldRows: Array<[string, string]> = [];
+  const paragraphs: string[] = [];
+  let includeCollateral = false;
+
+  for (const section of form.sections) {
+    if (section.kind === "fields") {
+      for (const row of section.rows) {
+        fieldRows.push([row.label, bindingValues[row.binding] ?? "-"]);
+      }
+    } else if (section.kind === "collateral_table") {
+      includeCollateral = true;
+    } else {
+      paragraphs.push(...section.paragraphs);
+    }
+  }
+
+  const collateralRows: Array<[string, string, string, string]> = includeCollateral
+    ? documentData.loan.collateral.map((piece) => [
+        piece.item_description || "Ornament",
+        `${piece.metal_type} ${piece.purity_karat}K`,
+        (piece.weight_mg / 1000).toFixed(3),
+        `Rs ${((Math.floor((piece.valuation_rate_paise_per_gram * piece.weight_mg) / 1000)) / 100).toFixed(2)}`
+      ])
+    : [];
+
+  const { generateGirviStatutoryForm } = await import("../utils/pdfGenerator.js");
+  const pdfBuffer = await generateGirviStatutoryForm(
+    {
+      code: form.code,
+      title: form.title,
+      field_rows: fieldRows,
+      collateral_rows: collateralRows,
+      paragraphs
+    },
+    documentData.organization
+  );
+
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `inline; filename="girvi-${form.code.toLowerCase()}-${loanId}.pdf"`);
   return response.send(pdfBuffer);
 });
 
@@ -1344,4 +1684,148 @@ documentRouter.get("/huid-card/:itemId", async (request, response) => {
 
   response.setHeader("Content-Type", "text/html");
   return response.send(html);
+});
+
+// ==========================================
+// GST return exports (.xlsx / .pdf)
+// ==========================================
+// GST data is admin-only in the JSON API; these browser-navigation download
+// routes preserve that with an inline role check (the router-level middleware
+// only authenticates).
+
+function requireAdminRole(request: Parameters<Parameters<typeof documentRouter.get>[1]>[0], response: Parameters<Parameters<typeof documentRouter.get>[1]>[1]) {
+  const user = (request as AuthenticatedRequest).user;
+  if (!user || user.role !== "ADMIN") {
+    response.status(403).json({ errors: ["Admin access required."] });
+    return false;
+  }
+  return true;
+}
+
+function parseGstDateRange(request: Parameters<Parameters<typeof documentRouter.get>[1]>[0], response: Parameters<Parameters<typeof documentRouter.get>[1]>[1]) {
+  const dateRange = validateDateRange(request.query.from, request.query.to);
+  if (!dateRange.ok) {
+    response.status(400).json({ errors: dateRange.errors });
+    return null;
+  }
+  return dateRange;
+}
+
+function sendXlsx(response: Parameters<Parameters<typeof documentRouter.get>[1]>[1], buffer: Buffer, filename: string) {
+  response.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  response.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return response.send(buffer);
+}
+
+documentRouter.get("/gst/gstr1.xlsx", async (request, response) => {
+  if (!requireAdminRole(request, response)) return;
+  const dateRange = parseGstDateRange(request, response);
+  if (!dateRange) return;
+
+  const { buildGstr1Workbook } = await import("../utils/xlsxExport.js");
+  const buffer = await buildGstr1Workbook(buildHsnRows("SALE", dateRange, "Jewellery"), dateRange.from, dateRange.to);
+  return sendXlsx(response, buffer, "GSTR1_HSN.xlsx");
+});
+
+documentRouter.get("/gst/b2b-b2c.xlsx", async (request, response) => {
+  if (!requireAdminRole(request, response)) return;
+  const dateRange = parseGstDateRange(request, response);
+  if (!dateRange) return;
+
+  const { buildB2bB2cWorkbook } = await import("../utils/xlsxExport.js");
+  const buffer = await buildB2bB2cWorkbook(buildB2bB2cRows(dateRange), dateRange.from, dateRange.to);
+  return sendXlsx(response, buffer, "GSTR1_B2B_B2C.xlsx");
+});
+
+documentRouter.get("/gst/gstr3b.xlsx", async (request, response) => {
+  if (!requireAdminRole(request, response)) return;
+  const dateRange = parseGstDateRange(request, response);
+  if (!dateRange) return;
+
+  const { buildGstr3bWorkbook } = await import("../utils/xlsxExport.js");
+  const buffer = await buildGstr3bWorkbook(buildGstr3bSummary(dateRange));
+  return sendXlsx(response, buffer, "GSTR3B.xlsx");
+});
+
+documentRouter.get("/gst/gstr1.pdf", async (request, response) => {
+  if (!requireAdminRole(request, response)) return;
+  const dateRange = parseGstDateRange(request, response);
+  if (!dateRange) return;
+
+  const organization = db.select().from(organizationSettings).get();
+  if (!organization) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  const rows = buildHsnRows("SALE", dateRange, "Jewellery");
+  const { generateGstrReportPdf } = await import("../utils/pdfGenerator.js");
+  const buffer = await generateGstrReportPdf(
+    {
+      title: "GSTR-1 HSN SUMMARY",
+      period_from: dateRange.from,
+      period_to: dateRange.to,
+      sections: [
+        {
+          heading: "HSN-wise outward supplies",
+          columns: ["HSN/SC", "Description", "UQC", "Qty", "Supply Type", "Rate %", "Taxable Value", "IGST", "CGST", "SGST", "Cess"],
+          rows: rows.map((row) => [row.hsn_sc, row.desc, row.uqc, row.qty, row.supply_type, row.rt, row.txval, row.iamt, row.camt, row.samt, row.csamt])
+        }
+      ]
+    },
+    {
+      shop_name: organization.shop_name,
+      address: organization.address,
+      gstin: organization.gstin,
+      contact_number: organization.contact_number,
+      print_language: organization.print_language ?? null
+    }
+  );
+
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `inline; filename="GSTR1_HSN.pdf"`);
+  return response.send(buffer);
+});
+
+documentRouter.get("/gst/gstr3b.pdf", async (request, response) => {
+  if (!requireAdminRole(request, response)) return;
+  const dateRange = parseGstDateRange(request, response);
+  if (!dateRange) return;
+
+  const organization = db.select().from(organizationSettings).get();
+  if (!organization) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+
+  const summary = buildGstr3bSummary(dateRange);
+  const { generateGstrReportPdf } = await import("../utils/pdfGenerator.js");
+  const buffer = await generateGstrReportPdf(
+    {
+      title: "GSTR-3B SUMMARY",
+      period_from: dateRange.from,
+      period_to: dateRange.to,
+      sections: [
+        {
+          heading: "Summary of supplies and net tax payable",
+          columns: ["Section", "Taxable Value", "CGST", "SGST", "IGST", "Cess"],
+          rows: [
+            ["Outward supplies", summary.outward_supplies.taxable_value_rupees, summary.outward_supplies.cgst_rupees, summary.outward_supplies.sgst_rupees, summary.outward_supplies.igst_rupees, summary.outward_supplies.cess_rupees],
+            ["Inward supplies", summary.inward_supplies.taxable_value_rupees, summary.inward_supplies.cgst_rupees, summary.inward_supplies.sgst_rupees, summary.inward_supplies.igst_rupees, summary.inward_supplies.cess_rupees],
+            ["Net payable", "", summary.net_payable.cgst_rupees, summary.net_payable.sgst_rupees, summary.net_payable.igst_rupees, summary.net_payable.cess_rupees]
+          ],
+          boldLastRow: true
+        }
+      ]
+    },
+    {
+      shop_name: organization.shop_name,
+      address: organization.address,
+      gstin: organization.gstin,
+      contact_number: organization.contact_number,
+      print_language: organization.print_language ?? null
+    }
+  );
+
+  response.setHeader("Content-Type", "application/pdf");
+  response.setHeader("Content-Disposition", `inline; filename="GSTR3B.pdf"`);
+  return response.send(buffer);
 });

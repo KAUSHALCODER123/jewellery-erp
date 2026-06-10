@@ -127,11 +127,80 @@ reportRouter.get("/daybook-summary", (request, response) => {
       .where(sql`${expenses.expense_date} = ${date} AND ${expenses.payment_mode} = 'CASH'`)
   );
 
+  // Metal-wise opening/closing stock. Closing = current IN_STOCK holdings (exact when
+  // viewing today; for past dates it is the present state — a true historical figure
+  // needs a stock-movement ledger). Opening = closing + sold today − added today.
+  const closingRows = db
+    .select({
+      metal_type: items.metal_type,
+      pieces: sql<number>`COUNT(*)`,
+      gross_mg: sql<number>`COALESCE(SUM(${items.gross_weight_mg}), 0)`,
+      net_mg: sql<number>`COALESCE(SUM(${items.net_weight_mg}), 0)`,
+      fine_mg: sql<number>`COALESCE(SUM(${items.fine_weight_mg}), 0)`
+    })
+    .from(items)
+    .where(eq(items.status, "IN_STOCK"))
+    .groupBy(items.metal_type)
+    .all();
+
+  const soldRows = db
+    .select({
+      metal_type: invoiceLines.metal_type,
+      pieces: sql<number>`COUNT(*)`,
+      gross_mg: sql<number>`COALESCE(SUM(${invoiceLines.gross_weight_mg}), 0)`,
+      net_mg: sql<number>`COALESCE(SUM(${invoiceLines.net_weight_mg}), 0)`
+    })
+    .from(invoiceLines)
+    .innerJoin(invoices, eq(invoiceLines.invoice_id, invoices.id))
+    .where(sql`(${invoices.invoice_type} = 'SALE' OR ${invoices.invoice_type} IS NULL) AND ${inDay}`)
+    .groupBy(invoiceLines.metal_type)
+    .all();
+
+  const addedRows = db
+    .select({
+      metal_type: items.metal_type,
+      pieces: sql<number>`COUNT(*)`,
+      gross_mg: sql<number>`COALESCE(SUM(${items.gross_weight_mg}), 0)`,
+      net_mg: sql<number>`COALESCE(SUM(${items.net_weight_mg}), 0)`
+    })
+    .from(items)
+    .where(eq(items.purchase_date, date))
+    .groupBy(items.metal_type)
+    .all();
+
+  const metalTypes = new Set<string>([
+    ...closingRows.map((row) => row.metal_type),
+    ...soldRows.map((row) => row.metal_type),
+    ...addedRows.map((row) => row.metal_type)
+  ]);
+  const metalStock = [...metalTypes].sort().map((metalType) => {
+    const closing = closingRows.find((row) => row.metal_type === metalType);
+    const sold = soldRows.find((row) => row.metal_type === metalType);
+    const added = addedRows.find((row) => row.metal_type === metalType);
+    return {
+      metal_type: metalType,
+      opening: {
+        pieces: (closing?.pieces ?? 0) + (sold?.pieces ?? 0) - (added?.pieces ?? 0),
+        gross_mg: (closing?.gross_mg ?? 0) + (sold?.gross_mg ?? 0) - (added?.gross_mg ?? 0),
+        net_mg: (closing?.net_mg ?? 0) + (sold?.net_mg ?? 0) - (added?.net_mg ?? 0)
+      },
+      sold: { pieces: sold?.pieces ?? 0, gross_mg: sold?.gross_mg ?? 0, net_mg: sold?.net_mg ?? 0 },
+      added: { pieces: added?.pieces ?? 0, gross_mg: added?.gross_mg ?? 0, net_mg: added?.net_mg ?? 0 },
+      closing: {
+        pieces: closing?.pieces ?? 0,
+        gross_mg: closing?.gross_mg ?? 0,
+        net_mg: closing?.net_mg ?? 0,
+        fine_mg: closing?.fine_mg ?? 0
+      }
+    };
+  });
+
   return response.json({
     date,
     total_sales_paise: totalSalesPaise,
     total_purchase_paise: totalPurchasePaise,
     total_urd_purchase_paise: urdPosPaise + urdVoucherPaise,
+    metal_stock: metalStock,
     total_expenses_paise: totalExpensesPaise,
     karigar_issued_fine_mg: karigarIssuedFineMg,
     karigar_received_fine_mg: karigarReceivedFineMg,
@@ -151,6 +220,90 @@ reportRouter.get("/daybook-summary", (request, response) => {
       closing_cash_paise: cashClosingPaise
     }
   });
+});
+
+/**
+ * GET /api/reports/stock/loose-vs-tagged
+ * The competitor's "Loose and Tag Item Stock Report": in-stock holdings grouped by
+ * stock form (LOOSE bulk vs TAGGED pieces) × metal × category, with weight totals
+ * and market value at current rates (net-weight basis).
+ */
+reportRouter.get("/stock/loose-vs-tagged", (_request, response) => {
+  try {
+    const settings = db.select().from(organizationSettings).get();
+    const inStockItems = db.select().from(items).where(eq(items.status, "IN_STOCK")).all();
+
+    const ratePerGram = (metalType: string, purityKarat: number) => {
+      if (!settings) return 0;
+      const metal = metalType.trim().toLowerCase();
+      if (metal === "silver") return settings.silver_rate_per_gram;
+      if (metal !== "gold") return 0;
+      if (purityKarat === 24) return settings.gold_24k_rate_per_gram;
+      if (purityKarat === 22) return settings.gold_22k_rate_per_gram;
+      if (purityKarat === 18) return settings.gold_18k_rate_per_gram;
+      return Math.round((settings.gold_24k_rate_per_gram * purityKarat) / 24);
+    };
+
+    const grouped = new Map<string, {
+      stock_form: string;
+      metal_type: string;
+      category: string;
+      pieces: number;
+      gross_weight_mg: number;
+      net_weight_mg: number;
+      fine_weight_mg: number;
+      market_value_paise: number;
+    }>();
+
+    for (const item of inStockItems) {
+      const key = `${item.stock_form}|${item.metal_type}|${item.category}`;
+      const row = grouped.get(key) ?? {
+        stock_form: item.stock_form,
+        metal_type: item.metal_type,
+        category: item.category,
+        pieces: 0,
+        gross_weight_mg: 0,
+        net_weight_mg: 0,
+        fine_weight_mg: 0,
+        market_value_paise: 0
+      };
+      row.pieces += 1;
+      row.gross_weight_mg += item.gross_weight_mg;
+      row.net_weight_mg += item.net_weight_mg;
+      row.fine_weight_mg += item.fine_weight_mg;
+      row.market_value_paise += Math.round((item.net_weight_mg * ratePerGram(item.metal_type, item.purity_karat)) / 1000);
+      grouped.set(key, row);
+    }
+
+    const rows = [...grouped.values()].sort(
+      (left, right) =>
+        left.stock_form.localeCompare(right.stock_form) ||
+        left.metal_type.localeCompare(right.metal_type) ||
+        left.category.localeCompare(right.category)
+    );
+
+    const totalsFor = (form: "LOOSE" | "TAGGED") => {
+      const subset = rows.filter((row) => row.stock_form === form);
+      return {
+        pieces: subset.reduce((total, row) => total + row.pieces, 0),
+        gross_weight_mg: subset.reduce((total, row) => total + row.gross_weight_mg, 0),
+        net_weight_mg: subset.reduce((total, row) => total + row.net_weight_mg, 0),
+        fine_weight_mg: subset.reduce((total, row) => total + row.fine_weight_mg, 0),
+        market_value_paise: subset.reduce((total, row) => total + row.market_value_paise, 0)
+      };
+    };
+
+    return response.json({
+      rows,
+      totals: {
+        loose: totalsFor("LOOSE"),
+        tagged: totalsFor("TAGGED")
+      }
+    });
+  } catch (error) {
+    console.error("Failed to build loose-vs-tagged stock report", error);
+    return response.status(500).json({ errors: ["Failed to build loose vs tagged stock report."] });
+  }
 });
 
 /**
@@ -179,6 +332,7 @@ reportRouter.get("/mis/kpi-summary", (request, response) => {
 
     // a) Total Gold in Vault: Sum of gross_weight_mg for all items where status = 'IN_STOCK'
     const totalGoldMg = inStockItems.reduce((sum, item) => sum + item.gross_weight_mg, 0);
+    const totalGoldNetMg = inStockItems.reduce((sum, item) => sum + item.net_weight_mg, 0);
 
     // b) Total Market Value of Vault (Calculated against today's live rate)
     let totalMarketValuePaise = 0;
@@ -201,8 +355,10 @@ reportRouter.get("/mis/kpi-summary", (request, response) => {
         ratePerGram = settings.silver_rate_per_gram;
       }
 
-      // Base Metal Value in Paise = (Gross Weight mg * Live Rate per gram) / 1000
-      const metalValuePaise = (item.gross_weight_mg * ratePerGram) / 1000;
+      // Base Metal Value in Paise = (Net Weight mg * Live Rate per gram) / 1000.
+      // Net weight, not gross: stones and beads carry no metal value, and the
+      // dashboard's stock totals are net-based too.
+      const metalValuePaise = (item.net_weight_mg * ratePerGram) / 1000;
       totalMarketValuePaise += Math.round(metalValuePaise);
     }
 
@@ -233,6 +389,7 @@ reportRouter.get("/mis/kpi-summary", (request, response) => {
 
     return response.json({
       total_gold_mg: totalGoldMg,
+      total_gold_net_mg: totalGoldNetMg,
       total_market_value_paise: totalMarketValuePaise,
       total_outstanding_udhari_paise: totalOutstandingUdhariPaise,
       total_karigar_liability_mg: totalKarigarLiabilityMg,

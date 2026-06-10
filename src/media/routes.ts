@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Router } from "express";
 import multer from "multer";
+import { requireAuth } from "../auth/middleware.js";
 
 const appRoot = process.cwd();
 const imageDirectory = path.join(appRoot, ".data", "images");
@@ -41,7 +42,7 @@ const upload = multer({
 
 export const mediaRouter = Router();
 
-mediaRouter.post("/upload/image", upload.single("image"), (request, response) => {
+mediaRouter.post("/upload/image", requireAuth, upload.single("image"), (request, response) => {
   if (!request.file) {
     return response.status(400).json({ errors: ["image file is required."] });
   }

@@ -11,12 +11,43 @@ import {
   ledgers,
   organizationSettings
 } from "../db/schema.js";
-import { requireAuth } from "../auth/middleware.js";
+import { requireAdmin, requireAuth } from "../auth/middleware.js";
 import { triggerMessage, ensureDefaultTemplatesExist, getWhatsAppLink } from "../utils/messageService.js";
+import { runGreetingsDispatch } from "../workers/greetingsWorker.js";
 import { paiseToRupees } from "../utils/decimal.js";
 
 export const messageRouter = Router();
 messageRouter.use(requireAuth);
+
+// Automated-greetings configuration: when enabled, a daily worker sends
+// birthday/anniversary wishes with no manual action.
+messageRouter.get("/auto-greetings", (_request, response) => {
+  const settings = db.select().from(organizationSettings).get();
+  return response.json({ auto_greetings_enabled: Boolean(settings?.auto_greetings_enabled) });
+});
+
+messageRouter.put("/auto-greetings", requireAdmin, (request, response) => {
+  const enabled = (request.body as { auto_greetings_enabled?: unknown })?.auto_greetings_enabled;
+  if (typeof enabled !== "boolean") {
+    return response.status(400).json({ errors: ["auto_greetings_enabled must be a boolean."] });
+  }
+  const settings = db.select().from(organizationSettings).get();
+  if (!settings) {
+    return response.status(404).json({ errors: ["Organization settings not found."] });
+  }
+  db.update(organizationSettings)
+    .set({ auto_greetings_enabled: enabled, updated_at: sql`CURRENT_TIMESTAMP` })
+    .where(eq(organizationSettings.id, settings.id))
+    .run();
+  return response.json({ auto_greetings_enabled: enabled });
+});
+
+// Manual "run now" for the greetings dispatcher — same idempotent path the daily
+// worker uses, so it is safe to click repeatedly.
+messageRouter.post("/auto-greetings/run", requireAdmin, (_request, response) => {
+  const result = runGreetingsDispatch();
+  return response.json({ result });
+});
 
 messageRouter.get("/templates", (_request, response) => {
   ensureDefaultTemplatesExist();

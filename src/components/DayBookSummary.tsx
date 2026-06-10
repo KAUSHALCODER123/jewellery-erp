@@ -15,6 +15,13 @@ type Summary = {
   karigar_received_fine_mg: number;
   cash_in_hand_paise: number;
   bank_balance_paise: number;
+  metal_stock?: Array<{
+    metal_type: string;
+    opening: { pieces: number; gross_mg: number; net_mg: number };
+    sold: { pieces: number; gross_mg: number; net_mg: number };
+    added: { pieces: number; gross_mg: number; net_mg: number };
+    closing: { pieces: number; gross_mg: number; net_mg: number; fine_mg: number };
+  }>;
   payment_modes?: {
     cash_received_paise: number;
     cash_paid_paise: number;
@@ -189,6 +196,36 @@ export default function DayBookSummary({ apiBaseUrl = "" }: DayBookSummaryProps)
             <CountUp value={summary.cash_in_hand_paise + summary.bank_balance_paise} format={(n) => rupees(n)} />
           </MetricCard>
         </div>
+
+        {summary.metal_stock && summary.metal_stock.length > 0 && (
+          <div className="mt-5">
+            <h2 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Metal Stock — opening / sold / added / closing (net weight)</h2>
+            <div className="overflow-auto rounded border border-slate-800">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-900 text-slate-400">
+                  <tr>
+                    {["Metal", "Opening", "Sold Today", "Added Today", "Closing", "Closing Pieces", "Closing Fine"].map((heading) => (
+                      <th key={heading} className="border-b border-slate-800 px-2 py-2 uppercase">{heading}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.metal_stock.map((row) => (
+                    <tr key={row.metal_type} className="border-b border-slate-900">
+                      <td className="px-2 py-2 font-semibold text-slate-200">{row.metal_type}</td>
+                      <td className="px-2 py-2 font-mono">{grams(row.opening.net_mg)}</td>
+                      <td className="px-2 py-2 font-mono text-rose-300">{grams(row.sold.net_mg)}</td>
+                      <td className="px-2 py-2 font-mono text-emerald-300">{grams(row.added.net_mg)}</td>
+                      <td className="px-2 py-2 font-mono text-slate-100">{grams(row.closing.net_mg)}</td>
+                      <td className="px-2 py-2 font-mono">{row.closing.pieces}</td>
+                      <td className="px-2 py-2 font-mono">{grams(row.closing.fine_mg)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {summary.payment_modes && (
           <div className="mt-5">

@@ -436,7 +436,13 @@ function formatInventoryItem(item: typeof items.$inferSelect) {
     black_bead_weight_g: milligramsToGrams(item.black_bead_weight_mg ?? 0),
     net_weight_g: milligramsToGrams(item.net_weight_mg),
     final_weight_g: milligramsToGrams(item.final_weight_mg || item.net_weight_mg),
-    fine_weight_g: milligramsToGrams(item.fine_weight_mg || calculateFineWeightMg(item.net_weight_mg, item.purity_karat)),
+    // Recomputing from purity is a legacy-row fallback for weight-priced jewellery only;
+    // quantity-wise articles (coins, fixed-price pieces) may legitimately store fine weight 0.
+    fine_weight_g: milligramsToGrams(
+      item.sale_mode === "QUANTITY_WISE"
+        ? item.fine_weight_mg
+        : item.fine_weight_mg || calculateFineWeightMg(item.net_weight_mg, item.purity_karat)
+    ),
     making_charge_rupees: paiseToRupees(item.making_charge_value)
   };
 }
@@ -735,7 +741,18 @@ function validateBarcodeCreatePayload(payload: unknown): BarcodeCreateValidation
 }
 
 function buildVerificationSummary(session: typeof stockVerificationSessions.$inferSelect) {
-  const expectedItems = db.select().from(items).where(eq(items.status, session.expected_status)).all();
+  // A session scoped to a location only expects items at that location; a session
+  // without one audits the whole shop.
+  const location = session.location?.trim();
+  const expectedItems = db
+    .select()
+    .from(items)
+    .where(
+      location
+        ? and(eq(items.status, session.expected_status), eq(items.location, location))
+        : eq(items.status, session.expected_status)
+    )
+    .all();
   const scans = db.select().from(stockVerificationScans).where(eq(stockVerificationScans.session_id, session.id)).all();
   const foundItemIds = new Set(scans.filter((scan) => scan.item_id).map((scan) => scan.item_id as number));
   const missingItems = expectedItems.filter((item) => !foundItemIds.has(item.id));

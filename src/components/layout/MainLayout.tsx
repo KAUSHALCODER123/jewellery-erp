@@ -34,7 +34,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuthSession } from "../../auth/AuthSessionContext.js";
-import { useWeighingScale } from "../../hooks/useWeighingScale.js";
+import { scaleSocketUrl, useWeighingScale } from "../../hooks/useWeighingScale.js";
 
 type DatabaseStatus = "checking" | "connected" | "offline";
 
@@ -105,7 +105,7 @@ const routeTitles = new Map([
 export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string }) {
   const location = useLocation();
   const { session, logout } = useAuthSession();
-  const scale = useWeighingScale();
+  const scale = useWeighingScale(scaleSocketUrl(apiBaseUrl));
   const databaseStatus = useDatabaseStatus(apiBaseUrl);
   const title = routeTitles.get(location.pathname) ?? "Jewelry ERP";
 

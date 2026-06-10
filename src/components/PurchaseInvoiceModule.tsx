@@ -62,6 +62,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
   const [billNumber, setBillNumber] = useState("");
   const [purchaseDate, setPurchaseDate] = useState(getToday());
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("CREDIT");
+  const [tdsPercent, setTdsPercent] = useState("");
 
   const lineKeyRef = useRef(1);
   const [lines, setLines] = useState<LineForm[]>(() => [emptyLine("l0")]);
@@ -77,6 +78,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
   const computedLines = lines.map(computeLine);
   const grossTotalPaise = computedLines.reduce((sum, line) => sum + line.lineTotalPaise, 0);
   const gstTotalPaise = computedLines.reduce((sum, line) => sum + line.gstPaise, 0);
+  const tdsAmountPaise = Math.round((grossTotalPaise * (Number(tdsPercent) || 0)) / 100);
 
   const saveDisabled =
     !selectedSupplier ||
@@ -178,6 +180,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
           gst_amount_paise: gstTotalPaise,
           discount_paise: 0,
           total_amount_paise: grossTotalPaise,
+          tds_percent: Number(tdsPercent) || 0,
           lines: payloadLines
         })
       });
@@ -314,7 +317,11 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
             </select>
           </Field>
           <MetricBox label="GST" value={formatPaise(gstTotalPaise)} />
-          <MetricBox label="Total Payable" value={formatPaise(grossTotalPaise)} tone="ok" />
+          <Field label="TDS % (e.g. 0.1 u/s 194Q)">
+            <input value={tdsPercent} onChange={(event) => setTdsPercent(event.target.value)} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" placeholder="0" />
+          </Field>
+          {tdsAmountPaise > 0 && <MetricBox label="TDS Withheld" value={formatPaise(tdsAmountPaise)} />}
+          <MetricBox label="Total Payable" value={formatPaise(Math.max(grossTotalPaise - tdsAmountPaise, 0))} tone="ok" />
           {paymentMode === "CREDIT" && selectedSupplier && (
             <p className="border border-amber-600/40 bg-amber-950/30 p-2 text-[10px] text-amber-200">Adds {formatPaise(grossTotalPaise)} to {selectedSupplier.name}'s outstanding balance.</p>
           )}

@@ -42,16 +42,25 @@ const runningInTauri = isTauri();
 const apiBaseUrl = runningInTauri ? "http://127.0.0.1:4000" : "";
 
 export default function App() {
+  const [exitBackupRunning, setExitBackupRunning] = useState(false);
+
   useEffect(() => {
     if (runningInTauri) {
       let unlisten: (() => void) | null = null;
+      let unmounted = false;
+      let closing = false;
       import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
         getCurrentWindow().onCloseRequested(async (event) => {
           event.preventDefault();
+          if (closing) return;
+          closing = true;
+          setExitBackupRunning(true);
           try {
-            // Cap the exit-backup call so a dead/slow backend can never block the window from closing.
+            // Cap the exit-backup call so a dead/slow backend can never block the
+            // window from closing. 15s covers a large-database snapshot+gzip;
+            // the overlay below tells the user why the window is still open.
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 3000);
+            const timeout = setTimeout(() => controller.abort(), 15000);
             try {
               await fetch(`${apiBaseUrl}/api/backup/on-exit`, { method: "POST", signal: controller.signal });
             } finally {
@@ -63,11 +72,18 @@ export default function App() {
             await getCurrentWindow().destroy();
           }
         }).then((unlistenFn) => {
-          unlisten = unlistenFn;
+          // The effect can be cleaned up before this promise resolves; unlisten
+          // immediately in that case instead of leaking the handler.
+          if (unmounted) {
+            unlistenFn();
+          } else {
+            unlisten = unlistenFn;
+          }
         });
       });
 
       return () => {
+        unmounted = true;
         if (unlisten) unlisten();
       };
     }
@@ -77,11 +93,60 @@ export default function App() {
     <AuthProvider apiBaseUrl={apiBaseUrl}>
       <POSCreditProvider>
         <HashRouter>
-          <AppRoutes />
+          <BackendGate>
+            <AppRoutes />
+          </BackendGate>
         </HashRouter>
       </POSCreditProvider>
+      {exitBackupRunning ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90">
+          <p className="text-sm font-semibold text-slate-50">Backing up before exit&hellip;</p>
+        </div>
+      ) : null}
     </AuthProvider>
   );
+}
+
+// The login screen already polls until the sidecar backend is up, but a
+// returning user with a stored session skips it and would land on dashboards
+// whose fetches all fail while the backend is still booting. Hold rendering
+// until /health answers (Tauri only — on the web the server served this page).
+function BackendGate({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(!runningInTauri);
+
+  useEffect(() => {
+    if (ready) return;
+    let cancelled = false;
+
+    (async () => {
+      for (let attempt = 1; attempt <= 120 && !cancelled; attempt += 1) {
+        try {
+          const response = await fetch(`${apiBaseUrl}/health`);
+          if (response.ok) break;
+        } catch {
+          // Backend not up yet — retry below.
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+      }
+      // After 60s of failures, render anyway: the login screen's own error
+      // path explains the connection problem better than an endless spinner.
+      if (!cancelled) setReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <p className="text-sm font-semibold text-slate-50">Starting local backend&hellip;</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 function AppRoutes() {

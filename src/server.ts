@@ -41,6 +41,7 @@ import { einvoiceRouter, ewaybillRouter } from "./einvoice/routes.js";
 import { startScheduler } from "./backup/backupScheduler.js";
 import { errorLog } from "./db/schema.js";
 import { startSyncWorker } from "./workers/syncWorker.js";
+import { startGreetingsWorker } from "./workers/greetingsWorker.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -50,7 +51,9 @@ function writeCrashLog(error: unknown) {
   try {
     fs.mkdirSync(path.dirname(crashLogPath), { recursive: true });
     const detail = error instanceof Error ? error.stack ?? error.message : String(error);
-    fs.writeFileSync(crashLogPath, `[${new Date().toISOString()}]\n${detail}\n`, "utf8");
+    // Append — the Tauri shell logs launch context to the same file, and a
+    // crash must not wipe it.
+    fs.appendFileSync(crashLogPath, `[${new Date().toISOString()}]\n${detail}\n`, "utf8");
   } catch (logError) {
     console.error("[CrashLog] Failed to write crash log:", logError);
   }
@@ -146,9 +149,13 @@ if (process.env.NODE_ENV !== "test" || process.env.PLAYWRIGHT === "true") {
       process.exit(1);
     });
 
-    server.listen(port, () => {
-      console.log(`Jewelry ERP backend listening on http://localhost:${port}`);
+    // The packaged desktop app is single-machine: bind loopback only so the
+    // API (invoices, customer documents, images) is never reachable from the LAN.
+    const bindHost = process.env.ERP_BIND_HOST ?? (process.env.ERP_PACKAGED === "1" ? "127.0.0.1" : "0.0.0.0");
+    server.listen(port, bindHost, () => {
+      console.log(`Jewelry ERP backend listening on http://${bindHost}:${port}`);
       startSyncWorker();
+      startGreetingsWorker();
     });
   } catch (error) {
     writeCrashLog(error);
