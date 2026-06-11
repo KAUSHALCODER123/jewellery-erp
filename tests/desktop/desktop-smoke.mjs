@@ -220,7 +220,7 @@ async function main() {
       },
       { timeout: 6000 }
     );
-    await page.locator('button:text-is("Checkout")').click();
+    await page.locator('button[type="submit"]:has-text("Checkout")').click();
     sold = await page
       .getByRole("heading", { name: "Invoice Saved" })
       .waitFor({ state: "visible", timeout: 12000 })

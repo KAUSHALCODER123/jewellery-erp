@@ -130,6 +130,25 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
   const [unlockPassword, setUnlockPassword] = useState("");
   const [unlockError, setUnlockError] = useState("");
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hotkeyToast, setHotkeyToast] = useState("");
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  // Icon-only sidebar reclaims ~175px of content width on the 1366px laptops
+  // common at billing counters. Preference persists across sessions.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("ui:sidebarCollapsed") === "1");
+  function toggleSidebar() {
+    setSidebarCollapsed((collapsed) => {
+      localStorage.setItem("ui:sidebarCollapsed", collapsed ? "0" : "1");
+      return !collapsed;
+    });
+  }
+  const hotkeyToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flashHotkeyToast(text: string) {
+    setHotkeyToast(text);
+    if (hotkeyToastTimer.current) clearTimeout(hotkeyToastTimer.current);
+    hotkeyToastTimer.current = setTimeout(() => setHotkeyToast(""), 3500);
+  }
 
   useEffect(() => {
     if (locked) return;
@@ -155,13 +174,25 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
         setLocked(true);
         return;
       }
+      // Ctrl+K opens the command palette — one shortcut that reaches every
+      // module, instead of binding an F-key per screen.
+      if (event.ctrlKey && !event.altKey && !event.metaKey && (event.key === "k" || event.key === "K")) {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+        return;
+      }
       if (event.ctrlKey || event.altKey || event.metaKey) return;
       const route = hotkeyRoutes.get(event.key);
       if (!route) return;
-      // Day Book is an admin/manager screen; send staff to the dashboard instead.
-      const target = route === "/daybook" && !isAdminOrManager ? "/dashboard" : route;
+      // Day Book is an admin/manager screen; tell staff why instead of a
+      // silent redirect that makes F3 look like "go to dashboard".
+      if (route === "/daybook" && !isAdminOrManager) {
+        event.preventDefault();
+        flashHotkeyToast("Day Book is restricted to managers and admins.");
+        return;
+      }
       event.preventDefault();
-      navigate(target);
+      navigate(route);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -208,19 +239,26 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
   }, [isAdminOrManager, session?.user.role]);
 
   return (
-    <div className="grid h-screen grid-cols-[232px_1fr] overflow-hidden bg-slate-950 text-slate-100">
+    <div className={`grid h-screen overflow-hidden bg-slate-950 text-slate-100 ${sidebarCollapsed ? "grid-cols-[56px_1fr]" : "grid-cols-[232px_1fr]"}`}>
       {/* Charcoal sidebar: explicit dark surface + light text (arbitrary colours so it
           stays charcoal regardless of the light-theme slate scale). Gold active state. */}
       <aside className="grid min-h-0 grid-rows-[auto_1fr_auto] border-r border-[#33302B] bg-[#222222]">
-        <div className="border-b border-[#33302B] px-4 py-3">
+        <div className={`border-b border-[#33302B] py-3 ${sidebarCollapsed ? "px-2" : "px-4"}`}>
           <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center bg-emerald-500 text-slate-50">
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="grid h-8 w-8 shrink-0 place-items-center bg-emerald-500 text-slate-50 transition hover:bg-emerald-400"
+            >
               <ShieldCheck className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#F5F1E8]">Jewelry ERP</p>
-              <p className="truncate text-[11px] uppercase text-[#9C968A]">Offline Desktop</p>
-            </div>
+            </button>
+            {!sidebarCollapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#F5F1E8]">Jewelry ERP</p>
+                <p className="truncate text-[11px] uppercase text-[#9C968A]">Offline Desktop</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -234,6 +272,7 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
                 className={({ isActive }) =>
                   [
                     "flex h-9 items-center gap-2 px-2 text-xs font-semibold uppercase tracking-wide transition",
+                    sidebarCollapsed ? "justify-center" : "",
                     isActive
                       ? "bg-emerald-500 text-slate-50"
                       : "text-[#C4BEB0] hover:bg-[#2E2A24] hover:text-[#FFFFFF]"
@@ -241,13 +280,15 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
                 }
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
               </NavLink>
             ))}
           </div>
         </nav>
 
-        <div className="border-t border-[#33302B] p-3 text-xs">
+        <div className={`border-t border-[#33302B] text-xs ${sidebarCollapsed ? "p-2" : "p-3"}`}>
+          {!sidebarCollapsed && (
+          <>
           <div className="truncate font-medium text-[#E7E2D6]">{session?.user.username ?? "Not signed in"}</div>
           <div className="mt-0.5 uppercase text-[#9C968A]">{session?.user.role ?? "Local Access"}</div>
           {session?.user.firm_name && (
@@ -260,13 +301,15 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
               FY {session.user.fiscal_year}
             </div>
           )}
+          </>
+          )}
           <button
             type="button"
             onClick={() => { void logout(); }}
             title="Sign out of this session"
-            className="mt-2.5 flex w-full items-center justify-center gap-1.5 border border-[#3A372F] px-2 py-1.5 text-[11px] font-semibold uppercase text-[#C4BEB0] hover:border-red-500 hover:text-[#F08C8C]"
+            className={`flex w-full items-center justify-center gap-1.5 border border-[#3A372F] px-2 py-1.5 text-[11px] font-semibold uppercase text-[#C4BEB0] hover:border-red-500 hover:text-[#F08C8C] ${sidebarCollapsed ? "" : "mt-2.5"}`}
           >
-            <LogOut className="h-3.5 w-3.5" /> Logout
+            <LogOut className="h-3.5 w-3.5" /> {!sidebarCollapsed && "Logout"}
           </button>
         </div>
       </aside>
@@ -297,6 +340,14 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
             />
             <button
               type="button"
+              onClick={() => setShowShortcuts(true)}
+              title="Keyboard shortcuts"
+              className="flex h-7 w-7 items-center justify-center border border-slate-700 text-[13px] font-bold text-slate-300 hover:border-emerald-400 hover:text-emerald-300"
+            >
+              ?
+            </button>
+            <button
+              type="button"
               onClick={() => setLocked(true)}
               title="Lock the app (Ctrl+L)"
               className="flex h-7 items-center gap-1 border border-slate-700 px-2 text-[11px] font-semibold uppercase text-slate-300 hover:border-emerald-400 hover:text-emerald-300"
@@ -322,6 +373,53 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
         </main>
       </section>
 
+      {hotkeyToast && (
+        <div className="animate-fade-in fixed bottom-4 right-4 z-[90] rounded border border-amber-700 bg-amber-950/90 px-3 py-2 text-xs font-semibold text-amber-200 shadow-lg">
+          {hotkeyToast}
+        </div>
+      )}
+
+      {paletteOpen && !locked && (
+        <CommandPalette
+          items={visibleNavItems}
+          onNavigate={(to) => {
+            setPaletteOpen(false);
+            navigate(to);
+          }}
+          onClose={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {showShortcuts && !locked && (
+        <div className="animate-fade-in fixed inset-0 z-[95] grid place-items-center bg-black/70 p-4" onClick={() => setShowShortcuts(false)}>
+          <div className="animate-scale-in w-full max-w-sm rounded-md border border-slate-700 bg-slate-950 p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-bold uppercase text-slate-50">Keyboard Shortcuts</h2>
+              <button type="button" onClick={() => setShowShortcuts(false)} className="text-slate-400 hover:text-slate-200">✕</button>
+            </div>
+            <table className="w-full text-left text-xs">
+              <tbody>
+                {[
+                  ["F1", "POS Billing"],
+                  ["F2", "Receipt Entry"],
+                  ["F3", "Day Book (managers/admins)"],
+                  ["F4", "Inventory"],
+                  ["Ctrl+K", "Go to any screen (command palette)"],
+                  ["F8 / Ctrl+Enter", "Checkout the current bill (POS)"],
+                  ["Enter", "Next field (POS) · select customer · add scanned item"],
+                  ["Ctrl+L", "Lock the app"]
+                ].map(([key, action]) => (
+                  <tr key={key} className="border-b border-slate-800">
+                    <td className="py-1.5 pr-3 font-mono font-semibold text-emerald-300">{key}</td>
+                    <td className="py-1.5 text-slate-300">{action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {locked && (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/95 backdrop-blur">
           <form onSubmit={unlockApp} className="grid w-80 gap-3 border border-slate-700 bg-slate-900 p-6 text-center">
@@ -343,6 +441,92 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
           </form>
         </div>
       )}
+    </div>
+  );
+}
+
+// Ctrl+K palette: fuzzy-ish substring match over the role-filtered nav list,
+// arrow keys + Enter to jump. Keyboard-first navigation for all modules.
+function CommandPalette({
+  items,
+  onNavigate,
+  onClose
+}: {
+  items: NavigationItem[];
+  onNavigate: (to: string) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [highlighted, setHighlighted] = useState(0);
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((item) => {
+      const label = item.label.toLowerCase();
+      // Match label substring, or all query words in order (e.g. "gst rep").
+      if (label.includes(q)) return true;
+      return q.split(/\s+/).every((word) => label.includes(word));
+    });
+  }, [items, query]);
+
+  const clampedHighlight = Math.min(highlighted, Math.max(matches.length - 1, 0));
+
+  return (
+    <div className="animate-fade-in fixed inset-0 z-[95] grid place-items-start justify-center bg-black/70 p-4 pt-24" onClick={onClose}>
+      <div className="animate-scale-in w-full max-w-md rounded-md border border-slate-700 bg-slate-950 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <input
+          autoFocus
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setHighlighted(0);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              onClose();
+            } else if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setHighlighted((i) => Math.min(i + 1, matches.length - 1));
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setHighlighted((i) => Math.max(i - 1, 0));
+            } else if (event.key === "Enter" && matches[clampedHighlight]) {
+              event.preventDefault();
+              onNavigate(matches[clampedHighlight].to);
+            }
+          }}
+          placeholder="Go to… (type a screen name)"
+          className="h-11 w-full border-b border-slate-800 bg-transparent px-4 text-sm text-slate-50 outline-none placeholder:text-slate-500"
+        />
+        <ul className="max-h-80 overflow-y-auto p-1">
+          {matches.map((item, index) => (
+            <li key={item.to}>
+              <button
+                type="button"
+                onMouseEnter={() => setHighlighted(index)}
+                onClick={() => onNavigate(item.to)}
+                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide ${
+                  index === clampedHighlight ? "bg-emerald-500 text-slate-50" : "text-slate-300"
+                }`}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{item.label}</span>
+                {routeHotkeys.has(item.to) && (
+                  <span className={`ml-auto font-mono text-[10px] ${index === clampedHighlight ? "text-emerald-100" : "text-slate-500"}`}>
+                    {routeHotkeys.get(item.to)}
+                  </span>
+                )}
+              </button>
+            </li>
+          ))}
+          {matches.length === 0 && <li className="px-3 py-3 text-center text-xs text-slate-500">No screen matches &ldquo;{query}&rdquo;.</li>}
+        </ul>
+        <div className="border-t border-slate-800 px-3 py-1.5 text-[10px] uppercase tracking-wide text-slate-600">
+          ↑↓ navigate · Enter open · Esc close
+        </div>
+      </div>
     </div>
   );
 }

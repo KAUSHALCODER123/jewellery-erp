@@ -1,9 +1,10 @@
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { useBarcodeScanner } from "../hooks/useBarcodeScanner.js";
 import { usePOSCredit } from "../pos/POSCreditContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import { friendlyError } from "../utils/friendlyError.js";
 import CustomerMaster, { type SavedCustomer } from "./CustomerMaster.js";
 import { CountUp } from "./ui.js";
 import { Trash2, CheckCircle2, Plus, Loader2, MessageSquare } from "lucide-react";
@@ -141,6 +142,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const [documentImagePath, setDocumentImagePath] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showCustomerLookup, setShowCustomerLookup] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [oldDuesRupees, setOldDuesRupees] = useState("");
   const [customerUdhariPaise, setCustomerUdhariPaise] = useState(0);
@@ -153,6 +155,17 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const [itemQuery, setItemQuery] = useState("");
   const [showCreditConfirm, setShowCreditConfirm] = useState(false);
   const [printContext, setPrintContext] = useState<{ phone: string | null; invoiceNumber: string } | null>(null);
+  const [scanNotice, setScanNotice] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const panInputRef = useRef<HTMLInputElement>(null);
+  const scanNoticeTimerRef = useRef<number | null>(null);
+
+  // Inline feedback under the barcode field; auto-clears so the next scan starts clean.
+  const showScanNotice = useCallback((text: string) => {
+    setScanNotice(text);
+    if (scanNoticeTimerRef.current) window.clearTimeout(scanNoticeTimerRef.current);
+    scanNoticeTimerRef.current = window.setTimeout(() => setScanNotice(""), 4000);
+  }, []);
 
   function selectCustomer(customer: Customer | null) {
     if (!customer) {
@@ -305,12 +318,15 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         const item = result.items.find((candidate) => candidate.barcode === barcode || candidate.huid === barcode) ?? result.items[0];
 
         if (item.status && item.status !== "IN_STOCK") {
-          setError(`${item.barcode} is ${String(item.status).toLowerCase()} and cannot be added to the cart.`);
+          const reason = `${item.barcode} is ${String(item.status).toLowerCase()} and cannot be added to the cart.`;
+          setError(reason);
+          showScanNotice(reason);
           return false;
         }
 
         if (cart.some((line) => line.id === item.id)) {
           setMessage(`${item.barcode} is already in cart.`);
+          showScanNotice(`${item.barcode} is already in cart.`);
           return true;
         }
 
@@ -324,11 +340,13 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         ]);
         return true;
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Could not scan item.");
+        const reason = caught instanceof Error ? caught.message : "Could not scan item.";
+        setError(reason);
+        showScanNotice(reason);
         return false;
       }
     },
-    [apiBaseUrl, authHeaders, cart, rates]
+    [apiBaseUrl, authHeaders, cart, rates, showScanNotice]
   );
 
   useBarcodeScanner(appendScannedItem);
@@ -342,6 +360,34 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const kycRequired = cashComplianceRequired || urdLines.length > 0;
   const complianceMissing = kycRequired && (!panNumber.trim() || !aadhaarNumber.trim() || !customerId);
   const checkoutDisabled = cart.length === 0 || totals.balanceRemainingPaise !== 0 || complianceMissing;
+  // Warn before the hard limit so staff can collect PAN/Aadhaar without a surprise mid-bill.
+  const cashComplianceApproaching =
+    !cashComplianceRequired && totals.cashPaidPaise >= CASH_PAN_AADHAAR_THRESHOLD_PAISE * 0.9;
+
+  // F8 / Ctrl+Enter fire checkout from anywhere on the screen, so staff never
+  // have to reach for the mouse to finish a bill. requestSubmit() runs the
+  // same checkout() gate as the button, so all validation still applies.
+  useEffect(() => {
+    function onHotkey(event: KeyboardEvent) {
+      const isF8 = event.key === "F8" && !event.ctrlKey && !event.altKey && !event.metaKey;
+      const isCtrlEnter = event.key === "Enter" && event.ctrlKey && !event.altKey && !event.metaKey;
+      if (!isF8 && !isCtrlEnter) return;
+      event.preventDefault();
+      formRef.current?.requestSubmit();
+    }
+    window.addEventListener("keydown", onHotkey);
+    return () => window.removeEventListener("keydown", onHotkey);
+  }, []);
+
+  // When the compliance block appears mid-bill, jump focus straight to PAN so
+  // staff aren't left hunting for the newly revealed fields — but never steal
+  // focus while they are still typing in another input (e.g. the cash amount).
+  useEffect(() => {
+    if (!kycRequired) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
+    panInputRef.current?.focus();
+  }, [kycRequired]);
 
   async function loadRates() {
     try {
@@ -463,7 +509,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
       setCustomerQuery("");
       setWalkInName("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Checkout failed.");
+      setError(friendlyError(caught instanceof Error ? caught.message : "Checkout failed."));
     } finally {
       setSubmitting(false);
     }
@@ -548,12 +594,25 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
 
   return (
     <form
+      ref={formRef}
       onSubmit={checkout}
       onKeyDown={(event) => {
-        // Enter inside any text input must not fire checkout — staff press it
-        // constantly while editing rates/payments. Buttons keep their default.
-        if (event.key === "Enter" && (event.target as HTMLElement).tagName === "INPUT") {
+        // Enter inside a text input must not fire checkout — staff press it
+        // constantly while editing rates/payments. Instead of swallowing it,
+        // advance focus to the next input so Enter behaves like Tab. Fields
+        // with their own Enter handlers (customer search, barcode) call
+        // preventDefault first and are skipped here. Checkout stays on the
+        // button, F8 or Ctrl+Enter.
+        const target = event.target as HTMLElement;
+        if (event.key === "Enter" && !event.ctrlKey && target.tagName === "INPUT" && !event.defaultPrevented) {
           event.preventDefault();
+          const form = event.currentTarget;
+          const focusables = Array.from(form.querySelectorAll<HTMLElement>("input, select, textarea, button"))
+            .filter((el) => !el.hasAttribute("disabled") && el.offsetParent !== null);
+          const index = focusables.indexOf(target);
+          if (index >= 0 && index + 1 < focusables.length) {
+            focusables[index + 1].focus();
+          }
         }
       }}
       className="grid h-screen grid-cols-[260px_1fr_310px] overflow-hidden bg-slate-950 text-slate-100"
@@ -637,6 +696,17 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                       No existing match — press Enter or click above to bill as walk-in.
                     </li>
                   )}
+                  {/* The dropdown caps at 8 — without an escape hatch, customers
+                      beyond it are unfindable and end up mis-billed as walk-ins. */}
+                  <li>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); setShowCustomerLookup(true); setCustomerListOpen(false); }}
+                      className="block w-full border-t border-slate-700 px-2 py-1.5 text-left text-[11px] font-semibold text-emerald-400 transition hover:bg-slate-800"
+                    >
+                      Search all customers…
+                    </button>
+                  </li>
                 </ul>
               )}
             </div>
@@ -669,12 +739,22 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                 Old Dues Outstanding: ₹{(customerUdhariPaise / 100).toFixed(2)}
               </p>
               <Field label="Collect toward old dues (₹)">
-                <input
-                  value={oldDuesRupees}
-                  onChange={(event) => setOldDuesRupees(event.target.value.replace(/[^\d.]/g, ""))}
-                  placeholder="0.00"
-                  className={controlClassName}
-                />
+                <div className="flex gap-1">
+                  <input
+                    value={oldDuesRupees}
+                    onChange={(event) => setOldDuesRupees(event.target.value.replace(/[^\d.]/g, ""))}
+                    placeholder="0.00"
+                    className={controlClassName}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setOldDuesRupees((customerUdhariPaise / 100).toFixed(2))}
+                    title="Collect the full outstanding balance"
+                    className="shrink-0 rounded-sm border border-amber-600 bg-amber-600/20 px-2 text-[10px] font-bold uppercase text-amber-300 transition hover:bg-amber-600/40 active:scale-95"
+                  >
+                    Max
+                  </button>
+                </div>
               </Field>
             </div>
           )}
@@ -685,15 +765,25 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                 Loyalty Points: {customerLoyaltyPoints} (₹1 each)
               </p>
               <Field label="Redeem points">
-                <input
-                  value={loyaltyRedeemPoints}
-                  onChange={(event) => {
-                    const next = Math.min(Number(event.target.value.replace(/[^\d]/g, "")) || 0, customerLoyaltyPoints);
-                    setLoyaltyRedeemPoints(next > 0 ? String(next) : "");
-                  }}
-                  placeholder="0"
-                  className={controlClassName}
-                />
+                <div className="flex gap-1">
+                  <input
+                    value={loyaltyRedeemPoints}
+                    onChange={(event) => {
+                      const next = Math.min(Number(event.target.value.replace(/[^\d]/g, "")) || 0, customerLoyaltyPoints);
+                      setLoyaltyRedeemPoints(next > 0 ? String(next) : "");
+                    }}
+                    placeholder="0"
+                    className={controlClassName}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setLoyaltyRedeemPoints(String(customerLoyaltyPoints))}
+                    title={`Redeem all ${customerLoyaltyPoints} points (₹${customerLoyaltyPoints})`}
+                    className="shrink-0 rounded-sm border border-emerald-600 bg-emerald-600/20 px-2 text-[10px] font-bold uppercase text-emerald-300 transition hover:bg-emerald-600/40 active:scale-95"
+                  >
+                    Use All
+                  </button>
+                </div>
               </Field>
             </div>
           )}
@@ -704,13 +794,19 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
             </div>
           )}
 
+          {cashComplianceApproaching && !kycRequired && (
+            <div className="animate-fade-in rounded-sm border border-amber-600 bg-amber-950/30 p-2 text-[11px] text-amber-200">
+              Approaching the Rs 2,00,000 cash compliance limit — have the customer&rsquo;s PAN and Aadhaar ready.
+            </div>
+          )}
+
           {kycRequired && (
             <div className="grid gap-2 border border-red-500 bg-red-950/30 p-2 rounded-sm">
               <p className="text-xs font-bold uppercase text-red-200 tracking-wide">
                 {cashComplianceRequired ? "Compliance: Cash >= Rs 2,00,000" : "Compliance: URD Exchange"}
               </p>
               <Field label="PAN Number">
-                <input placeholder="ABCDE1234F" value={panNumber} onChange={(event) => setPanNumber(event.target.value.toUpperCase())} className={dangerControlClassName} />
+                <input ref={panInputRef} placeholder="ABCDE1234F" value={panNumber} onChange={(event) => setPanNumber(event.target.value.toUpperCase())} className={dangerControlClassName} maxLength={10} />
               </Field>
               <Field label="Aadhaar Number">
                 <input placeholder="12 Digits" value={aadhaarNumber} onChange={(event) => setAadhaarNumber(event.target.value.replace(/\D/g, ""))} className={dangerControlClassName} maxLength={12} />
@@ -767,7 +863,11 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
               placeholder="Type barcode / HUID + Enter to add"
               className="h-8 w-64 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
             />
-            <span className="shrink-0 text-[11px] text-slate-500">Scanned items append here</span>
+            {scanNotice ? (
+              <span className="animate-fade-in shrink-0 rounded bg-rose-950/60 px-2 py-0.5 text-[11px] font-semibold text-rose-300">{scanNotice}</span>
+            ) : (
+              <span className="shrink-0 text-[11px] text-slate-500">Scanned items append here</span>
+            )}
           </div>
           <div className="min-h-0 overflow-hidden">
             <table className="w-full table-fixed text-left text-xs">
@@ -917,15 +1017,15 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         </section>
 
         <section className="grid content-start gap-2 py-3">
-          <div data-testid="balance-remaining" data-paise={totals.balanceRemainingPaise} className={`rounded-md border p-3 text-center transition-colors duration-300 ${totals.balanceRemainingPaise === 0 ? "border-emerald-600 bg-emerald-950/30" : "border-amber-600 bg-amber-950/30"}`}>
+          <div data-testid="balance-remaining" data-paise={totals.balanceRemainingPaise} className={`rounded-md border p-3 text-center transition-colors duration-300 ${totals.balanceRemainingPaise === 0 ? "border-emerald-600 bg-emerald-950/30" : totals.balanceRemainingPaise < 0 ? "border-rose-600 bg-rose-950/30" : "border-amber-600 bg-amber-950/30"}`}>
             <div className="flex items-center justify-center gap-1 text-[10px] uppercase text-slate-400">
-              Balance Remaining
+              {totals.balanceRemainingPaise < 0 ? "Overpaid — reduce a payment" : "Balance Remaining"}
               {totals.balanceRemainingPaise === 0 && cart.length > 0 && <CheckCircle2 className="h-3 w-3 animate-pop text-emerald-400" />}
             </div>
             <CountUp
               value={totals.balanceRemainingPaise}
               format={(n) => formatPaise(Math.round(n))}
-              className={`font-mono text-2xl font-semibold ${totals.balanceRemainingPaise === 0 ? "text-emerald-300" : "text-amber-200"}`}
+              className={`font-mono text-2xl font-semibold ${totals.balanceRemainingPaise === 0 ? "text-emerald-300" : totals.balanceRemainingPaise < 0 ? "text-rose-300" : "text-amber-200"}`}
             />
           </div>
           {(message || error) && <p className={`animate-fade-in text-xs ${error ? "text-red-300" : "text-emerald-300"}`}>{error || message}</p>}
@@ -936,7 +1036,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           disabled={checkoutDisabled || submitting}
           className="flex h-11 items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-semibold uppercase text-slate-50 transition active:scale-[0.98] hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
         >
-          {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : "Checkout"}
+          {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : "Checkout (F8)"}
         </button>
         {checkoutDisabled && checkoutBlockedReason && (
           <p className="mt-1 text-center text-[11px] text-amber-300">{checkoutBlockedReason}</p>
@@ -979,6 +1079,20 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
             </div>
           </div>
         </div>
+      )}
+
+      {showCustomerLookup && (
+        <CustomerLookupModal
+          apiBaseUrl={apiBaseUrl}
+          authHeaders={authHeaders}
+          initialQuery={customerQuery}
+          onSelect={(customer) => {
+            setCustomers((current) => [customer, ...current.filter((c) => c.id !== customer.id)]);
+            selectCustomer(customer);
+            setShowCustomerLookup(false);
+          }}
+          onClose={() => setShowCustomerLookup(false)}
+        />
       )}
 
       {showCustomerModal && (
@@ -1037,6 +1151,123 @@ function PaymentInput({ label, value, onChange }: { label: string; value: string
   );
 }
 
+// Full paginated customer search — the escape hatch when the 8-row POS
+// dropdown can't surface the right person (common names, big customer books).
+function CustomerLookupModal({
+  apiBaseUrl,
+  authHeaders,
+  initialQuery,
+  onSelect,
+  onClose
+}: {
+  apiBaseUrl: string;
+  authHeaders: Record<string, string>;
+  initialQuery: string;
+  onSelect: (customer: Customer) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState(initialQuery);
+  const [page, setPage] = useState(1);
+  const [results, setResults] = useState<Customer[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/crm/customers?page=${page}&limit=10&search=${encodeURIComponent(query.trim())}`,
+          { headers: authHeaders }
+        );
+        const result = (await response.json().catch(() => null)) as
+          | { customers?: Customer[]; pagination?: { totalPages?: number } }
+          | null;
+        if (!cancelled && response.ok && result?.customers) {
+          setResults(result.customers);
+          setTotalPages(Math.max(Number(result.pagination?.totalPages) || 1, 1));
+        }
+      } catch {
+        if (!cancelled) setResults([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, page, apiBaseUrl, authHeaders]);
+
+  return (
+    <div className="animate-fade-in fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={onClose}>
+      <div className="animate-scale-in grid w-full max-w-lg gap-2 rounded-lg border border-slate-700 bg-slate-950 p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase text-slate-50">Find Customer</h2>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-200">✕</button>
+        </div>
+        <input
+          autoFocus
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(1);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") onClose();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (results.length === 1) onSelect(results[0]);
+            }
+          }}
+          placeholder="Search by name or phone…"
+          className={controlClassName}
+        />
+        <ul className="grid min-h-[200px] content-start gap-0.5">
+          {loading && results.length === 0 ? (
+            <li className="grid place-items-center py-10 text-slate-600"><Loader2 className="h-5 w-5 animate-spin" /></li>
+          ) : results.length === 0 ? (
+            <li className="py-10 text-center text-xs text-slate-500">No customers match &ldquo;{query.trim()}&rdquo;.</li>
+          ) : (
+            results.map((customer) => (
+              <li key={customer.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(customer)}
+                  className="flex w-full items-baseline justify-between gap-2 rounded px-2 py-1.5 text-left text-xs transition hover:bg-slate-800"
+                >
+                  <span className="truncate font-medium text-slate-100">{customer.name}</span>
+                  <span className="shrink-0 font-mono text-slate-500">{customer.phone}{customer.area ? ` · ${customer.area}` : ""}</span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+        <div className="flex items-center justify-between border-t border-slate-800 pt-2 text-xs">
+          <button
+            type="button"
+            disabled={page <= 1 || loading}
+            onClick={() => setPage((p) => Math.max(p - 1, 1))}
+            className="rounded border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            ← Prev
+          </button>
+          <span className="text-slate-500">Page {page} of {totalPages}</span>
+          <button
+            type="button"
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+            className="rounded border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PrintModal({
   invoiceId,
   apiBaseUrl,
@@ -1079,12 +1310,44 @@ function PrintModal({
     void loadTemplates();
   }, [apiBaseUrl, session?.token]);
 
+  const [printBusy, setPrintBusy] = useState<string | null>(null);
+  const [printError, setPrintError] = useState("");
+
+  // window.open alone gives zero feedback when the document service or printer
+  // path fails — staff would close the modal believing a receipt printed.
+  // Fetch the document first so a failure surfaces as an error in the modal,
+  // and the button shows a busy state so a slow PDF isn't double-clicked.
+  async function openWithFeedback(busyKey: string, url: string) {
+    if (printBusy) return;
+    setPrintBusy(busyKey);
+    setPrintError("");
+    try {
+      const tokenized = withDocumentToken(url);
+      const response = await fetch(tokenized);
+      if (!response.ok) {
+        throw new Error(`Document service returned ${response.status}.`);
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const win = window.open(objectUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        // Pop-up blocked or WebView declined — fall back to the direct URL.
+        window.open(tokenized, "_blank", "noopener,noreferrer");
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch {
+      setPrintError("Could not generate the document. Check the backend/printer and try again, or print later from the invoice list.");
+    } finally {
+      setPrintBusy(null);
+    }
+  }
+
   function openDocument(kind: "a4" | "a5" | "thermal") {
-    window.open(withDocumentToken(`${apiBaseUrl}/api/documents/invoice/${invoiceId}/${kind}`), "_blank", "noopener,noreferrer");
+    void openWithFeedback(kind, `${apiBaseUrl}/api/documents/invoice/${invoiceId}/${kind}`);
   }
 
   function openTemplate(templateId: number) {
-    window.open(withDocumentToken(`${apiBaseUrl}/api/documents/invoice/${invoiceId}/template/${templateId}`), "_blank", "noopener,noreferrer");
+    void openWithFeedback(`template-${templateId}`, `${apiBaseUrl}/api/documents/invoice/${invoiceId}/template/${templateId}`);
   }
 
   return (
@@ -1100,29 +1363,31 @@ function PrintModal({
         <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
+            disabled={printBusy !== null}
             onClick={() => openDocument("a4")}
-            className="h-12 bg-emerald-500 text-[10px] font-bold uppercase text-slate-50 hover:bg-emerald-400 rounded transition flex flex-col justify-center items-center px-1"
+            className="h-12 bg-emerald-500 text-[10px] font-bold uppercase text-slate-50 hover:bg-emerald-400 rounded transition flex flex-col justify-center items-center px-1 disabled:opacity-60"
           >
-            <span>Print A4</span>
-            <span className="text-[8px] opacity-75">(GST)</span>
+            {printBusy === "a4" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Print A4</span><span className="text-[8px] opacity-75">(GST)</span></>}
           </button>
           <button
             type="button"
+            disabled={printBusy !== null}
             onClick={() => openDocument("a5")}
-            className="h-12 bg-slate-800 text-[10px] font-bold uppercase text-slate-200 border border-slate-700 hover:bg-slate-700 rounded transition flex flex-col justify-center items-center px-1"
+            className="h-12 bg-slate-800 text-[10px] font-bold uppercase text-slate-200 border border-slate-700 hover:bg-slate-700 rounded transition flex flex-col justify-center items-center px-1 disabled:opacity-60"
           >
-            <span>Print A5</span>
-            <span className="text-[8px] opacity-75">(A5 Land)</span>
+            {printBusy === "a5" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Print A5</span><span className="text-[8px] opacity-75">(A5 Land)</span></>}
           </button>
           <button
             type="button"
+            autoFocus
+            disabled={printBusy !== null}
             onClick={() => openDocument("thermal")}
-            className="h-12 border border-slate-700 text-[10px] font-bold uppercase text-slate-300 hover:border-emerald-400 rounded transition flex flex-col justify-center items-center px-1"
+            className="h-12 border border-slate-700 text-[10px] font-bold uppercase text-slate-300 hover:border-emerald-400 rounded transition flex flex-col justify-center items-center px-1 focus:border-emerald-400 focus:outline-none disabled:opacity-60"
           >
-            <span>Thermal</span>
-            <span className="text-[8px] opacity-75">(80mm)</span>
+            {printBusy === "thermal" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Thermal</span><span className="text-[8px] opacity-75">(80mm)</span></>}
           </button>
         </div>
+        {printError && <p className="animate-fade-in rounded bg-red-950/40 px-2 py-1.5 text-[11px] text-red-300">{printError}</p>}
         {templates.length > 0 && (
           <div className="grid gap-2 border-t border-slate-800 pt-3">
             <div className="text-[10px] font-semibold uppercase text-slate-500">Saved Templates</div>
@@ -1131,10 +1396,11 @@ function PrintModal({
                 <button
                   key={template.id}
                   type="button"
+                  disabled={printBusy !== null}
                   onClick={() => openTemplate(template.id)}
-                  className="flex h-8 items-center justify-between border border-slate-700 px-2 text-left text-[11px] font-semibold uppercase text-slate-200 hover:border-emerald-400"
+                  className="flex h-8 items-center justify-between border border-slate-700 px-2 text-left text-[11px] font-semibold uppercase text-slate-200 hover:border-emerald-400 disabled:opacity-60"
                 >
-                  <span>{template.name}</span>
+                  <span className="flex items-center gap-1.5">{printBusy === `template-${template.id}` && <Loader2 className="h-3 w-3 animate-spin" />}{template.name}</span>
                   <span className="font-mono text-slate-500">{template.page_size}</span>
                 </button>
               ))}

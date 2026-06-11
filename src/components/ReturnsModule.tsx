@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { friendlyError } from "../utils/friendlyError.js";
 
 type ReturnsModuleProps = {
   apiBaseUrl?: string;
@@ -76,6 +77,53 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [errorLineIndex, setErrorLineIndex] = useState<number | null>(null);
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupNotice, setLookupNotice] = useState("");
+
+  // Pre-fill a return line from inventory by barcode/HUID — typing item details
+  // by hand produced inconsistent metal/purity data ("Gold"/"gold"/"GOLD") and
+  // wrong weights. Manual entry stays available for items not in the system.
+  async function addLineFromInventory(query: string) {
+    setLookupNotice("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/inventory?search=${encodeURIComponent(query)}`, { headers: authHeaders });
+      const result = (await response.json().catch(() => null)) as {
+        items?: Array<{
+          barcode: string;
+          huid: string | null;
+          category: string;
+          metal_type: string;
+          purity_karat: number;
+          gross_weight_mg: number;
+          net_weight_mg: number;
+        }>;
+      } | null;
+      const item = result?.items?.find((candidate) => candidate.barcode === query || candidate.huid === query) ?? result?.items?.[0];
+      if (!response.ok || !item) {
+        setLookupNotice(`No inventory item found for "${query}" — fill the line manually.`);
+        return;
+      }
+      const filled: ReturnLine = {
+        description: `${item.category} (${item.barcode})`,
+        metalType: item.metal_type,
+        purityKarat: String(item.purity_karat),
+        grossWeightGrams: (item.gross_weight_mg / 1000).toFixed(3),
+        netWeightGrams: (item.net_weight_mg / 1000).toFixed(3),
+        amountRupees: "",
+        gstRupees: ""
+      };
+      setLines((current) => {
+        // Replace a still-empty first line instead of stacking a blank row above the lookup result.
+        const isBlank = (line: ReturnLine) => !line.description.trim() && !line.grossWeightGrams && !line.amountRupees;
+        if (current.length === 1 && isBlank(current[0])) return [filled];
+        return [...current, filled];
+      });
+      setLookupQuery("");
+    } catch {
+      setLookupNotice("Lookup failed — fill the line manually.");
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -109,6 +157,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
 
   function updateLine(index: number, patch: Partial<ReturnLine>) {
     setLines((current) => current.map((line, i) => (i === index ? { ...line, ...patch } : line)));
+    if (errorLineIndex === index) setErrorLineIndex(null);
   }
 
   const computedLines = lines.map((line) => ({
@@ -124,22 +173,24 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
   const grossTotalPaise = computedLines.reduce((total, line) => total + line.amountPaise, 0);
   const gstReversalPaise = computedLines.reduce((total, line) => total + line.gstPaise, 0);
 
-  function validate(): string | null {
+  // Returns the failing line index alongside the message so the offending row
+  // can be highlighted instead of leaving staff to scan the whole table.
+  function validate(): { message: string; lineIndex: number | null } | null {
     if (activeTab === "purchase" && !supplierName.trim()) {
-      return "Supplier name is required for purchase returns.";
+      return { message: "Supplier name is required for purchase returns.", lineIndex: null };
     }
     if (computedLines.length === 0) {
-      return "Add at least one return line.";
+      return { message: "Add at least one return line.", lineIndex: null };
     }
     for (const [i, line] of computedLines.entries()) {
-      if (!line.description) return `Line ${i + 1}: description is required.`;
-      if (!Number.isInteger(line.purityKarat) || line.purityKarat <= 0) return `Line ${i + 1}: purity (karat) must be a positive whole number.`;
-      if (line.grossWeightMg <= 0) return `Line ${i + 1}: gross weight must be greater than 0.`;
-      if (line.netWeightMg <= 0) return `Line ${i + 1}: net weight must be greater than 0.`;
-      if (line.netWeightMg > line.grossWeightMg) return `Line ${i + 1}: net weight cannot exceed gross weight.`;
-      if (line.amountPaise < 0) return `Line ${i + 1}: refund amount cannot be negative.`;
+      if (!line.description) return { message: `Line ${i + 1}: description is required.`, lineIndex: i };
+      if (!Number.isInteger(line.purityKarat) || line.purityKarat <= 0) return { message: `Line ${i + 1}: purity (karat) must be a positive whole number.`, lineIndex: i };
+      if (line.grossWeightMg <= 0) return { message: `Line ${i + 1}: gross weight must be greater than 0.`, lineIndex: i };
+      if (line.netWeightMg <= 0) return { message: `Line ${i + 1}: net weight must be greater than 0.`, lineIndex: i };
+      if (line.netWeightMg > line.grossWeightMg) return { message: `Line ${i + 1}: net weight cannot exceed gross weight.`, lineIndex: i };
+      if (line.amountPaise < 0) return { message: `Line ${i + 1}: refund amount cannot be negative.`, lineIndex: i };
     }
-    if (grossTotalPaise <= 0) return "Total refund must be greater than 0.";
+    if (grossTotalPaise <= 0) return { message: "Total refund must be greater than 0.", lineIndex: null };
     return null;
   }
 
@@ -150,9 +201,11 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
 
     const validationError = validate();
     if (validationError) {
-      setError(validationError);
+      setError(validationError.message);
+      setErrorLineIndex(validationError.lineIndex);
       return;
     }
+    setErrorLineIndex(null);
 
     const endpoint = activeTab === "sales" ? "/api/pos/sales-returns" : "/api/pos/purchase-returns";
     const payload = {
@@ -197,7 +250,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
       setMessage(`${activeTab === "sales" ? "Sales" : "Purchase"} return saved${number ? ` (${number})` : ""}.`);
       resetForm();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save the return.");
+      setError(friendlyError(caught instanceof Error ? caught.message : "Could not save the return."));
     } finally {
       setSubmitting(false);
     }
@@ -278,6 +331,22 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
           </label>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={lookupQuery}
+            onChange={(e) => setLookupQuery(e.target.value.toUpperCase())}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && lookupQuery.trim()) {
+                e.preventDefault();
+                void addLineFromInventory(lookupQuery.trim());
+              }
+            }}
+            placeholder="Barcode / HUID + Enter to pre-fill a line"
+            className={`${inputClass} w-72`}
+          />
+          {lookupNotice && <span className="animate-fade-in text-[11px] text-amber-300">{lookupNotice}</span>}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -294,7 +363,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
             </thead>
             <tbody>
               {lines.map((line, index) => (
-                <tr key={index} className="border-t border-slate-800">
+                <tr key={index} className={`border-t ${errorLineIndex === index ? "border-red-700 bg-red-950/30" : "border-slate-800"}`} title={errorLineIndex === index ? error : undefined}>
                   <td className="px-1 py-1"><input className={inputClass} value={line.description} onChange={(e) => updateLine(index, { description: e.target.value })} placeholder="Item description" /></td>
                   <td className="px-1 py-1"><input className={`${inputClass} w-20`} value={line.metalType} onChange={(e) => updateLine(index, { metalType: e.target.value })} /></td>
                   <td className="px-1 py-1"><input className={`${inputClass} w-16`} inputMode="numeric" value={line.purityKarat} onChange={(e) => updateLine(index, { purityKarat: e.target.value.replace(/[^\d]/g, "") })} /></td>

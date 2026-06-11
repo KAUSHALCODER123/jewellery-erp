@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { X, RefreshCw, Save, Tag, Pencil, Boxes, Coins, KeyRound } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
-import { MetricCard, CountUp, StatusBadge, type BadgeTone } from "./ui.js";
+import { MetricCard, CountUp, StatusBadge, SkeletonRows, type BadgeTone } from "./ui.js";
 
 const statusTone = (status: string | null): BadgeTone =>
   status === "IN_STOCK" ? "good" : status === "SOLD" ? "neutral" : status === "IN_MEMO" ? "warn" : "info";
@@ -66,6 +66,7 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
   const [rates, setRates] = useState<RateForm>(emptyRates);
   const [filters, setFilters] = useState<InventoryFilters>(initialFilters);
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(true);
   const [selectedTagItem, setSelectedTagItem] = useState<InventoryItem | null>(null);
   const [selectedEditItem, setSelectedEditItem] = useState<InventoryItem | null>(null);
   const [message, setMessage] = useState("");
@@ -147,6 +148,7 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
   }
 
   async function loadInventory(nextFilters = filters) {
+    setItemsLoading(true);
     try {
       const params = new URLSearchParams();
       if (nextFilters.category) params.set("category", nextFilters.category);
@@ -166,6 +168,8 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
       setItems(result.items);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load inventory.");
+    } finally {
+      setItemsLoading(false);
     }
   }
 
@@ -427,7 +431,9 @@ export default function InventoryRatesDashboard({ apiBaseUrl = "" }: InventoryRa
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 ? (
+              {itemsLoading && items.length === 0 ? (
+                <SkeletonRows rows={6} cols={10} />
+              ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-2 py-12 text-center text-slate-600">No items match these filters.</td>
                 </tr>

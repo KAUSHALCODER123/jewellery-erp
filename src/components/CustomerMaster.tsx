@@ -60,6 +60,7 @@ function toFormState(initial: CustomerMasterProps["initial"]): FormState {
 }
 
 const control = "w-full rounded-sm border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-100 outline-none focus:border-amber-500";
+const controlError = "w-full rounded-sm border border-red-500 bg-red-950/30 px-2 py-1 text-sm text-slate-100 outline-none focus:border-red-400";
 
 type MetalBalance = {
   id: number;
@@ -74,8 +75,47 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
   const isEdit = Boolean(initial?.id);
   const isAdmin = session?.user?.role === "ADMIN";
   const [form, setForm] = useState<FormState>(() => toFormState(initial));
+  const [initialForm] = useState<FormState>(() => toFormState(initial));
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
   const [saving, setSaving] = useState(false);
+  const [duplicateMatch, setDuplicateMatch] = useState<SavedCustomer | null>(null);
+
+  // Discarding a half-filled form by accident loses KYC details typed mid-bill,
+  // so closing a dirty form asks before throwing the input away.
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  function guardedClose() {
+    if (isDirty && !window.confirm("Discard this customer entry? Unsaved details will be lost.")) return;
+    onClose();
+  }
+
+  // Live duplicate check by phone — two records for the same person split their
+  // dues and loyalty history, so warn the moment a known number is typed.
+  useEffect(() => {
+    if (isEdit || !/^\d{10,15}$/.test(form.phone)) {
+      setDuplicateMatch(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/crm/customers?limit=1&search=${encodeURIComponent(form.phone)}`, {
+          headers: { Authorization: `Bearer ${session?.token ?? ""}` }
+        });
+        const result = (await response.json().catch(() => null)) as { customers?: SavedCustomer[] } | null;
+        if (!cancelled) {
+          const match = result?.customers?.find((c) => String(c.phone) === form.phone) ?? null;
+          setDuplicateMatch(response.ok ? match : null);
+        }
+      } catch {
+        if (!cancelled) setDuplicateMatch(null);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [form.phone, isEdit, apiBaseUrl, session?.token]);
 
   // Blacklist + metal-wise opening balances apply immediately (separate endpoints),
   // so they only show when editing an existing customer.
@@ -168,14 +208,11 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
     event.preventDefault();
     setError("");
 
-    if (!form.name.trim()) {
-      setError("Name is required.");
-      return;
-    }
-    if (!/^\d{10,15}$/.test(form.phone.replace(/\s+/g, ""))) {
-      setError("Phone must be 10 to 15 digits.");
-      return;
-    }
+    const nextFieldErrors: { name?: string; phone?: string } = {};
+    if (!form.name.trim()) nextFieldErrors.name = "Name is required.";
+    if (!/^\d{10,15}$/.test(form.phone.replace(/\s+/g, ""))) nextFieldErrors.phone = "Enter 10 to 15 digits (numbers only).";
+    setFieldErrors(nextFieldErrors);
+    if (nextFieldErrors.name || nextFieldErrors.phone) return;
 
     setSaving(true);
     try {
@@ -200,7 +237,7 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
   }
 
   return (
-    <div className="animate-fade-in fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={onClose}>
+    <div className="animate-fade-in fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={guardedClose}>
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
@@ -208,17 +245,24 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-bold text-amber-300">{isEdit ? "Edit Customer" : "New Customer"}</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-200">✕</button>
+          <button type="button" onClick={guardedClose} className="text-slate-400 hover:text-slate-200">✕</button>
         </div>
 
         {error && <p className="mb-2 rounded-sm bg-red-950/40 px-2 py-1 text-xs text-red-300">{error}</p>}
 
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs text-slate-300">Name*
-            <input className={control} value={form.name} onChange={(e) => set("name", e.target.value)} />
+          <label className="text-xs text-slate-300">Name <span className="text-red-400">*</span>
+            <input className={fieldErrors.name ? controlError : control} value={form.name} onChange={(e) => { set("name", e.target.value); if (fieldErrors.name) setFieldErrors((f) => ({ ...f, name: undefined })); }} />
+            {fieldErrors.name && <span className="mt-0.5 block text-[11px] font-normal text-red-400">{fieldErrors.name}</span>}
           </label>
-          <label className="text-xs text-slate-300">Mobile No*
-            <input className={control} value={form.phone} onChange={(e) => set("phone", e.target.value.replace(/[^\d]/g, ""))} maxLength={15} />
+          <label className="text-xs text-slate-300">Mobile No <span className="text-red-400">*</span>
+            <input className={fieldErrors.phone ? controlError : control} value={form.phone} onChange={(e) => { set("phone", e.target.value.replace(/[^\d]/g, "")); if (fieldErrors.phone) setFieldErrors((f) => ({ ...f, phone: undefined })); }} maxLength={15} />
+            {fieldErrors.phone && <span className="mt-0.5 block text-[11px] font-normal text-red-400">{fieldErrors.phone}</span>}
+            {duplicateMatch && (
+              <span className="mt-0.5 block rounded-sm bg-amber-950/50 px-1.5 py-1 text-[11px] font-normal text-amber-300">
+                A customer with this number already exists: <strong>{duplicateMatch.name}</strong>. Saving will create a duplicate record.
+              </span>
+            )}
           </label>
           <label className="text-xs text-slate-300">WhatsApp No
             <input className={control} value={form.whatsapp_phone} onChange={(e) => set("whatsapp_phone", e.target.value.replace(/[^\d]/g, ""))} maxLength={15} />
@@ -356,7 +400,7 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
         )}
 
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-sm border border-slate-700 px-3 py-1 text-sm text-slate-300 hover:bg-slate-800">Cancel</button>
+          <button type="button" onClick={guardedClose} className="rounded-sm border border-slate-700 px-3 py-1 text-sm text-slate-300 hover:bg-slate-800">Cancel</button>
           <button type="submit" disabled={saving} className="rounded-sm bg-amber-600 px-4 py-1 text-sm font-semibold text-slate-50 hover:bg-amber-500 disabled:opacity-50">
             {saving ? "Saving…" : isEdit ? "Update" : "Save Customer"}
           </button>

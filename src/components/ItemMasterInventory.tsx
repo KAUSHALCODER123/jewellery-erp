@@ -117,7 +117,7 @@ export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInven
     const errors: string[] = [];
 
     if (!barcode) errors.push("Barcode (or HUID) is required.");
-    if (normalizedHuid && !huidPattern.test(normalizedHuid)) errors.push("HUID must be 6 alphanumeric characters.");
+    if (normalizedHuid && !huidPattern.test(normalizedHuid)) errors.push("HUID must be exactly 6 letters/digits as stamped in the BIS hallmark (e.g. A1B2C3).");
 
     const payloadBase: Record<string, unknown> = {
       barcode,
@@ -196,6 +196,11 @@ export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInven
               <Metric label="Net" value={formatGrams(liveWeights.netWeightG)} tone={liveWeights.netWeightG === undefined ? "neutral" : liveWeights.netWeightG <= 0 ? "bad" : "good"} />
             </div>
           )}
+          {!isQty && liveWeights.netWeightG !== undefined && liveWeights.netWeightG <= 0 && (
+            <p className="animate-fade-in text-[11px] font-semibold text-red-300">
+              Stone weight equals or exceeds gross weight — check the values before saving.
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
@@ -247,8 +252,8 @@ export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInven
               </Field>
               <Field label="Charge Type">
                 <select value={form.makingChargeType} onChange={(e) => setField("makingChargeType", e.target.value as MakingChargeType)} className={controlClassName}>
-                  <option value="PER_GRAM">Per Gram</option>
-                  <option value="FLAT">Flat</option>
+                  <option value="PER_GRAM">₹ per gram of net weight</option>
+                  <option value="FLAT">Flat ₹ for the whole item</option>
                 </select>
               </Field>
               <Field label="Making Charge (₹)">

@@ -20,6 +20,27 @@ export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+/**
+ * Shimmer placeholder rows for a data table while it loads, so a slow fetch
+ * reads as "loading" instead of a frozen blank screen. Drop into <tbody>:
+ * `{loading ? <SkeletonRows rows={5} cols={7} /> : data.map(...)}`
+ */
+export function SkeletonRows({ rows = 5, cols }: { rows?: number; cols: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }, (_, r) => (
+        <tr key={r} className="animate-pulse border-b border-slate-900">
+          {Array.from({ length: cols }, (_, c) => (
+            <td key={c} className="px-2 py-2.5">
+              <div className="h-3 rounded bg-slate-800" style={{ width: `${55 + ((r * 7 + c * 13) % 40)}%` }} />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
 /** Number that animates from its previous value to the next on change. */
 export function CountUp({ value, format, className }: { value: number; format?: (n: number) => string; className?: string }) {
   const [display, setDisplay] = useState(value);
