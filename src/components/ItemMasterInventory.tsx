@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Scale, Coins, CheckCircle2, Printer } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import ScaleCaptureButton from "./ScaleCaptureButton.js";
 
 type MakingChargeType = "PER_GRAM" | "FLAT";
 type SaleMode = "WEIGHT_WISE" | "QUANTITY_WISE";
@@ -236,7 +237,10 @@ export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInven
           ) : (
             <>
               <Field label="Gross Weight (g)">
-                <input value={form.grossWeightG} onChange={(e) => setField("grossWeightG", e.target.value)} inputMode="decimal" placeholder="10.550" className={controlClassName} />
+                <div className="flex gap-1">
+                  <input value={form.grossWeightG} onChange={(e) => setField("grossWeightG", e.target.value)} inputMode="decimal" placeholder="10.550" className={controlClassName} />
+                  <ScaleCaptureButton apiBaseUrl={apiBaseUrl} onCapture={(grams) => setField("grossWeightG", grams)} />
+                </div>
               </Field>
               <Field label="Stone Weight (g)">
                 <input value={form.stoneWeightG} onChange={(e) => setField("stoneWeightG", e.target.value)} inputMode="decimal" placeholder="0.000" className={controlClassName} />

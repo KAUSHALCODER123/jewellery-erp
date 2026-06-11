@@ -150,6 +150,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerListOpen, setCustomerListOpen] = useState(false);
   const [walkInName, setWalkInName] = useState("");
+  const [itemQuery, setItemQuery] = useState("");
   const [showCreditConfirm, setShowCreditConfirm] = useState(false);
   const [printContext, setPrintContext] = useState<{ phone: string | null; invoiceNumber: string } | null>(null);
 
@@ -228,9 +229,33 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   );
 
   useEffect(() => {
-    void loadCustomers();
     void loadRates();
   }, []);
+
+  // Debounced server-side customer search (name or phone). A fixed prefetch
+  // capped the list at 100 customers, so anyone beyond that was unfindable
+  // and got mis-billed as a walk-in.
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/crm/customers?limit=8&search=${encodeURIComponent(customerQuery.trim())}`,
+          { headers: authHeaders }
+        );
+        const result = (await response.json().catch(() => null)) as { customers?: Customer[] } | null;
+        if (!cancelled && response.ok && result?.customers) {
+          setCustomers(result.customers);
+        }
+      } catch {
+        if (!cancelled) setCustomers([]);
+      }
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [customerQuery, apiBaseUrl, authHeaders]);
 
   // Load the selected customer's outstanding udhari so it can be collected in this bill.
   useEffect(() => {
@@ -281,12 +306,12 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
 
         if (item.status && item.status !== "IN_STOCK") {
           setError(`${item.barcode} is ${String(item.status).toLowerCase()} and cannot be added to the cart.`);
-          return;
+          return false;
         }
 
         if (cart.some((line) => line.id === item.id)) {
           setMessage(`${item.barcode} is already in cart.`);
-          return;
+          return true;
         }
 
         setCart((current) => [
@@ -297,8 +322,10 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
             makingRupees: (item.making_charge_value / 100).toFixed(2)
           }
         ]);
+        return true;
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "Could not scan item.");
+        return false;
       }
     },
     [apiBaseUrl, authHeaders, cart, rates]
@@ -315,19 +342,6 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const kycRequired = cashComplianceRequired || urdLines.length > 0;
   const complianceMissing = kycRequired && (!panNumber.trim() || !aadhaarNumber.trim() || !customerId);
   const checkoutDisabled = cart.length === 0 || totals.balanceRemainingPaise !== 0 || complianceMissing;
-
-  async function loadCustomers() {
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/crm/customers?limit=100`, { headers: authHeaders });
-      const result = (await response.json().catch(() => null)) as { customers?: Customer[] } | null;
-
-      if (response.ok && result?.customers) {
-        setCustomers(result.customers);
-      }
-    } catch {
-      setCustomers([]);
-    }
-  }
 
   async function loadRates() {
     try {
@@ -516,14 +530,34 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   }
 
   const selectedCustomer = customers.find((c) => String(c.id) === customerId) ?? null;
-  const filteredCustomers = (
-    customerQuery.trim()
-      ? customers.filter((c) => c.name.toLowerCase().includes(customerQuery.trim().toLowerCase()) || c.phone.includes(customerQuery.trim()))
-      : customers
-  ).slice(0, 8);
+  // The server already filters by name/phone; just cap the dropdown length.
+  const filteredCustomers = customers.slice(0, 8);
+
+  // Explain a disabled Checkout button instead of leaving staff guessing.
+  const checkoutBlockedReason = submitting
+    ? ""
+    : cart.length === 0
+      ? "Add at least one item to the cart."
+      : totals.balanceRemainingPaise > 0
+        ? `Balance must be Rs 0 — ${formatPaise(totals.balanceRemainingPaise)} still unpaid.`
+        : totals.balanceRemainingPaise < 0
+          ? `Payments exceed the bill by ${formatPaise(-totals.balanceRemainingPaise)}.`
+          : complianceMissing
+            ? "Compliance: select a saved customer and enter PAN + Aadhaar."
+            : "";
 
   return (
-    <form onSubmit={checkout} className="grid h-screen grid-cols-[260px_1fr_310px] overflow-hidden bg-slate-950 text-slate-100">
+    <form
+      onSubmit={checkout}
+      onKeyDown={(event) => {
+        // Enter inside any text input must not fire checkout — staff press it
+        // constantly while editing rates/payments. Buttons keep their default.
+        if (event.key === "Enter" && (event.target as HTMLElement).tagName === "INPUT") {
+          event.preventDefault();
+        }
+      }}
+      className="grid h-screen grid-cols-[260px_1fr_310px] overflow-hidden bg-slate-950 text-slate-100"
+    >
       <aside className="grid min-h-0 grid-rows-[auto_1fr] border-r border-slate-800 bg-slate-900 p-3">
         <header className="border-b border-slate-800 pb-2">
           <h1 className="text-sm font-semibold uppercase text-slate-50">POS Billing</h1>
@@ -547,10 +581,17 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && customerQuery.trim() && !customerId) {
                       event.preventDefault();
-                      confirmWalkIn(customerQuery);
+                      // Exactly one match: Enter selects it. Zero matches: walk-in.
+                      // Multiple matches: force an explicit pick so a partial
+                      // phone number can't silently become a walk-in "name".
+                      if (filteredCustomers.length === 1) {
+                        selectCustomer(filteredCustomers[0]);
+                      } else if (filteredCustomers.length === 0) {
+                        confirmWalkIn(customerQuery);
+                      }
                     }
                   }}
-                  placeholder="Search name or phone… (Enter = walk-in)"
+                  placeholder="Search name or phone…"
                   className={controlClassName}
                 />
                 <button
@@ -708,7 +749,26 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
 
       <main className="grid min-h-0 grid-rows-[1fr_230px]">
         <section className="grid min-h-0 grid-rows-[auto_1fr] border-b border-slate-800">
-          <PanelHeader title="Sales Cart" note="Scanned items append here" />
+          <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-3 py-2">
+            <h2 className="shrink-0 text-xs font-semibold uppercase text-slate-50">Sales Cart</h2>
+            {/* Manual fallback when the scanner is unplugged or a tag is damaged —
+                without it the cart had no input path other than the hardware wedge. */}
+            <input
+              value={itemQuery}
+              onChange={(event) => setItemQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && itemQuery.trim()) {
+                  event.preventDefault();
+                  void appendScannedItem(itemQuery.trim()).then((added) => {
+                    if (added) setItemQuery("");
+                  });
+                }
+              }}
+              placeholder="Type barcode / HUID + Enter to add"
+              className="h-8 w-64 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
+            />
+            <span className="shrink-0 text-[11px] text-slate-500">Scanned items append here</span>
+          </div>
           <div className="min-h-0 overflow-hidden">
             <table className="w-full table-fixed text-left text-xs">
               <thead className="bg-slate-900 text-slate-400">
@@ -739,7 +799,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                       <td className="px-2 py-2">
                         <input
                           value={line.metalRateRupees}
-                          onChange={(event) => setCart((current) => current.map((item) => item.id === line.id ? { ...item, metalRateRupees: event.target.value } : item))}
+                          onChange={(event) => setCart((current) => current.map((item) => item.id === line.id ? { ...item, metalRateRupees: sanitizeDecimalInput(event.target.value) } : item))}
                           className={tableInputClassName}
                           inputMode="decimal"
                         />
@@ -747,7 +807,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                       <td className="px-2 py-2">
                         <input
                           value={line.makingRupees}
-                          onChange={(event) => setCart((current) => current.map((item) => item.id === line.id ? { ...item, makingRupees: event.target.value } : item))}
+                          onChange={(event) => setCart((current) => current.map((item) => item.id === line.id ? { ...item, makingRupees: sanitizeDecimalInput(event.target.value) } : item))}
                           className={tableInputClassName}
                           inputMode="decimal"
                           title={line.making_charge_type === "PER_GRAM" ? "Making per gram (₹)" : "Flat making (₹)"}
@@ -776,9 +836,9 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           <PanelHeader title="URD / Old Gold Exchange" note="Buy-back deduction" />
           <div className="grid grid-cols-[1fr_90px_90px_110px_70px] gap-2 border-b border-slate-800 bg-slate-900 p-2">
             <input placeholder="Description" value={urdDraft.description} onChange={(event) => setUrdDraft({ ...urdDraft, description: event.target.value })} className={controlClassName} />
-            <input placeholder="Tunch" value={urdDraft.purityTunch} onChange={(event) => setUrdDraft({ ...urdDraft, purityTunch: event.target.value })} className={controlClassName} />
-            <input placeholder="Wt g" value={urdDraft.weightG} onChange={(event) => setUrdDraft({ ...urdDraft, weightG: event.target.value })} className={controlClassName} />
-            <input placeholder="Rate" value={urdDraft.appliedRateRupees} onChange={(event) => setUrdDraft({ ...urdDraft, appliedRateRupees: event.target.value })} className={controlClassName} />
+            <input placeholder="Tunch" value={urdDraft.purityTunch} onChange={(event) => setUrdDraft({ ...urdDraft, purityTunch: sanitizeDecimalInput(event.target.value) })} className={controlClassName} inputMode="decimal" />
+            <input placeholder="Wt g" value={urdDraft.weightG} onChange={(event) => setUrdDraft({ ...urdDraft, weightG: sanitizeDecimalInput(event.target.value) })} className={controlClassName} inputMode="decimal" />
+            <input placeholder="Rate" value={urdDraft.appliedRateRupees} onChange={(event) => setUrdDraft({ ...urdDraft, appliedRateRupees: sanitizeDecimalInput(event.target.value) })} className={controlClassName} inputMode="decimal" />
             <button type="button" onClick={addUrdLine} className="rounded bg-slate-700 text-xs font-semibold uppercase text-slate-100 transition hover:bg-slate-600 active:scale-95">Add</button>
           </div>
           <div className="min-h-0 overflow-hidden">
@@ -804,7 +864,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           <SummaryLine label="Total Gross" value={formatPaise(totals.grossTotalPaise)} />
           <label className="grid grid-cols-[1fr_120px] items-center gap-2 text-xs">
             <span className="text-slate-400">Total Discount</span>
-            <input value={discountRupees} onChange={(event) => setDiscountRupees(event.target.value)} className={tableInputClassName} inputMode="decimal" />
+            <input value={discountRupees} onChange={(event) => setDiscountRupees(sanitizeDecimalInput(event.target.value))} className={tableInputClassName} inputMode="decimal" />
           </label>
           <SummaryLine label="URD Deduction" value={formatPaise(totals.urdDeductionPaise)} />
           <SummaryLine label="GSS Credit Applied" value={formatPaise(totals.gssCreditAppliedPaise)} />
@@ -878,6 +938,9 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         >
           {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : "Checkout"}
         </button>
+        {checkoutDisabled && checkoutBlockedReason && (
+          <p className="mt-1 text-center text-[11px] text-amber-300">{checkoutBlockedReason}</p>
+        )}
         <button
           type="button"
           onClick={() => void saveAsQuotation()}
@@ -969,7 +1032,7 @@ function PaymentInput({ label, value, onChange }: { label: string; value: string
   return (
     <label className="grid grid-cols-[1fr_120px] items-center gap-2 text-xs">
       <span className="font-semibold uppercase text-slate-400">{label}</span>
-      <input value={value} onChange={(event) => onChange(event.target.value)} className={tableInputClassName} inputMode="decimal" />
+      <input value={value} onChange={(event) => onChange(sanitizeDecimalInput(event.target.value))} className={tableInputClassName} inputMode="decimal" />
     </label>
   );
 }
@@ -1291,6 +1354,15 @@ function createEmptyUrdLine(): UrdLine {
     weightG: "",
     appliedRateRupees: ""
   };
+}
+
+// Keep digits and a single decimal point; strips commas, currency symbols and
+// stray letters so a typo can never silently parse to 0 downstream.
+function sanitizeDecimalInput(value: string) {
+  const cleaned = value.replace(/[^\d.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+  if (firstDot === -1) return cleaned;
+  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
 }
 
 function rupeesToPaise(value: string) {

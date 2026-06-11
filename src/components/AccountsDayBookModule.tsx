@@ -1060,7 +1060,7 @@ function VoucherView({
               inputMode="decimal"
               placeholder="e.g. 1500.00"
             />
-            <span className="font-mono text-[9px] text-slate-500">payload: {voucher.amountPaise} paise</span>
+            <span className="font-mono text-[9px] text-slate-500">= {formatPaise(voucher.amountPaise)}</span>
           </Field>
         </div>
         <Field label="Narration">

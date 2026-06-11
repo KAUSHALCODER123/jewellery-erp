@@ -711,7 +711,7 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                 <div className="grid grid-cols-3 gap-2">
                   <Field label="Total Payable">
                     <input value={collection.amountReceivedRupees} onChange={(event) => setCollection({ ...collection, amountReceivedRupees: event.target.value })} className={controlClassName} inputMode="decimal" />
-                    <span className="font-mono text-[10px] text-slate-500">payload: {collectionAmountPaise} paise</span>
+                    <span className="font-mono text-[10px] text-slate-500">= {formatIndianCurrency(collectionAmountPaise)}</span>
                   </Field>
                   <Field label="Payment Mode">
                     <select value={collection.paymentMode} onChange={(event) => setCollection({ ...collection, paymentMode: event.target.value as CollectionForm["paymentMode"] })} className={controlClassName}>

@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import ScaleCaptureButton from "./ScaleCaptureButton.js";
 
 type BarcodeStockDeskProps = {
   apiBaseUrl?: string;
@@ -489,7 +490,10 @@ export default function BarcodeStockDesk({ apiBaseUrl = "" }: BarcodeStockDeskPr
                 </select>
               </Field>
               <Field label="Gross Wt (g)">
-                <input value={form.grossWeightG} inputMode="decimal" onChange={(event) => setFormValue("grossWeightG", event.target.value)} className={controlClassName} />
+                <div className="flex gap-1">
+                  <input value={form.grossWeightG} inputMode="decimal" onChange={(event) => setFormValue("grossWeightG", event.target.value)} className={controlClassName} />
+                  <ScaleCaptureButton apiBaseUrl={apiBaseUrl} onCapture={(grams) => setFormValue("grossWeightG", grams)} />
+                </div>
               </Field>
               <Field label="Stone Wt (g)">
                 <input value={form.stoneWeightG} inputMode="decimal" onChange={(event) => setFormValue("stoneWeightG", event.target.value)} className={controlClassName} />

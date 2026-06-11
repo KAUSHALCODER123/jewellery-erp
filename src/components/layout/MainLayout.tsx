@@ -32,7 +32,7 @@ import {
   UserCog
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthSession } from "../../auth/AuthSessionContext.js";
 import { scaleSocketUrl, useWeighingScale } from "../../hooks/useWeighingScale.js";
 
@@ -67,6 +67,18 @@ const navigationItems: NavigationItem[] = [
   { label: "Accounts", to: "/accounts", icon: CircleDollarSign },
   { label: "Settings", to: "/settings", icon: Settings }
 ];
+
+// Global accelerators for the highest-frequency screens. F-keys are safe to
+// intercept even while an input is focused, and the barcode wedge ignores
+// non-character keys, so there is no conflict with scanning or typing.
+const hotkeyRoutes = new Map([
+  ["F1", "/pos"],
+  ["F2", "/receipt"],
+  ["F3", "/daybook"],
+  ["F4", "/inventory"]
+]);
+
+const routeHotkeys = new Map(Array.from(hotkeyRoutes, ([key, route]) => [route, key]));
 
 const routeTitles = new Map([
   ["/", "Login"],
@@ -104,6 +116,7 @@ const routeTitles = new Map([
 
 export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { session, logout } = useAuthSession();
   const scale = useWeighingScale(scaleSocketUrl(apiBaseUrl));
   const databaseStatus = useDatabaseStatus(apiBaseUrl);
@@ -132,6 +145,27 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
       if (idleTimer.current) clearTimeout(idleTimer.current);
     };
   }, [locked]);
+
+  // Global keyboard shortcuts — the whole app was mouse-only before.
+  useEffect(() => {
+    if (locked) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && !event.altKey && !event.metaKey && (event.key === "l" || event.key === "L")) {
+        event.preventDefault();
+        setLocked(true);
+        return;
+      }
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      const route = hotkeyRoutes.get(event.key);
+      if (!route) return;
+      // Day Book is an admin/manager screen; send staff to the dashboard instead.
+      const target = route === "/daybook" && !isAdminOrManager ? "/dashboard" : route;
+      event.preventDefault();
+      navigate(target);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [locked, isAdminOrManager, navigate]);
 
   async function unlockApp(event: React.FormEvent) {
     event.preventDefault();
@@ -196,6 +230,7 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
               <NavLink
                 key={item.to}
                 to={item.to}
+                title={routeHotkeys.has(item.to) ? `${item.label} (${routeHotkeys.get(item.to)})` : item.label}
                 className={({ isActive }) =>
                   [
                     "flex h-9 items-center gap-2 px-2 text-xs font-semibold uppercase tracking-wide transition",
@@ -263,7 +298,7 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
             <button
               type="button"
               onClick={() => setLocked(true)}
-              title="Lock the app"
+              title="Lock the app (Ctrl+L)"
               className="flex h-7 items-center gap-1 border border-slate-700 px-2 text-[11px] font-semibold uppercase text-slate-300 hover:border-emerald-400 hover:text-emerald-300"
             >
               <Lock className="h-3.5 w-3.5" /> Lock

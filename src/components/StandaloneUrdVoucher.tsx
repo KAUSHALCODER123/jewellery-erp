@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import ScaleCaptureButton from "./ScaleCaptureButton.js";
 
 type StandaloneUrdVoucherProps = {
   apiBaseUrl?: string;
@@ -438,7 +439,12 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
                 <Field label="Metal"><select value={form.metalType} onChange={(event) => setField("metalType", event.target.value)} className={controlClassName}><option>Gold</option><option>Silver</option></select></Field>
                 <Field label="Description"><input value={form.description} onChange={(event) => setField("description", event.target.value)} className={controlClassName} /></Field>
                 <Field label="Tunch (Purity %)"><input value={form.purityTunch} onChange={(event) => setField("purityTunch", event.target.value)} className={controlClassName} inputMode="decimal" /></Field>
-                <Field label="Gross Wt (g)"><input value={form.grossWeightG} onChange={(event) => setField("grossWeightG", event.target.value)} className={controlClassName} inputMode="decimal" required /></Field>
+                <Field label="Gross Wt (g)">
+                  <div className="flex gap-1">
+                    <input value={form.grossWeightG} onChange={(event) => setField("grossWeightG", event.target.value)} className={controlClassName} inputMode="decimal" required />
+                    <ScaleCaptureButton apiBaseUrl={apiBaseUrl} onCapture={(grams) => setField("grossWeightG", grams)} />
+                  </div>
+                </Field>
                 <Field label="Stone Wt (g)"><input value={form.stoneWeightG} onChange={(event) => setField("stoneWeightG", event.target.value)} className={controlClassName} inputMode="decimal" /></Field>
                 <Field label="Black Bead Wt (g)"><input value={form.blackBeadWeightG} onChange={(event) => setField("blackBeadWeightG", event.target.value)} className={controlClassName} inputMode="decimal" /></Field>
                 <Field label="Purchase Rate / g (Rs)"><input value={form.appliedRateRs} onChange={(event) => setField("appliedRateRs", event.target.value)} className={controlClassName} inputMode="decimal" required /></Field>
