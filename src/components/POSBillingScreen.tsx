@@ -6,7 +6,7 @@ import { usePOSCredit } from "../pos/POSCreditContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
 import { friendlyError } from "../utils/friendlyError.js";
 import CustomerMaster, { type SavedCustomer } from "./CustomerMaster.js";
-import { CountUp } from "./ui.js";
+import { CountUp, DateInput } from "./ui.js";
 import { Trash2, CheckCircle2, Plus, Loader2, MessageSquare } from "lucide-react";
 
 type POSBillingScreenProps = {
@@ -832,7 +832,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
             <div className="grid grid-cols-2 gap-2">
               <input placeholder="Prefix" value={invoiceMeta.billPrefix} onChange={(event) => setInvoiceMeta({ ...invoiceMeta, billPrefix: event.target.value.toUpperCase() })} className={controlClassName} />
               <input placeholder="Manual No." value={invoiceMeta.manualNumber} onChange={(event) => setInvoiceMeta({ ...invoiceMeta, manualNumber: event.target.value })} className={controlClassName} />
-              <input type="date" value={invoiceMeta.dueDate} onChange={(event) => setInvoiceMeta({ ...invoiceMeta, dueDate: event.target.value })} className={controlClassName} />
+              <DateInput value={invoiceMeta.dueDate} onChange={(v) => setInvoiceMeta({ ...invoiceMeta, dueDate: v })} className={controlClassName} />
               <input placeholder="Salesman" value={invoiceMeta.salesmanName} onChange={(event) => setInvoiceMeta({ ...invoiceMeta, salesmanName: event.target.value })} className={controlClassName} />
             </div>
             <label className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-400">
@@ -928,6 +928,17 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
                   );
                 })}
               </tbody>
+              {cart.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-slate-700 bg-slate-900/60 font-semibold text-slate-200">
+                    <td colSpan={6} className="px-2 py-2 text-right uppercase tracking-wide text-slate-400">
+                      {cart.length} item{cart.length === 1 ? "" : "s"} · Subtotal
+                    </td>
+                    <td className="px-2 py-2 font-mono text-emerald-300">{formatPaise(totals.grossTotalPaise)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </section>
@@ -1312,6 +1323,16 @@ function PrintModal({
 
   const [printBusy, setPrintBusy] = useState<string | null>(null);
   const [printError, setPrintError] = useState("");
+  // Once a receipt has printed, the bill is already cleared behind this modal,
+  // so closing it starts the next sale. Esc closes it without reaching for the
+  // mouse, and the Close button becomes a prominent "next sale" call to action.
+  const [printedOnce, setPrintedOnce] = useState(false);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   // window.open alone gives zero feedback when the document service or printer
   // path fails — staff would close the modal believing a receipt printed.
@@ -1335,6 +1356,7 @@ function PrintModal({
         window.open(tokenized, "_blank", "noopener,noreferrer");
       }
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      setPrintedOnce(true);
     } catch {
       setPrintError("Could not generate the document. Check the backend/printer and try again, or print later from the invoice list.");
     } finally {
@@ -1416,8 +1438,16 @@ function PrintModal({
             <MessageSquare className="h-4 w-4" /> Send WhatsApp
           </button>
         )}
-        <button type="button" onClick={onClose} className="h-8 text-xs font-semibold uppercase text-slate-400 hover:text-slate-50">
-          Close
+        <button
+          type="button"
+          onClick={onClose}
+          className={
+            printedOnce
+              ? "h-9 rounded bg-emerald-600 text-xs font-bold uppercase text-slate-50 transition hover:bg-emerald-500 active:scale-95"
+              : "h-8 text-xs font-semibold uppercase text-slate-400 hover:text-slate-50"
+          }
+        >
+          {printedOnce ? "Done · Start Next Sale (Esc)" : "Close (Esc)"}
         </button>
       </div>
     </div>

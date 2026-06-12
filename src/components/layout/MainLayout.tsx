@@ -281,6 +281,11 @@ export default function MainLayout({ apiBaseUrl = "" }: { apiBaseUrl?: string })
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                {!sidebarCollapsed && routeHotkeys.has(item.to) && (
+                  <span className="ml-auto shrink-0 rounded bg-black/20 px-1 font-mono text-[9px] font-bold text-[#9C968A]">
+                    {routeHotkeys.get(item.to)}
+                  </span>
+                )}
               </NavLink>
             ))}
           </div>

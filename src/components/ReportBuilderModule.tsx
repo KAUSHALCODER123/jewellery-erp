@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { DateInput } from "./ui.js";
 
 type ReportBuilderModuleProps = {
   apiBaseUrl?: string;
@@ -396,10 +397,9 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
             {/* Start Date */}
             <div className="grid gap-1">
               <span className="text-[9px] text-slate-500 uppercase">Start Date</span>
-              <input
-                type="date"
+              <DateInput
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={setStartDate}
                 className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
               />
             </div>
@@ -407,10 +407,9 @@ export default function ReportBuilderModule({ apiBaseUrl = "" }: ReportBuilderMo
             {/* End Date */}
             <div className="grid gap-1">
               <span className="text-[9px] text-slate-500 uppercase">End Date</span>
-              <input
-                type="date"
+              <DateInput
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={setEndDate}
                 className="h-8 border border-slate-800 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none"
               />
             </div>

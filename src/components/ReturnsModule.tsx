@@ -1,7 +1,8 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { friendlyError } from "../utils/friendlyError.js";
+import { DateInput } from "./ui.js";
 
 type ReturnsModuleProps = {
   apiBaseUrl?: string;
@@ -80,6 +81,49 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
   const [errorLineIndex, setErrorLineIndex] = useState<number | null>(null);
   const [lookupQuery, setLookupQuery] = useState("");
   const [lookupNotice, setLookupNotice] = useState("");
+  const lookupRef = useRef<HTMLInputElement>(null);
+
+  // Original-document cap: once a source invoice/purchase id is entered, fetch
+  // its total and how much has already been refunded so staff see the ceiling
+  // and get warned before they over-refund (the server enforces the same cap).
+  const [sourceSummary, setSourceSummary] = useState<{ original: number; prior: number; remaining: number } | null>(null);
+  const [sourceSummaryError, setSourceSummaryError] = useState("");
+
+  // Land the cursor on the barcode/HUID box so a scan or first keystroke starts
+  // a return immediately, without a mouse click.
+  useEffect(() => {
+    lookupRef.current?.focus();
+  }, [activeTab]);
+
+  // Debounced lookup of the original document's refundable ceiling.
+  useEffect(() => {
+    const id = sourceDocumentId.trim();
+    if (!id) {
+      setSourceSummary(null);
+      setSourceSummaryError("");
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/pos/return-summary/${activeTab}/${encodeURIComponent(id)}`, { headers: authHeaders });
+        const data = (await response.json().catch(() => null)) as
+          | { original_total_paise: number; prior_refund_paise: number; remaining_refundable_paise: number; errors?: string[] }
+          | null;
+        if (cancelled) return;
+        if (!response.ok || !data) {
+          setSourceSummary(null);
+          setSourceSummaryError(data?.errors?.join(" ") || `Original ${activeTab === "sales" ? "invoice" : "purchase"} #${id} was not found.`);
+          return;
+        }
+        setSourceSummaryError("");
+        setSourceSummary({ original: data.original_total_paise, prior: data.prior_refund_paise, remaining: data.remaining_refundable_paise });
+      } catch {
+        if (!cancelled) { setSourceSummary(null); setSourceSummaryError(""); }
+      }
+    }, 300);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [sourceDocumentId, activeTab, apiBaseUrl, authHeaders]);
 
   // Pre-fill a return line from inventory by barcode/HUID — typing item details
   // by hand produced inconsistent metal/purity data ("Gold"/"gold"/"GOLD") and
@@ -99,9 +143,17 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
           net_weight_mg: number;
         }>;
       } | null;
-      const item = result?.items?.find((candidate) => candidate.barcode === query || candidate.huid === query) ?? result?.items?.[0];
+      // Prefer an exact barcode/HUID hit. Only fall back to the sole result when
+      // there is exactly one — never silently grab the first of several partial
+      // matches, which would attach the wrong purity/weight to the refund.
+      const exact = result?.items?.find((candidate) => candidate.barcode === query || candidate.huid === query);
+      const item = exact ?? (result?.items?.length === 1 ? result.items[0] : undefined);
       if (!response.ok || !item) {
-        setLookupNotice(`No inventory item found for "${query}" — fill the line manually.`);
+        if (response.ok && result?.items && result.items.length > 1) {
+          setLookupNotice(`${result.items.length} items match "${query}" — type the full barcode/HUID to pick one.`);
+        } else {
+          setLookupNotice(`No inventory item found for "${query}" — fill the line manually.`);
+        }
         return;
       }
       const filled: ReturnLine = {
@@ -172,6 +224,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
 
   const grossTotalPaise = computedLines.reduce((total, line) => total + line.amountPaise, 0);
   const gstReversalPaise = computedLines.reduce((total, line) => total + line.gstPaise, 0);
+  const overRefund = sourceSummary !== null && grossTotalPaise > sourceSummary.remaining;
 
   // Returns the failing line index alongside the message so the offending row
   // can be highlighted instead of leaving staff to scan the whole table.
@@ -191,6 +244,12 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
       if (line.amountPaise < 0) return { message: `Line ${i + 1}: refund amount cannot be negative.`, lineIndex: i };
     }
     if (grossTotalPaise <= 0) return { message: "Total refund must be greater than 0.", lineIndex: null };
+    if (overRefund && sourceSummary) {
+      return {
+        message: `Refund ${formatPaise(grossTotalPaise)} exceeds what's refundable on ${activeTab === "sales" ? "invoice" : "purchase"} #${sourceDocumentId.trim()} (${formatPaise(sourceSummary.remaining)} remaining of ${formatPaise(sourceSummary.original)}).`,
+        lineIndex: null
+      };
+    }
     return null;
   }
 
@@ -287,6 +346,13 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
           <label className={labelClass}>
             {activeTab === "sales" ? "Original Invoice ID" : "Original Purchase ID"} (optional)
             <input className={inputClass} inputMode="numeric" value={sourceDocumentId} onChange={(e) => setSourceDocumentId(e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 1024" />
+            {sourceSummaryError && <span className="mt-0.5 block text-[10px] font-normal normal-case text-amber-300">{sourceSummaryError}</span>}
+            {sourceSummary && (
+              <span className={`mt-0.5 block text-[10px] font-normal normal-case ${overRefund ? "text-rose-300" : "text-slate-400"}`}>
+                {overRefund ? "⚠ " : ""}Refundable: {formatPaise(sourceSummary.remaining)} of {formatPaise(sourceSummary.original)}
+                {sourceSummary.prior > 0 ? ` (${formatPaise(sourceSummary.prior)} already returned)` : ""}
+              </span>
+            )}
           </label>
 
           {activeTab === "sales" ? (
@@ -308,7 +374,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
 
           <label className={labelClass}>
             Return Date
-            <input type="date" className={inputClass} value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
+            <DateInput className={inputClass} value={returnDate} onChange={setReturnDate} />
           </label>
 
           <label className={labelClass}>
@@ -333,6 +399,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
 
         <div className="flex flex-wrap items-center gap-2">
           <input
+            ref={lookupRef}
             value={lookupQuery}
             onChange={(e) => setLookupQuery(e.target.value.toUpperCase())}
             onKeyDown={(e) => {
@@ -367,8 +434,8 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
                   <td className="px-1 py-1"><input className={inputClass} value={line.description} onChange={(e) => updateLine(index, { description: e.target.value })} placeholder="Item description" /></td>
                   <td className="px-1 py-1"><input className={`${inputClass} w-20`} value={line.metalType} onChange={(e) => updateLine(index, { metalType: e.target.value })} /></td>
                   <td className="px-1 py-1"><input className={`${inputClass} w-16`} inputMode="numeric" value={line.purityKarat} onChange={(e) => updateLine(index, { purityKarat: e.target.value.replace(/[^\d]/g, "") })} /></td>
-                  <td className="px-1 py-1"><input className={`${inputClass} w-24`} inputMode="decimal" value={line.grossWeightGrams} onChange={(e) => updateLine(index, { grossWeightGrams: e.target.value })} /></td>
-                  <td className="px-1 py-1"><input className={`${inputClass} w-24`} inputMode="decimal" value={line.netWeightGrams} onChange={(e) => updateLine(index, { netWeightGrams: e.target.value })} /></td>
+                  <td className="px-1 py-1"><input className={`${inputClass} w-24`} inputMode="decimal" placeholder="0.000" value={line.grossWeightGrams} onChange={(e) => updateLine(index, { grossWeightGrams: e.target.value })} /></td>
+                  <td className="px-1 py-1"><input className={`${inputClass} w-24`} inputMode="decimal" placeholder="0.000" value={line.netWeightGrams} onChange={(e) => updateLine(index, { netWeightGrams: e.target.value })} /></td>
                   <td className="px-1 py-1"><input className={`${inputClass} w-28`} inputMode="decimal" value={line.amountRupees} onChange={(e) => updateLine(index, { amountRupees: e.target.value })} /></td>
                   <td className="px-1 py-1"><input className={`${inputClass} w-24`} inputMode="decimal" value={line.gstRupees} onChange={(e) => updateLine(index, { gstRupees: e.target.value })} /></td>
                   <td className="px-1 py-1">
@@ -387,7 +454,7 @@ export default function ReturnsModule({ apiBaseUrl = "" }: ReturnsModuleProps) {
           <div className="flex items-center gap-4 text-xs">
             <span className="text-slate-400">GST reversal: <span className="font-mono text-slate-200">{formatPaise(gstReversalPaise)}</span></span>
             <span className="text-slate-300 font-semibold">Total refund: <span className="font-mono text-emerald-300">{formatPaise(grossTotalPaise)}</span></span>
-            <button type="submit" disabled={submitting} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
+            <button type="submit" disabled={submitting || overRefund} title={overRefund ? "Refund exceeds the original document's refundable amount." : undefined} className="h-9 bg-emerald-500 px-5 text-xs font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 rounded">
               {submitting ? "Saving…" : `Save ${activeTab === "sales" ? "Sales" : "Purchase"} Return`}
             </button>
           </div>

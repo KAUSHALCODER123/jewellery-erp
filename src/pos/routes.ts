@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { Router } from "express";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
@@ -1254,6 +1254,25 @@ posRouter.post("/purchases", requireAuth, (request, response) => {
   return response.status(201).json(result);
 });
 
+// Original total + remaining refundable amount for a source document, so the
+// Returns screen can show staff the cap and warn before they over-refund.
+posRouter.get("/return-summary/:kind/:id", requireAuth, (request, response) => {
+  const kind = request.params.kind === "purchase" ? "purchase" : "sales";
+  const id = Number(request.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return response.status(400).json({ errors: ["A positive integer document id is required."] });
+  }
+  const summary = getReturnSummary(kind, id);
+  if (summary === null) {
+    return response.status(404).json({ errors: [`Original ${kind === "sales" ? "invoice" : "purchase"} #${id} was not found.`] });
+  }
+  return response.json({
+    original_total_paise: summary.originalTotalPaise,
+    prior_refund_paise: summary.priorRefundPaise,
+    remaining_refundable_paise: Math.max(summary.originalTotalPaise - summary.priorRefundPaise, 0)
+  });
+});
+
 posRouter.post("/sales-returns", requireAuth, (request, response) => {
   const validation = validateReturnDocumentPayload(request.body, "sales");
 
@@ -1264,6 +1283,14 @@ posRouter.post("/sales-returns", requireAuth, (request, response) => {
   // Enforce GST Audit Lock
   if (isGstPeriodLocked(db, validation.document.documentDate)) {
     return response.status(400).json({ errors: ["This transaction date falls within a locked GST audit period."] });
+  }
+
+  // When tied to an original invoice, never refund more than that sale was worth.
+  if (validation.document.sourceDocumentId !== null) {
+    const overRefund = refundExceedsOriginal("sales", validation.document.sourceDocumentId, validation.document.totalRefundPaise);
+    if (overRefund) {
+      return response.status(400).json({ errors: [overRefund.error] });
+    }
   }
 
   const userId = (request as AuthenticatedRequest).user.id;
@@ -1345,6 +1372,14 @@ posRouter.post("/purchase-returns", requireAuth, (request, response) => {
   // Enforce GST Audit Lock
   if (isGstPeriodLocked(db, validation.document.documentDate)) {
     return response.status(400).json({ errors: ["This transaction date falls within a locked GST audit period."] });
+  }
+
+  // When tied to an original purchase invoice, never refund more than it was worth.
+  if (validation.document.sourceDocumentId !== null) {
+    const overRefund = refundExceedsOriginal("purchase", validation.document.sourceDocumentId, validation.document.totalRefundPaise);
+    if (overRefund) {
+      return response.status(400).json({ errors: [overRefund.error] });
+    }
   }
 
   const userId = (request as AuthenticatedRequest).user.id;
@@ -2558,6 +2593,57 @@ function validateCommercialDocumentPayload(body: unknown, documentType: "quotati
       lines
     }
   };
+}
+
+// Original total + non-cancelled prior refunds for a source document, or null
+// when the document does not exist. Shared by the over-refund guard and the
+// return-summary endpoint so the UI and the validator agree on the numbers.
+function getReturnSummary(kind: "sales" | "purchase", sourceDocumentId: number):
+  { originalTotalPaise: number; priorRefundPaise: number } | null {
+  if (kind === "sales") {
+    const invoice = db.select({ total: invoices.total_amount_paise }).from(invoices).where(eq(invoices.id, sourceDocumentId)).get();
+    if (!invoice) return null;
+    const prior = db.select({ total: sql<number>`COALESCE(SUM(${salesReturns.total_refund_paise}), 0)` })
+      .from(salesReturns)
+      .where(and(eq(salesReturns.invoice_id, sourceDocumentId), ne(salesReturns.status, "CANCELLED")))
+      .get()?.total ?? 0;
+    return { originalTotalPaise: invoice.total, priorRefundPaise: prior };
+  }
+  const purchase = db.select({ total: purchaseInvoices.total_amount_paise }).from(purchaseInvoices).where(eq(purchaseInvoices.id, sourceDocumentId)).get();
+  if (!purchase) return null;
+  const prior = db.select({ total: sql<number>`COALESCE(SUM(${purchaseReturns.total_refund_paise}), 0)` })
+    .from(purchaseReturns)
+    .where(and(eq(purchaseReturns.purchase_invoice_id, sourceDocumentId), ne(purchaseReturns.status, "CANCELLED")))
+    .get()?.total ?? 0;
+  return { originalTotalPaise: purchase.total, priorRefundPaise: prior };
+}
+
+// Guard against refunding more than the source document was ever worth. A typo
+// of one extra zero would otherwise hand out a refund larger than the sale.
+function refundExceedsOriginal(
+  kind: "sales" | "purchase",
+  sourceDocumentId: number,
+  newRefundPaise: number
+): { error: string } | null {
+  const money = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const summary = getReturnSummary(kind, sourceDocumentId);
+
+  if (summary === null) {
+    const label = kind === "sales" ? "invoice" : "purchase";
+    return { error: `Original ${label} #${sourceDocumentId} was not found. Leave the ID blank for a return without a source document.` };
+  }
+
+  const { originalTotalPaise, priorRefundPaise } = summary;
+  if (priorRefundPaise + newRefundPaise > originalTotalPaise) {
+    const overBy = priorRefundPaise + newRefundPaise - originalTotalPaise;
+    const label = kind === "sales" ? "sale" : "purchase";
+    const priorClause = priorRefundPaise > 0 ? ` with ${money(priorRefundPaise)} already returned,` : "";
+    return {
+      error: `Refund exceeds the original ${label}. ${kind === "sales" ? "Invoice" : "Purchase"} #${sourceDocumentId} total is ${money(originalTotalPaise)};${priorClause} this return of ${money(newRefundPaise)} would over-refund by ${money(overBy)}.`
+    };
+  }
+
+  return null;
 }
 
 function validateReturnDocumentPayload(body: unknown, documentType: "sales" | "purchase"): ReturnDocumentValidation {

@@ -1,0 +1,452 @@
+<!doctype html><html><head><meta charset='utf-8'><style>
+@page { size: A4; margin: 18mm 16mm; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5;
+       color: #1a1a1a; max-width: 100%; }
+h1 { font-size: 22pt; color: #6b4e16; border-bottom: 3px solid #c9a227; padding-bottom: 6px;
+     page-break-after: avoid; }
+h2 { font-size: 15pt; color: #6b4e16; margin-top: 22px; border-bottom: 1px solid #e3d29a;
+     padding-bottom: 3px; page-break-after: avoid; }
+h3 { font-size: 12.5pt; color: #333; margin-top: 16px; page-break-after: avoid; }
+p, li { page-break-inside: avoid; }
+code { background: #f4f1e6; padding: 1px 5px; border-radius: 3px; font-size: 10pt;
+       font-family: Consolas, monospace; color: #8a5a00; }
+pre { background: #f4f1e6; padding: 10px; border-radius: 5px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; page-break-inside: avoid; }
+th, td { border: 1px solid #d8cfa8; padding: 6px 10px; text-align: left; font-size: 10.5pt; }
+th { background: #f3ead0; color: #5a4310; }
+blockquote { border-left: 4px solid #c9a227; margin: 10px 0; padding: 4px 14px;
+             background: #fbf8ef; color: #555; }
+hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+a { color: #8a5a00; text-decoration: none; }
+ul, ol { margin: 8px 0; padding-left: 24px; }
+</style></head><body><h1 id="jewellery-erp-desktop-application-user-guide">Jewellery ERP — Desktop Application User Guide</h1>
+<p>A step-by-step guide to operating the Jewellery ERP desktop app, feature by feature.
+Written for shop owners, managers, and counter staff.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-getting-started">Getting Started</a></li>
+<li><a href="#2-first-time-setup">First-Time Setup</a></li>
+<li><a href="#3-login-logout--screen-lock">Login, Logout &amp; Screen Lock</a></li>
+<li><a href="#4-dashboards">Dashboards</a></li>
+<li><a href="#5-daily-goldsilver-rates--live-rate-sync">Daily Gold/Silver Rates &amp; Live Rate Sync</a></li>
+<li><a href="#6-inventory--item-master">Inventory &amp; Item Master</a></li>
+<li><a href="#7-barcode--tag-generation">Barcode / Tag Generation</a></li>
+<li><a href="#8-customers-crm">Customers (CRM)</a></li>
+<li><a href="#9-pos-billing--making-a-sale">POS Billing — Making a Sale</a></li>
+<li><a href="#10-quotations">Quotations</a></li>
+<li><a href="#11-old-gold-exchange--urd-vouchers">Old Gold Exchange &amp; URD Vouchers</a></li>
+<li><a href="#12-customer-orders">Customer Orders</a></li>
+<li><a href="#13-returns">Returns</a></li>
+<li><a href="#14-approval--jangad-memo">Approval / Jangad Memo</a></li>
+<li><a href="#15-purchase-invoices">Purchase Invoices</a></li>
+<li><a href="#16-metal-loan-unfixed-purchase">Metal Loan (Unfixed Purchase)</a></li>
+<li><a href="#17-girvi--pawn--moneylending">Girvi — Pawn / Moneylending</a></li>
+<li><a href="#18-karigar--manufacturing">Karigar / Manufacturing</a></li>
+<li><a href="#19-repairs">Repairs</a></li>
+<li><a href="#20-gold-saving-schemes">Gold Saving Schemes</a></li>
+<li><a href="#21-accounts--day-book">Accounts &amp; Day Book</a></li>
+<li><a href="#22-gst-reports--e-documents">GST Reports &amp; e-Documents</a></li>
+<li><a href="#23-reminders--receivables-ageing">Reminders &amp; Receivables Ageing</a></li>
+<li><a href="#24-messenger--crm-automation">Messenger &amp; CRM Automation</a></li>
+<li><a href="#25-report-builder--print-templates">Report Builder &amp; Print Templates</a></li>
+<li><a href="#26-refinery-management">Refinery Management</a></li>
+<li><a href="#27-backup--recovery">Backup &amp; Recovery</a></li>
+<li><a href="#28-staff-user-management--roles">Staff User Management &amp; Roles</a></li>
+<li><a href="#29-settings">Settings</a></li>
+<li><a href="#30-tips--shortcuts">Tips &amp; Shortcuts</a></li>
+</ol>
+<hr />
+<h2 id="1-getting-started">1. Getting Started</h2>
+<p><strong>Launch the app</strong> by opening <strong>Jewelry ERP</strong> from the Start menu (or the desktop icon).
+The app runs fully offline on your computer — no internet is required except for optional
+live-rate sync and WhatsApp messaging.</p>
+<ul>
+<li>The window opens to the <strong>login screen</strong> (or the <strong>setup wizard</strong> the very first time).</li>
+<li>All your data is stored locally in an encrypted-capable SQLite database on this PC.</li>
+<li>The app auto-saves a backup when you close it (if enabled in Settings).</li>
+</ul>
+<p><strong>Default login (out of the box):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Username</th>
+<th>Password</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin</code></td>
+<td><code>admin1234</code></td>
+<td>Admin</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Change this password after first login (Staff User Management) for security.</p>
+</blockquote>
+<hr />
+<h2 id="2-first-time-setup">2. First-Time Setup</h2>
+<p>Only appears the very first time, when no admin account exists yet.</p>
+<ol>
+<li><strong>Step 1 — Organization details:</strong>
+   - <strong>Shop Name</strong> (e.g. "Shree Jewellers")
+   - <strong>Contact Number</strong>
+   - <strong>GSTIN</strong> (optional — must be a valid 15-character GSTIN if entered)
+   - <strong>Billing Address</strong>
+   - Click <strong>Continue</strong>.</li>
+<li><strong>Step 2 — Create Super Admin:</strong>
+   - <strong>Admin Username</strong>
+   - <strong>Password</strong> (minimum 8 characters)
+   - <strong>Confirm Password</strong>
+   - Click <strong>Finish Setup</strong>.</li>
+<li>You are logged in automatically as the Admin and taken to the dashboard.</li>
+</ol>
+<hr />
+<h2 id="3-login-logout-screen-lock">3. Login, Logout &amp; Screen Lock</h2>
+<p><strong>Login</strong>
+1. Enter your <strong>Username</strong> and <strong>Password</strong>.
+2. Click <strong>Sign In</strong>.
+   - Admins/Managers land on the <strong>MIS Dashboard</strong>; other staff land on the <strong>Dashboard</strong>.
+   - Wrong credentials show: <em>"Incorrect username or password."</em></p>
+<p><strong>Screen Lock</strong> (protects the till when you step away)
+- Click <strong>Lock</strong> in the top header, <strong>or</strong> the app auto-locks after <strong>15 minutes</strong> of inactivity.
+- A lock overlay appears — type your password to unlock and return to exactly where you were.</p>
+<p><strong>Logout</strong>
+- Click <strong>Logout</strong> at the bottom of the left sidebar to end your session and return to Sign In.</p>
+<hr />
+<h2 id="4-dashboards">4. Dashboards</h2>
+<p>There are two dashboards in the left sidebar:</p>
+<p><strong>MIS Dashboard</strong> (Admin/Manager only) — business analytics: today's sales, outstanding dues,
+stock value, top movers, and trend cards. Use this for an at-a-glance health check of the shop.</p>
+<p><strong>Dashboard</strong> (all staff) — the operational screen combining the <strong>Daily Rates</strong> control bar
+(top) and the <strong>live inventory table</strong> (below). This is the screen counter staff use most.</p>
+<hr />
+<h2 id="5-daily-goldsilver-rates-live-rate-sync">5. Daily Gold/Silver Rates &amp; Live Rate Sync</h2>
+<p>Set here once each morning — these rates drive all billing prices. <strong>(Admin only; staff see
+rates read-only.)</strong></p>
+<p><strong>Set rates manually</strong>
+1. Go to <strong>Dashboard</strong>.
+2. In the <strong>Daily Rates Control</strong> bar, type today's <strong>Gold 24K / 22K / 18K / Silver</strong> rates.
+3. Click <strong>Save &amp; Update Rates</strong>. The <strong>Last Synced</strong> time updates.</p>
+<p><strong>Sync live MCX rates (optional)</strong>
+1. Click <strong>Rate API Key</strong>, paste your gold-rate API key, and save. The status dot turns <strong>green</strong>.
+2. Click <strong>Sync Live MCX Rates</strong> — the app fetches current market rates automatically.</p>
+<blockquote>
+<p>The API key is stored per-shop inside the app (not an environment variable). You only enter it once.</p>
+</blockquote>
+<hr />
+<h2 id="6-inventory-item-master">6. Inventory &amp; Item Master</h2>
+<p>View, search, and edit your stock.</p>
+<ol>
+<li>Go to <strong>Inventory</strong> (or use the table on the <strong>Dashboard</strong>).</li>
+<li><strong>Filter</strong> using the bar: search by barcode/HUID, or filter by <strong>Category, Metal, Purity,
+   Status</strong> (IN_STOCK / SOLD / IN_MEMO).</li>
+<li>The metric cards show <strong>Items In-Stock</strong>, total <strong>Gold Weight</strong>, and <strong>Silver Weight</strong>.</li>
+<li>Click <strong>Edit</strong> on any row to change item details (weights, making, location, price) → save.</li>
+<li>Click <strong>Tag</strong> on a row to preview/print that item's barcode label.</li>
+</ol>
+<p>To <strong>add</strong> new items, use Barcode / Tag Generation (next section).</p>
+<hr />
+<h2 id="7-barcode-tag-generation">7. Barcode / Tag Generation</h2>
+<p>Create barcoded tags for new stock and verify physical stock against the system.</p>
+<h3 id="create-tags">Create tags</h3>
+<ol>
+<li>Go to <strong>Barcode</strong> → <strong>Create Tags</strong> tab.</li>
+<li>(Optional) choose an <strong>Item Template</strong> to pre-fill common fields, or click <strong>+ New Template</strong>.</li>
+<li>The <strong>Next Tag</strong> number auto-fills. Set:
+   - <strong>Prefix</strong>, <strong>Qty</strong>, <strong>Sale Mode</strong> (Weight-wise or Quantity-wise), <strong>UOM</strong> (Gram/Carat/Piece).
+   - <strong>Unit Price</strong> (quantity-wise items only).
+   - <strong>Category, Design, Metal, Purity.</strong>
+   - <strong>Gross / Stone / Black-Bead</strong> weights → <strong>Net</strong> and <strong>Fine</strong> weight calculate automatically.
+   - <strong>Making Type &amp; ₹</strong>, <strong>Hallmark ₹</strong>, <strong>HUID</strong>, <strong>Location</strong>.</li>
+<li>Click <strong>Create Barcode Tags</strong>. New rows appear, each with a <strong>Label</strong> print link.</li>
+<li>Click <strong>Label</strong> to print the physical tag for each piece.</li>
+</ol>
+<h3 id="verify-physical-stock">Verify physical stock</h3>
+<ol>
+<li>Go to the <strong>Verify Stock</strong> tab → <strong>Start Verification</strong>.</li>
+<li>Scan each item's barcode into the box → <strong>Scan</strong>.</li>
+<li>Live counts update: <strong>Expected / Scanned / Found / Missing / Unknown</strong>, with a missing-items list.</li>
+<li>Click <strong>Complete</strong> → <strong>Print Report</strong> to file the audit.</li>
+</ol>
+<hr />
+<h2 id="8-customers-crm">8. Customers (CRM)</h2>
+<ol>
+<li>Go to <strong>CRM</strong>.</li>
+<li>Click <strong>Add Customer</strong> and fill the form:
+   - <strong>Name</strong> (required), <strong>Phone</strong> (required, 10–15 digits), WhatsApp number, Email, GSTIN.
+   - Address, Area, Taluka, District.
+   - Birthday, Anniversary (used for reminders), PAN, Aadhaar, Ring size.
+   - <strong>Loyalty enrolled</strong> toggle, <strong>Opening balance</strong> (Debit/Credit) if they owe or are owed.</li>
+<li>Save. Search any customer with the <strong>Search by Name or Phone</strong> box.</li>
+<li>Click a customer to <strong>edit</strong> details or view their balance and history.</li>
+</ol>
+<blockquote>
+<p>You can also add a customer on the fly during billing — see POS Billing below.</p>
+</blockquote>
+<hr />
+<h2 id="9-pos-billing-making-a-sale">9. POS Billing — Making a Sale</h2>
+<p>The core daily screen. Three columns: <strong>Customer (left) · Cart (center) · Payment (right)</strong>.</p>
+<ol>
+<li>Go to <strong>POS Billing</strong>.</li>
+<li><strong>Select the customer (left):</strong>
+   - Search an existing customer by name/phone, <strong>or</strong>
+   - Type a name and press Enter for a quick <strong>Walk-in</strong>, <strong>or</strong>
+   - Click the <strong>+</strong> button to add a new full-KYC customer.
+   - Optionally collect <strong>Old Dues</strong>, redeem <strong>Loyalty Points</strong>, and set <strong>Invoice Details</strong>
+     (prefix, manual number, due date, salesman, "GST Not Required" checkbox).</li>
+<li><strong>Build the cart (center):</strong>
+   - <strong>Scan the item's barcode</strong> (it auto-adds), or search by name.
+   - Each row lets you adjust the <strong>Metal Rate</strong> and <strong>Making</strong> charge, or remove the line (trash icon).
+   - <strong>Old Gold exchange:</strong> under URD, enter Description / Tunch / Weight / Rate → <strong>Add</strong> to deduct it.</li>
+<li><strong>Take payment (right):</strong>
+   - Review <strong>Total Gross</strong>, apply a <strong>Total Discount</strong>, see <strong>Net Payable</strong>.
+   - Enter a <strong>split payment</strong>: Cash / UPI / Card / Udhari (credit), with reference fields.
+   - <strong>Balance Remaining must reach ₹0</strong> to enable checkout.</li>
+<li><strong>Compliance:</strong> if cash is <strong>₹2,00,000 or more</strong>, or any old-gold (URD) line is present, a
+   red panel requires <strong>PAN</strong>, <strong>Aadhaar (12 digits)</strong>, an ID document upload, and a selected
+   customer. Fill these to proceed.</li>
+<li>Click <strong>Checkout</strong>.
+   - If any amount is on <strong>Udhari (credit)</strong>, confirm the <strong>"Save on Credit?"</strong> dialog.</li>
+<li>The <strong>Print</strong> window opens — choose <strong>A4 (GST)</strong>, <strong>A5</strong>, or <strong>Thermal (80mm)</strong>, use a saved
+   template, or <strong>Send via WhatsApp</strong> (if the customer has a phone number).</li>
+</ol>
+<p>After checkout the sold items become <strong>SOLD</strong> in inventory, the sale posts to the Day Book,
+any credit shows in the customer's balance, and loyalty points are awarded.</p>
+<hr />
+<h2 id="10-quotations">10. Quotations</h2>
+<p>To give a price estimate without selling (no stock is reduced):</p>
+<ol>
+<li>Build the cart in <strong>POS Billing</strong> exactly as for a sale.</li>
+<li>Instead of Checkout, click <strong>Save as Quotation</strong>.</li>
+<li>The quotation is saved and can be printed/shared. Convert it to a sale later by re-billing.</li>
+</ol>
+<hr />
+<h2 id="11-old-gold-exchange-urd-vouchers">11. Old Gold Exchange &amp; URD Vouchers</h2>
+<p><strong>During a sale:</strong> use the <strong>URD / Old Gold Exchange</strong> section in the POS cart (see step 3 above).</p>
+<p><strong>Standalone purchase of old gold:</strong> go to <strong>URD Voucher</strong>, enter the customer and old-gold
+details (description, tunch, weight, rate) to create a standalone unregistered-dealer voucher
+and pay the customer for their gold.</p>
+<hr />
+<h2 id="12-customer-orders">12. Customer Orders</h2>
+<p>Book made-to-order items (e.g. a custom ring):</p>
+<ol>
+<li>Go to <strong>Order Booking</strong>.</li>
+<li>Select/add the customer, enter the item specification, expected delivery date, and advance paid.</li>
+<li>Save the order. Track and fulfil it from the same screen; convert to a sale on delivery.</li>
+</ol>
+<hr />
+<h2 id="13-returns">13. Returns</h2>
+<p>Handle sales returns and purchase returns:</p>
+<ol>
+<li>Go to <strong>Returns</strong>.</li>
+<li>Choose the return type (sales or purchase) and look up the original invoice.</li>
+<li>Select the line(s) being returned, confirm the refund/credit, and save. Stock and ledgers adjust.</li>
+</ol>
+<hr />
+<h2 id="14-approval-jangad-memo">14. Approval / Jangad Memo</h2>
+<p>Send items out "on approval" (memo) without selling them:</p>
+<ol>
+<li>Go to <strong>Approval Memo</strong>.</li>
+<li>Select the customer and add the items leaving the shop.</li>
+<li>Save the memo — those items show <strong>IN_MEMO</strong> in inventory.</li>
+<li>When items return or sell, close the memo accordingly.</li>
+</ol>
+<hr />
+<h2 id="15-purchase-invoices">15. Purchase Invoices</h2>
+<p>Record stock bought from suppliers:</p>
+<ol>
+<li>Go to <strong>Purchase</strong>.</li>
+<li>Select/add the supplier, enter invoice number and date.</li>
+<li>Add line items (metal, weight, purity, rate, making, GST).</li>
+<li>Save — stock increases and the supplier ledger updates.</li>
+</ol>
+<hr />
+<h2 id="16-metal-loan-unfixed-purchase">16. Metal Loan (Unfixed Purchase)</h2>
+<p>Record <strong>gold borrowed from a supplier</strong> where the rate is fixed later:</p>
+<ol>
+<li>Go to <strong>Metal Loan</strong>.</li>
+<li>Select/add the <strong>Supplier</strong>, enter <strong>Purity %</strong> (e.g. 99.99) and <strong>Gross grams</strong> taken → record.</li>
+<li>Later, when you settle, open the entry and enter the <strong>Fix Rate</strong> (e.g. 7250) to price the metal.</li>
+</ol>
+<hr />
+<h2 id="17-girvi-pawn-moneylending">17. Girvi — Pawn / Moneylending</h2>
+<p>Lend money against pledged gold:</p>
+<ol>
+<li>Go to <strong>Girvi</strong> → <strong>Issue New Loan</strong>.</li>
+<li>Select the <strong>Customer</strong>; the <strong>Loan Number</strong> auto-fills (e.g. GRV-0001).</li>
+<li>Enter the <strong>Principal Amount</strong> (validated against loan-to-value), and pick the Cash/Bank ledger.</li>
+<li>Capture the borrower's <strong>Photo</strong> and <strong>Thumbprint/Biometric</strong> (webcam, upload, or scanner).
+   - Cash loans over <strong>₹2,00,000</strong> require PAN + Aadhaar.</li>
+<li>Issue the loan → print the <strong>Pavati / Pawn Receipt</strong>.</li>
+<li><strong>Repayments:</strong> open <strong>Active Loans &amp; Repayments</strong>, select the loan, and record payments —
+   the outstanding balance reduces.</li>
+<li><strong>Closed/Defaulted:</strong> the <strong>Defaulted/Settled</strong> tab lists loans that are settled or in default.</li>
+</ol>
+<hr />
+<h2 id="18-karigar-manufacturing">18. Karigar / Manufacturing</h2>
+<p>Track raw metal issued to artisans (karigars) and finished jobs received back.</p>
+<h3 id="issue-raw-metal">Issue raw metal</h3>
+<ol>
+<li>Go to <strong>Karigar</strong> → <strong>Issue Raw Metal</strong>.</li>
+<li>(Optional) link a <strong>Customer</strong> for a custom order.</li>
+<li>Pick the <strong>Artisan</strong>, or click <strong>+ Add Karigar</strong> (name, phone, specialty) to create one.</li>
+<li>Enter Job Name, Target Purity %, Target Weight, Metal Type, <strong>Gross Weight Issued</strong>, and
+   <strong>Purity/Tunch</strong> → the <strong>Fine Gold Equivalent</strong> shows live.</li>
+<li>Click <strong>Issue Raw Metal</strong>.</li>
+</ol>
+<h3 id="receive-finished-job">Receive finished job</h3>
+<ol>
+<li>Go to the <strong>Receive Finished Job</strong> tab and select the active job.</li>
+<li>Enter <strong>Final Gross</strong>, Stone/Less, <strong>Scrap</strong>, wastage mode/value, and <strong>Labour Charge</strong>.
+   - The reconciliation engine flags <strong>"EXCESS METAL LOSS"</strong> if the numbers don't balance.</li>
+<li>Click <strong>Receive Finished Job</strong>. (Or <strong>Cancel Job</strong> to return the metal.)</li>
+</ol>
+<h3 id="karigar-ledgers">Karigar ledgers</h3>
+<ol>
+<li>Go to the <strong>Karigar Ledgers</strong> tab and select a karigar.</li>
+<li>View the <strong>Metal Ledger</strong> (fine-gold owed) and <strong>Cash Ledger</strong> (labour pending).</li>
+<li>Click <strong>Transfer to Barcode</strong> on a received piece to turn it into saleable, tagged stock.</li>
+<li><strong>Print Slip</strong> for any transaction.</li>
+</ol>
+<hr />
+<h2 id="19-repairs">19. Repairs</h2>
+<p>Log repair and service jobs:</p>
+<ol>
+<li>Go to <strong>Repairs</strong>.</li>
+<li>Select/add the customer, describe the repair, weight in, estimated charge, and promised date.</li>
+<li>Save and track status; bill the customer on completion.</li>
+</ol>
+<hr />
+<h2 id="20-gold-saving-schemes">20. Gold Saving Schemes</h2>
+<p>Run customer savings schemes that mature into a gold purchase.</p>
+<ul>
+<li><strong>Gold Scheme</strong> — enrol a customer in a scheme and record monthly <strong>installments</strong>.</li>
+<li><strong>Scheme Builder / GSS Schemes</strong> (Admin/Manager) — define scheme rules (duration, bonus,
+  payout terms).</li>
+<li>At maturity, convert the accumulated value into a sale (the credit applies in POS).</li>
+</ul>
+<hr />
+<h2 id="21-accounts-day-book">21. Accounts &amp; Day Book</h2>
+<p>Your financial control screens:</p>
+<ul>
+<li><strong>Day Book</strong> — every transaction for a chosen day (sales, purchases, receipts, payments).</li>
+<li><strong>Accounts</strong> — ledger view across customers, suppliers, cash/bank, metal accounts.</li>
+</ul>
+<p>Use these to reconcile cash at day-end and confirm that sales, credits, and metal movements posted correctly.</p>
+<hr />
+<h2 id="22-gst-reports-e-documents">22. GST Reports &amp; e-Documents</h2>
+<p>For tax compliance (Admin/Manager):</p>
+<ul>
+<li><strong>GST Reports</strong> — generate GST summaries for filing (GSTR-ready figures).</li>
+<li><strong>GST e-Docs</strong> — create <strong>e-Invoices</strong> and <strong>e-Way Bills</strong> for qualifying transactions.</li>
+</ul>
+<p>Select the period/transaction, generate, then export or print.</p>
+<hr />
+<h2 id="23-reminders-receivables-ageing">23. Reminders &amp; Receivables Ageing</h2>
+<ol>
+<li>Go to <strong>Reminders</strong>.</li>
+<li>View outstanding receivables grouped into <strong>ageing buckets</strong> (e.g. 0–30, 31–60, 60+ days).</li>
+<li>Use this to follow up on Udhari (credit) balances; pair with Messenger to send reminders.</li>
+</ol>
+<hr />
+<h2 id="24-messenger-crm-automation">24. Messenger &amp; CRM Automation</h2>
+<ol>
+<li>Go to <strong>Messenger</strong>.</li>
+<li>Set up and trigger automated customer messages — payment reminders, birthday/anniversary
+   greetings, festival offers.</li>
+<li>Messages can be sent over WhatsApp to customers with a saved phone number.</li>
+</ol>
+<hr />
+<h2 id="25-report-builder-print-templates">25. Report Builder &amp; Print Templates</h2>
+<p>(Admin/Manager)</p>
+<ul>
+<li><strong>Report Builder</strong> — build custom reports by choosing data fields, filters, and grouping.</li>
+<li><strong>Print Templates</strong> — design the layout of invoices, labels, and receipts (A4, A5, thermal),
+  including which fields print and the shop header.</li>
+</ul>
+<hr />
+<h2 id="26-refinery-management">26. Refinery Management</h2>
+<p>Track metal sent for refining:</p>
+<ol>
+<li>Go to <strong>Refinery</strong>.</li>
+<li>Record a batch sent out (gross, expected purity), and reconcile the fine gold returned.</li>
+</ol>
+<hr />
+<h2 id="27-backup-recovery">27. Backup &amp; Recovery</h2>
+<p>Protect your data. <strong>(Admin only.)</strong> Four tabs:</p>
+<ol>
+<li><strong>Backup</strong> — choose a target (<strong>LOCAL / USB / CLOUD</strong>), optionally set an <strong>encryption
+   passphrase</strong>, and run a backup. The screen shows when the last backup ran.</li>
+<li><strong>History</strong> — a log of past backups with checksums. To restore: select a backup, enter its
+   passphrase, and restore.</li>
+<li><strong>Schedule</strong> — enable <strong>auto-backup</strong>, set the interval (hours), target folders, cloud URL,
+   how many backups to keep, and <strong>Backup on Exit</strong>.</li>
+<li><strong>Recovery</strong> — view the crash log and database state, and run an <strong>integrity check</strong>.</li>
+</ol>
+<blockquote>
+<p>The app applies any pending restore on startup (Windows-safe) and can back up automatically
+when you close the window.</p>
+</blockquote>
+<hr />
+<h2 id="28-staff-user-management-roles">28. Staff User Management &amp; Roles</h2>
+<p><strong>(Admin only.)</strong> Go to <strong>Users</strong> to create staff accounts.</p>
+<p>Four roles, each with different access:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Access summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ADMIN</strong></td>
+<td>Everything, including Backup &amp; Recovery and User Management.</td>
+</tr>
+<tr>
+<td><strong>MANAGER</strong></td>
+<td>All operations + MIS Dashboard, Day Book, GST Reports/e-Docs, Scheme Builder, Refinery, Report Builder, Print Templates. No Backup/Users.</td>
+</tr>
+<tr>
+<td><strong>ACCOUNTANT</strong></td>
+<td>Standard operational screens.</td>
+</tr>
+<tr>
+<td><strong>COUNTER_STAFF</strong></td>
+<td>Standard operational screens; <strong>cannot edit gold rates</strong> (read-only).</td>
+</tr>
+</tbody>
+</table>
+<p>To add a user: <strong>Users</strong> → create → enter username, password, and role. They sign in with those
+credentials and see only what their role permits.</p>
+<hr />
+<h2 id="29-settings">29. Settings</h2>
+<p>Configure shop-wide preferences:</p>
+<ul>
+<li><strong>Firms Manager</strong> — your shop/firm master data.</li>
+<li><strong>E-commerce Sync &amp; Webhook</strong> — sync URL + secret; preview a catalog export.</li>
+<li><strong>Loyalty Earning Rules</strong> — earn mode (per ₹100 spent / per gram of gold) and point values.</li>
+<li><strong>Print Language</strong> — English / Marathi / Hindi / Gujarati (affects printouts).</li>
+<li><strong>Tally Prime XML Gateway</strong> — enable, set gateway URL and company name to push to Tally.</li>
+</ul>
+<blockquote>
+<p>Gold rates are set on the <strong>Dashboard</strong>, not here.</p>
+</blockquote>
+<hr />
+<h2 id="30-tips-shortcuts">30. Tips &amp; Shortcuts</h2>
+<ul>
+<li><strong>Barcode scanner</strong> works almost everywhere — scan to add items in POS, Barcode Verify, etc.</li>
+<li><strong>Lock the screen</strong> (top header) whenever you leave the counter.</li>
+<li><strong>Set rates first thing each morning</strong> — all billing depends on them.</li>
+<li><strong>Back up before closing</strong> — keep "Backup on Exit" enabled.</li>
+<li><strong>Walk-in sales</strong> — type a name and press Enter in POS; no need to create a full customer.</li>
+<li><strong>Compliance</strong>: have PAN + Aadhaar ready for cash sales ≥ ₹2,00,000 or any old-gold exchange.</li>
+<li>The app is <strong>offline-first</strong> — it keeps working without internet; only live rates and WhatsApp need a connection.</li>
+</ul>
+<hr />
+<p><em>End of guide. For day-to-day operation, the screens you'll use most are: Dashboard (rates),
+POS Billing, Inventory, CRM, and Day Book.</em></p></body></html>

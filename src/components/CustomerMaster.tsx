@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { DateInput } from "./ui.js";
 
 export type SavedCustomer = { id: number; name: string; phone: string } & Record<string, unknown>;
 
@@ -261,6 +262,13 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
             {duplicateMatch && (
               <span className="mt-0.5 block rounded-sm bg-amber-950/50 px-1.5 py-1 text-[11px] font-normal text-amber-300">
                 A customer with this number already exists: <strong>{duplicateMatch.name}</strong>. Saving will create a duplicate record.
+                <button
+                  type="button"
+                  onClick={() => onSaved(duplicateMatch)}
+                  className="mt-1 block rounded-sm border border-amber-600 px-2 py-0.5 text-[11px] font-semibold text-amber-200 hover:bg-amber-900/40"
+                >
+                  Use this customer instead →
+                </button>
               </span>
             )}
           </label>
@@ -283,10 +291,10 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
             <input className={control} value={form.district} onChange={(e) => set("district", e.target.value)} />
           </label>
           <label className="text-xs text-slate-300">Birth Date
-            <input type="date" className={control} value={form.birthday_date} onChange={(e) => set("birthday_date", e.target.value)} />
+            <DateInput className={control} value={form.birthday_date} onChange={(v) => set("birthday_date", v)} />
           </label>
           <label className="text-xs text-slate-300">Anniversary
-            <input type="date" className={control} value={form.anniversary_date} onChange={(e) => set("anniversary_date", e.target.value)} />
+            <DateInput className={control} value={form.anniversary_date} onChange={(v) => set("anniversary_date", v)} />
           </label>
           <label className="text-xs text-slate-300">PAN
             <input className={control} value={form.pan_number} onChange={(e) => set("pan_number", e.target.value.toUpperCase())} maxLength={10} />
@@ -399,7 +407,8 @@ export default function CustomerMaster({ apiBaseUrl = "", initial = null, onClos
           </div>
         )}
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <span className="mr-auto text-[10px] text-slate-500"><span className="text-red-400">*</span> Required — only Name and Mobile No are needed for a quick walk-in.</span>
           <button type="button" onClick={guardedClose} className="rounded-sm border border-slate-700 px-3 py-1 text-sm text-slate-300 hover:bg-slate-800">Cancel</button>
           <button type="submit" disabled={saving} className="rounded-sm bg-amber-600 px-4 py-1 text-sm font-semibold text-slate-50 hover:bg-amber-500 disabled:opacity-50">
             {saving ? "Saving…" : isEdit ? "Update" : "Save Customer"}

@@ -10,6 +10,15 @@ export function selectOnFocus(event: FocusEvent<HTMLInputElement>) {
   event.currentTarget.select();
 }
 
+/**
+ * Required-field marker. Drop next to a label so staff can tell at a glance
+ * which fields block submission: `<label>Phone <Req /></label>`. Pair it with a
+ * single "* Required" legend per form.
+ */
+export function Req() {
+  return <span className="font-bold text-rose-400" title="Required" aria-hidden="true">*</span>;
+}
+
 /** Inline loading spinner. */
 export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -237,4 +246,118 @@ export function Toaster({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
 
 export function rupees(paise: number): string {
   return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// ── Date input (DD/MM/YYYY) ────────────────────────────────────────────
+// Native <input type="date"> renders in the OS locale (often MM/DD/YYYY on
+// en-US installs), which misleads Indian billing staff who read dates as
+// DD/MM/YYYY. DateInput is a drop-in replacement that *displays and accepts*
+// typed DD/MM/YYYY while still storing/emitting ISO yyyy-mm-dd (so component
+// state and the API contract are unchanged). The calendar icon opens the real
+// native date picker for mouse users.
+//
+// Migration: `<input type="date" value={x} onChange={(e) => setX(e.target.value)} className={cls} />`
+//        ->  `<DateInput value={x} onChange={setX} className={cls} />`
+// The onChange callback receives the ISO string directly (not an event).
+
+function isoToDisplay(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? "");
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
+function displayToIso(text: string): string | null {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text.trim());
+  if (!m) return null;
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const dt = new Date(year, month - 1, day);
+  // Reject impossible dates (e.g. 31/02) that JS would roll forward.
+  if (dt.getFullYear() !== year || dt.getMonth() !== month - 1 || dt.getDate() !== day) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${year}-${pad(month)}-${pad(day)}`;
+}
+
+export function DateInput({
+  value,
+  onChange,
+  className = "",
+  min,
+  max,
+  required,
+  disabled,
+  showIcon = true,
+  ...rest
+}: {
+  value: string;
+  onChange: (iso: string) => void;
+  className?: string;
+  min?: string;
+  max?: string;
+  required?: boolean;
+  disabled?: boolean;
+  showIcon?: boolean;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "min" | "max" | "type">) {
+  const [text, setText] = useState(() => isoToDisplay(value));
+
+  // Re-sync the visible text whenever the ISO value changes from outside
+  // (parent reset, calendar pick, etc.).
+  useEffect(() => {
+    setText(isoToDisplay(value));
+  }, [value]);
+
+  function commit(raw: string) {
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      onChange("");
+      return;
+    }
+    const iso = displayToIso(trimmed);
+    if (iso) onChange(iso);
+    else setText(isoToDisplay(value)); // revert an unparseable entry
+  }
+
+  return (
+    <div className={`relative flex items-center ${className}`}>
+      <input
+        {...rest}
+        type="text"
+        inputMode="numeric"
+        placeholder="DD/MM/YYYY"
+        value={text}
+        disabled={disabled}
+        required={required}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit((e.target as HTMLInputElement).value);
+          rest.onKeyDown?.(e);
+        }}
+        className="h-full w-full min-w-0 bg-transparent outline-none placeholder:text-slate-600"
+      />
+      {showIcon && (
+        <span className="pointer-events-none relative ml-1 grid h-4 w-4 shrink-0 place-items-center text-slate-500">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          {/* Invisible native date input overlays the icon: clicking it opens the
+              real calendar popup. Its own rendered format is hidden, so locale
+              never leaks to the user — only the ISO value flows back. */}
+          <input
+            type="date"
+            value={value}
+            min={min}
+            max={max}
+            disabled={disabled}
+            tabIndex={-1}
+            aria-label="Open calendar"
+            onChange={(e) => onChange(e.target.value)}
+            className="pointer-events-auto absolute inset-0 cursor-pointer opacity-0"
+          />
+        </span>
+      )}
+    </div>
+  );
 }

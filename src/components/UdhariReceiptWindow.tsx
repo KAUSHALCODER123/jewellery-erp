@@ -2,6 +2,7 @@ import { Clock, ExternalLink, Printer, ReceiptIndianRupee, Search } from "lucide
 import type { FormEvent, KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { DateInput } from "./ui.js";
 
 type UdhariReceiptWindowProps = {
   apiBaseUrl?: string;
@@ -299,10 +300,9 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
 
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Receipt Date">
-                  <input
-                    type="date"
+                  <DateInput
                     value={receiptDate}
-                    onChange={(e) => setReceiptDate(e.target.value)}
+                    onChange={setReceiptDate}
                     className={controlClassName}
                   />
                 </Field>
@@ -350,7 +350,13 @@ export default function UdhariReceiptWindow({ apiBaseUrl = "" }: UdhariReceiptWi
                 )}
               </div>
 
-              <Field label="Narration">
+              {isAdvanceCredit && (
+                <p className="animate-fade-in rounded-sm border border-amber-700 bg-amber-950/40 px-2 py-1 text-[11px] text-amber-300">
+                  ⚠ Customer owes {formatPaise(Math.max(selectedCustomer?.balance_paise ?? 0, 0))}; {formatPaise(Math.abs(balanceAfterPaise))} of this receipt will be recorded as advance credit. Check the amount if this is unexpected.
+                </p>
+              )}
+
+              <Field label="Narration (optional)">
                 <textarea
                   value={narration}
                   onChange={(e) => setNarration(e.target.value)}

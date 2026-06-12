@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Coins, Plus, Scale, TrendingUp } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
-import { selectOnFocus } from "./ui.js";
+import { selectOnFocus, DateInput } from "./ui.js";
 
 type MetalLoanModuleProps = { apiBaseUrl?: string };
 
@@ -262,7 +262,7 @@ export default function MetalLoanModule({ apiBaseUrl = "" }: MetalLoanModuleProp
             <div className="grid grid-cols-3 gap-3">
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                 Issue Date
-                <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={controlClassName} />
+                <DateInput value={issueDate} onChange={setIssueDate} className={controlClassName} />
               </label>
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                 Metal

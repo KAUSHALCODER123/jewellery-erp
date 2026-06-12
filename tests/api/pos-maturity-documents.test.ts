@@ -2,7 +2,7 @@ import request from "supertest";
 import { eq } from "drizzle-orm";
 import { app } from "../../src/server.js";
 import { db } from "../../src/db/client.js";
-import { items, ledgers, voucherLines } from "../../src/db/schema.js";
+import { invoices, items, ledgers, voucherLines } from "../../src/db/schema.js";
 
 describe("POS maturity documents", () => {
   let adminToken: string;
@@ -160,6 +160,75 @@ describe("POS maturity documents", () => {
 
     const item = db.select().from(items).where(eq(items.id, 1)).get();
     expect(item?.status).toBe("IN_STOCK");
+  });
+
+  it("rejects a sales return that refunds more than the linked invoice was worth", async () => {
+    const invoice = db.insert(invoices)
+      .values({ invoice_number: "INV-GUARD-OVER", total_amount_paise: 6500000, payment_mode: "CASH" })
+      .returning()
+      .get();
+
+    const response = await request(app)
+      .post("/api/pos/sales-returns")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        invoice_id: invoice.id,
+        customer_id: null,
+        return_date: "2026-06-04",
+        refund_mode: "CASH",
+        reason: "Over-refund attempt",
+        gross_total_paise: 13000000,
+        gst_reversal_paise: 0,
+        total_refund_paise: 13000000,
+        lines: [sampleReturnLine({ amount_paise: 13000000 })]
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors.join(" ")).toMatch(/exceeds the original sale/i);
+  });
+
+  it("allows a sales return up to the linked invoice total", async () => {
+    const invoice = db.insert(invoices)
+      .values({ invoice_number: "INV-GUARD-OK", total_amount_paise: 6500000, payment_mode: "CASH" })
+      .returning()
+      .get();
+
+    const response = await request(app)
+      .post("/api/pos/sales-returns")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        invoice_id: invoice.id,
+        customer_id: null,
+        return_date: "2026-06-04",
+        refund_mode: "CASH",
+        reason: "Within cap",
+        gross_total_paise: 6500000,
+        gst_reversal_paise: 0,
+        total_refund_paise: 6500000,
+        lines: [sampleReturnLine()]
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.sales_return.return_number).toMatch(/^SR-/);
+  });
+
+  it("rejects a sales return against a non-existent invoice", async () => {
+    const response = await request(app)
+      .post("/api/pos/sales-returns")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        invoice_id: 99999,
+        customer_id: null,
+        return_date: "2026-06-04",
+        refund_mode: "CASH",
+        gross_total_paise: 6500000,
+        gst_reversal_paise: 0,
+        total_refund_paise: 6500000,
+        lines: [sampleReturnLine()]
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors.join(" ")).toMatch(/was not found/i);
   });
 
   it("posts purchase return with settlement debit and stock credit", async () => {

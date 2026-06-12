@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import { DateInput } from "./ui.js";
 
 type AccountsDayBookModuleProps = {
   apiBaseUrl?: string;
@@ -734,7 +735,7 @@ function DaybookView({
     <div className="grid h-full grid-rows-[auto_auto_1fr]">
       <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900 px-3 py-2">
         <label className="text-xs font-semibold uppercase text-slate-400">Date</label>
-        <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className={controlClassName} />
+        <DateInput value={date} onChange={setDate} className={controlClassName} />
       </div>
       <div className="grid grid-cols-4 border-b border-slate-800">
         <MetricBox label="Opening Balance" value={formatPaise(daybook.opening_balance_paise)} />
@@ -859,10 +860,9 @@ function ExpensesView({
           <p className="text-xs text-slate-400">Daily cash and bank outflows for final till matching</p>
         </div>
         <Field label="Expense Date">
-          <input
-            type="date"
+          <DateInput
             value={form.expenseDate}
-            onChange={(event) => setForm({ ...form, expenseDate: event.target.value })}
+            onChange={(v) => setForm({ ...form, expenseDate: v })}
             className={wideControlClassName}
           />
         </Field>
@@ -913,7 +913,7 @@ function ExpensesView({
       <div className="grid min-h-0 grid-rows-[auto_auto_1fr] overflow-hidden">
         <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900 px-3 py-2">
           <label className="text-xs font-semibold uppercase text-slate-400">View Date</label>
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className={controlClassName} />
+          <DateInput value={date} onChange={setDate} className={controlClassName} />
         </div>
         <div className="grid grid-cols-3 border-b border-slate-800">
           <MetricBox label="Total Kharch" value={formatPaise(expenses?.total_paise ?? 0)} tone="payment" />
@@ -1038,10 +1038,9 @@ function VoucherView({
             </select>
           </Field>
           <Field label="Voucher Date">
-            <input
-              type="date"
+            <DateInput
               value={voucher.voucherDate}
-              onChange={(event) => setVoucher({ ...voucher, voucherDate: event.target.value })}
+              onChange={(v) => setVoucher({ ...voucher, voucherDate: v })}
               className={wideControlClassName}
             />
           </Field>
@@ -1174,20 +1173,18 @@ function LedgerReportView({
 
         <label className="flex items-center gap-2 font-semibold uppercase text-slate-400">
           From:
-          <input
-            type="date"
+          <DateInput
             value={reportFromDate}
-            onChange={(e) => setReportFromDate(e.target.value)}
+            onChange={setReportFromDate}
             className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
           />
         </label>
 
         <label className="flex items-center gap-2 font-semibold uppercase text-slate-400">
           To:
-          <input
-            type="date"
+          <DateInput
             value={reportToDate}
-            onChange={(e) => setReportToDate(e.target.value)}
+            onChange={setReportToDate}
             className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
           />
         </label>
@@ -1436,10 +1433,10 @@ function FinancialsView({
     <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
       <div className="flex flex-wrap items-end gap-2 border-b border-slate-800 bg-slate-900 p-2">
         <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">From
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
+          <DateInput value={fromDate} onChange={setFromDate} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
         </label>
         <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">To
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
+          <DateInput value={toDate} onChange={setToDate} className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400" />
         </label>
         <button type="button" onClick={onPrint} className="h-8 border border-slate-700 bg-slate-800 px-3 text-[11px] font-semibold uppercase hover:border-emerald-400">Print</button>
       </div>

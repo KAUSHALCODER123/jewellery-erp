@@ -1,7 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
-import { selectOnFocus } from "./ui.js";
+import { selectOnFocus, DateInput } from "./ui.js";
 
 type PurchaseInvoiceModuleProps = {
   apiBaseUrl?: string;
@@ -252,7 +252,7 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
             <input value={billNumber} onChange={(event) => setBillNumber(event.target.value)} className={controlClassName} placeholder="Supplier invoice #" />
           </Field>
           <Field label="Purchase Date">
-            <input type="date" value={purchaseDate} onChange={(event) => setPurchaseDate(event.target.value)} className={controlClassName} />
+            <DateInput value={purchaseDate} onChange={setPurchaseDate} className={controlClassName} />
           </Field>
         </aside>
 

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
 import ScaleCaptureButton from "./ScaleCaptureButton.js";
+import { DateInput } from "./ui.js";
 
 type StandaloneUrdVoucherProps = {
   apiBaseUrl?: string;
@@ -433,13 +434,13 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
               </header>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Customer Name"><input value={form.customerName} onChange={(event) => setField("customerName", event.target.value)} className={controlClassName} required /></Field>
+                <Field label="Customer Name" required><input value={form.customerName} onChange={(event) => setField("customerName", event.target.value)} className={controlClassName} required /></Field>
                 <Field label="Mobile"><input value={form.customerPhone} onChange={(event) => setField("customerPhone", event.target.value)} className={controlClassName} /></Field>
-                <Field label="Date"><input type="date" value={form.voucherDate} onChange={(event) => setField("voucherDate", event.target.value)} className={controlClassName} /></Field>
+                <Field label="Date"><DateInput value={form.voucherDate} onChange={(v) => setField("voucherDate", v)} className={controlClassName} /></Field>
                 <Field label="Metal"><select value={form.metalType} onChange={(event) => setField("metalType", event.target.value)} className={controlClassName}><option>Gold</option><option>Silver</option></select></Field>
                 <Field label="Description"><input value={form.description} onChange={(event) => setField("description", event.target.value)} className={controlClassName} /></Field>
                 <Field label="Tunch (Purity %)"><input value={form.purityTunch} onChange={(event) => setField("purityTunch", event.target.value)} className={controlClassName} inputMode="decimal" /></Field>
-                <Field label="Gross Wt (g)">
+                <Field label="Gross Wt (g)" required>
                   <div className="flex gap-1">
                     <input value={form.grossWeightG} onChange={(event) => setField("grossWeightG", event.target.value)} className={controlClassName} inputMode="decimal" required />
                     <ScaleCaptureButton apiBaseUrl={apiBaseUrl} onCapture={(grams) => setField("grossWeightG", grams)} />
@@ -447,13 +448,13 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
                 </Field>
                 <Field label="Stone Wt (g)"><input value={form.stoneWeightG} onChange={(event) => setField("stoneWeightG", event.target.value)} className={controlClassName} inputMode="decimal" /></Field>
                 <Field label="Black Bead Wt (g)"><input value={form.blackBeadWeightG} onChange={(event) => setField("blackBeadWeightG", event.target.value)} className={controlClassName} inputMode="decimal" /></Field>
-                <Field label="Purchase Rate / g (Rs)"><input value={form.appliedRateRs} onChange={(event) => setField("appliedRateRs", event.target.value)} className={controlClassName} inputMode="decimal" required /></Field>
+                <Field label="Purchase Rate / g (Rs)" required><input value={form.appliedRateRs} onChange={(event) => setField("appliedRateRs", event.target.value)} className={controlClassName} inputMode="decimal" required /></Field>
                 <Field label="Payment Mode"><select value={form.paymentMode} onChange={(event) => setField("paymentMode", event.target.value)} className={controlClassName}><option>CASH</option><option>UPI</option><option>NEFT</option><option>CHEQUE</option></select></Field>
                 <Field label="Payment Ref"><input value={form.paymentReference} onChange={(event) => setField("paymentReference", event.target.value)} className={controlClassName} /></Field>
               </div>
 
               <header className="border-b border-slate-800 pb-2 pt-2">
-                <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">Stronger KYC Details</h2>
+                <h2 className="text-xs font-bold uppercase text-slate-50 tracking-wide">KYC &amp; Compliance Details</h2>
               </header>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="PAN Number (10-char Alphanumeric)"><input placeholder="ABCDE1234F" value={form.panNumber} onChange={(event) => setField("panNumber", event.target.value.toUpperCase())} className={controlClassName} /></Field>
@@ -475,6 +476,7 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
                 <Metric label="Purchase Value" value={formatNumber(weights.total, "Rs")} />
               </div>
 
+              <p className="text-[10px] text-slate-500"><span className="text-rose-400">*</span> Required fields</p>
               <button type="submit" className="h-10 bg-emerald-500 hover:bg-emerald-400 text-xs font-bold uppercase text-slate-50 transition-colors shadow">
                 Save URD Voucher
               </button>
@@ -690,8 +692,13 @@ export default function StandaloneUrdVoucher({ apiBaseUrl = "" }: StandaloneUrdV
   }
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">{label}{children}</label>;
+function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
+  return (
+    <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+      <span>{label}{required && <span className="ml-0.5 text-rose-400" title="Required">*</span>}</span>
+      {children}
+    </label>
+  );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

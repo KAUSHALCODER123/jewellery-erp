@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, TrendingUp, TrendingDown, Recycle, Hammer, Wallet, Landmark, CalendarDays } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
-import { MetricCard, CountUp, Spinner, Toaster, useToasts, rupees } from "./ui.js";
+import { MetricCard, CountUp, Spinner, Toaster, useToasts, rupees, DateInput } from "./ui.js";
 
 type DayBookSummaryProps = { apiBaseUrl?: string };
 
@@ -142,10 +142,10 @@ export default function DayBookSummary({ apiBaseUrl = "" }: DayBookSummaryProps)
             Date
             <div className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2">
               <CalendarDays className="h-3.5 w-3.5 text-slate-500" />
-              <input
-                type="date"
+              <DateInput
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={setDate}
+                showIcon={false}
                 className="bg-transparent py-1.5 text-sm text-slate-50 outline-none"
               />
             </div>

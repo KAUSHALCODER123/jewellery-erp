@@ -2,6 +2,7 @@ import { ClipboardList, Plus, Search, X } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { DateInput } from "./ui.js";
 
 type CustomerOrderBookingModuleProps = { apiBaseUrl?: string };
 
@@ -71,6 +72,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
   const [notes, setNotes] = useState("");
   const [customerGoldGrams, setCustomerGoldGrams] = useState("");
   const [customerGoldPurityTunch, setCustomerGoldPurityTunch] = useState(9167);
+  const [hasCustomerGold, setHasCustomerGold] = useState(false);
   const [expectedByDate, setExpectedByDate] = useState("");
   const [advanceRupees, setAdvanceRupees] = useState("");
   const [saving, setSaving] = useState(false);
@@ -133,6 +135,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
     setNotes("");
     setCustomerGoldGrams("");
     setCustomerGoldPurityTunch(9167);
+    setHasCustomerGold(false);
     setExpectedByDate("");
     setAdvanceRupees("");
     setTimeout(() => itemDescRef.current?.focus(), 50);
@@ -328,7 +331,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                   </label>
                   <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">
                     Expected By
-                    <input type="date" value={expectedByDate} onChange={(e) => setExpectedByDate(e.target.value)} className={ctrl} />
+                    <DateInput value={expectedByDate} onChange={setExpectedByDate} className={ctrl} />
                   </label>
                 </div>
 
@@ -362,6 +365,7 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                         <option key={p.value} value={p.value}>{p.label}</option>
                       ))}
                     </select>
+                    <span className="text-[10px] font-normal normal-case text-slate-500">= {(targetPurity / 100).toFixed(2)}% fine</span>
                   </label>
                 </div>
 
@@ -378,27 +382,44 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
 
               {/* Customer's own gold */}
               <div className="grid gap-3 border border-slate-800 bg-slate-900 p-4">
-                <div className="text-[10px] font-semibold uppercase text-slate-500">Customer's Own Gold (if any)</div>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">
-                    Weight (g)
-                    <input
-                      value={customerGoldGrams}
-                      onChange={(e) => setCustomerGoldGrams(e.target.value)}
-                      inputMode="decimal"
-                      placeholder="0.000"
-                      className={ctrl}
-                    />
-                  </label>
-                  <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">
-                    Purity
-                    <select value={customerGoldPurityTunch} onChange={(e) => setCustomerGoldPurityTunch(Number(e.target.value))} className={ctrl}>
-                      {PURITY_PRESETS.map((p) => (
-                        <option key={p.value} value={p.value}>{p.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+                <label className="flex items-center gap-2 text-[10px] font-semibold uppercase text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasCustomerGold}
+                    onChange={(e) => {
+                      setHasCustomerGold(e.target.checked);
+                      if (!e.target.checked) setCustomerGoldGrams("");
+                    }}
+                    className="h-4 w-4 rounded border-slate-700 bg-slate-950 accent-emerald-500"
+                  />
+                  Customer is bringing their own gold
+                </label>
+                {hasCustomerGold && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">
+                        Weight (g)
+                        <input
+                          value={customerGoldGrams}
+                          onChange={(e) => setCustomerGoldGrams(e.target.value)}
+                          inputMode="decimal"
+                          placeholder="0.000"
+                          className={ctrl}
+                        />
+                      </label>
+                      <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-500">
+                        Purity
+                        <select value={customerGoldPurityTunch} onChange={(e) => setCustomerGoldPurityTunch(Number(e.target.value))} className={ctrl}>
+                          {PURITY_PRESETS.map((p) => (
+                            <option key={p.value} value={p.value}>{p.label}</option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] font-normal normal-case text-slate-500">= {(customerGoldPurityTunch / 100).toFixed(2)}% fine</span>
+                      </label>
+                    </div>
+                    <p className="text-[10px] normal-case text-slate-500">This gold is credited toward the final order cost.</p>
+                  </>
+                )}
               </div>
 
               {/* Advance */}

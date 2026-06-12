@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { usePOSCredit } from "../pos/POSCreditContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import { DateInput } from "./ui.js";
 
 type GoldSavingSchemeModuleProps = {
   apiBaseUrl?: string;
@@ -910,10 +911,10 @@ export default function GoldSavingSchemeModule({ apiBaseUrl = "", onRouteToPos }
                 <div className="grid gap-3">
                   <div className="flex items-end gap-2">
                     <Field label="Start Date">
-                      <input type="date" value={receivedStartDate} onChange={(e) => setReceivedStartDate(e.target.value)} className={controlClassName} />
+                      <DateInput value={receivedStartDate} onChange={setReceivedStartDate} className={controlClassName} />
                     </Field>
                     <Field label="End Date">
-                      <input type="date" value={receivedEndDate} onChange={(e) => setReceivedEndDate(e.target.value)} className={controlClassName} />
+                      <DateInput value={receivedEndDate} onChange={setReceivedEndDate} className={controlClassName} />
                     </Field>
                     <button type="button" onClick={() => void loadReceivedReports()} disabled={reportsLoading} className="h-8 bg-cyan-500 px-4 text-xs font-semibold uppercase text-slate-50 disabled:bg-slate-700 disabled:text-slate-500">
                       Generate Report

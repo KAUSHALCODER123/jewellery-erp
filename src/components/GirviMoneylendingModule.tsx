@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import { DateInput } from "./ui.js";
 
 type GirviMoneylendingModuleProps = {
   apiBaseUrl?: string;
@@ -1025,7 +1026,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                     <input value={issueForm.noticeFeeRupees} onChange={(event) => setIssueForm({ ...issueForm, noticeFeeRupees: event.target.value })} className={controlClassName} inputMode="decimal" type="number" step="0.01" />
                   </Field>
                   <Field label="Next Due Date">
-                    <input type="date" value={issueForm.nextDueDate} onChange={(event) => setIssueForm({ ...issueForm, nextDueDate: event.target.value })} className={controlClassName} />
+                    <DateInput value={issueForm.nextDueDate} onChange={(v) => setIssueForm({ ...issueForm, nextDueDate: v })} className={controlClassName} />
                   </Field>
                 </div>
               </div>
@@ -1186,7 +1187,7 @@ export default function GirviMoneylendingModule({ apiBaseUrl = "" }: GirviMoneyl
                       </div>
                       <div className="w-44">
                         <Field label="Valid Till">
-                          <input type="date" value={licenceForm.expiry} onChange={(e) => setLicenceForm({ ...licenceForm, expiry: e.target.value })} className={controlClassName} />
+                          <DateInput value={licenceForm.expiry} onChange={(v) => setLicenceForm({ ...licenceForm, expiry: v })} className={controlClassName} />
                         </Field>
                       </div>
                       <button

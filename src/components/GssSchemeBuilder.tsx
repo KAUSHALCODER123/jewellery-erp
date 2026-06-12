@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Gem, Plus, CalendarRange, Sparkles, CheckCircle2 } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
-import { ActionButton, MetricCard, StatusBadge, Toaster, useToasts, rupees } from "./ui.js";
+import { ActionButton, MetricCard, Req, StatusBadge, Toaster, useToasts, rupees } from "./ui.js";
 
 type GssSchemeBuilderProps = { apiBaseUrl?: string };
 
@@ -75,10 +75,27 @@ export default function GssSchemeBuilder({ apiBaseUrl = "" }: GssSchemeBuilderPr
     amount: monthlyPaise
   }));
 
+  // First blocking problem with the form, or null when it is safe to submit.
+  // A scheme with 0 months / 0 amount or a >100% bonus is silently useless,
+  // so we catch it here instead of after the round-trip.
+  const durationMonths = Math.trunc(Number(form.duration_months) || 0);
+  const maturityMonths = Math.trunc(Number(form.maturity_months) || 0);
+  const formProblem: string | null = (() => {
+    if (!form.scheme_code.trim()) return "Scheme code is required.";
+    if (!form.scheme_name.trim()) return "Scheme name is required.";
+    if (durationMonths <= 0) return "Total months must be greater than 0.";
+    if (monthlyPaise <= 0) return "Monthly amount must be greater than 0.";
+    if (customerMonths <= 0) return "Customer-paid months must be greater than 0.";
+    if (customerMonths > durationMonths) return "Customer-paid months cannot exceed total months.";
+    if (customerMonths + maturityMonths !== durationMonths) return "Customer-paid + shop-funded months must equal total months.";
+    if (form.bonus_rule_type === "PERCENTAGE_OF_INSTALLMENT" && (Number(form.bonus_value) || 0) > 100) return "Percentage bonus cannot exceed 100%.";
+    return null;
+  })();
+
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    if (!form.scheme_code.trim() || !form.scheme_name.trim()) return setError("Scheme code and name are required.");
+    if (formProblem) return setError(formProblem);
     setSaving(true);
     try {
       const res = await fetch(`${apiBaseUrl}/api/gss/templates`, {
@@ -130,10 +147,10 @@ export default function GssSchemeBuilder({ apiBaseUrl = "" }: GssSchemeBuilderPr
           <h2 className="mb-1 text-xs font-bold uppercase tracking-wide text-amber-300">New Scheme</h2>
           {error && <p className="rounded bg-rose-950/40 px-2 py-1 text-xs text-rose-300 animate-fade-in">{error}</p>}
           <div className="grid grid-cols-2 gap-2">
-            <label className="grid gap-1 text-xs text-slate-300">Scheme Code
+            <label className="grid gap-1 text-xs text-slate-300">Scheme Code <Req />
               <input value={form.scheme_code} onChange={(e) => set("scheme_code", e.target.value.toUpperCase())} placeholder="GSS-11-2K" className={control} />
             </label>
-            <label className="grid gap-1 text-xs text-slate-300">Scheme Name
+            <label className="grid gap-1 text-xs text-slate-300">Scheme Name <Req />
               <input value={form.scheme_name} onChange={(e) => set("scheme_name", e.target.value)} placeholder="Pay 11 Get 12" className={control} />
             </label>
             <label className="grid gap-1 text-xs text-slate-300">Type
@@ -142,22 +159,22 @@ export default function GssSchemeBuilder({ apiBaseUrl = "" }: GssSchemeBuilderPr
                 <option value="GOLD">Gold weight</option>
               </select>
             </label>
-            <label className="grid gap-1 text-xs text-slate-300">Monthly Amount (₹)
+            <label className="grid gap-1 text-xs text-slate-300">Monthly Amount (₹) <Req />
               <input value={form.monthly_amount} onChange={(e) => set("monthly_amount", e.target.value.replace(/[^\d.]/g, ""))} className={control} />
             </label>
-            <label className="grid gap-1 text-xs text-slate-300">Total Months
+            <label className="grid gap-1 text-xs text-slate-300">Total Months <Req />
               <input value={form.duration_months} onChange={(e) => set("duration_months", e.target.value.replace(/[^\d]/g, ""))} className={control} />
             </label>
-            <label className="grid gap-1 text-xs text-slate-300">Customer Pays (months)
+            <label className="grid gap-1 text-xs text-slate-300">Customer Pays Installments <Req />
               <input value={form.customer_months} onChange={(e) => set("customer_months", e.target.value.replace(/[^\d]/g, ""))} className={control} />
             </label>
-            <label className="grid gap-1 text-xs text-slate-300">Shop Funds (months)
-              <input value={form.maturity_months} onChange={(e) => set("maturity_months", e.target.value.replace(/[^\d]/g, ""))} className={control} />
+            <label className="grid gap-1 text-xs text-slate-300">Shop Adds Free Months
+              <input value={form.maturity_months} onChange={(e) => set("maturity_months", e.target.value.replace(/[^\d]/g, ""))} className={control} placeholder="e.g. 1 for 'pay 11 get 12'" />
             </label>
             <label className="grid gap-1 text-xs text-slate-300">Bonus Rule
               <select value={form.bonus_rule_type} onChange={(e) => set("bonus_rule_type", e.target.value as typeof blankForm.bonus_rule_type)} className={control}>
-                <option value="FIXED_AMOUNT">Fixed amount</option>
-                <option value="PERCENTAGE_OF_INSTALLMENT">% of total paid</option>
+                <option value="FIXED_AMOUNT">Fixed amount (same for every customer)</option>
+                <option value="PERCENTAGE_OF_INSTALLMENT">% of total paid (scales with payments)</option>
               </select>
             </label>
             <label className="grid gap-1 text-xs text-slate-300">
@@ -165,8 +182,10 @@ export default function GssSchemeBuilder({ apiBaseUrl = "" }: GssSchemeBuilderPr
               <input value={form.bonus_value} onChange={(e) => set("bonus_value", e.target.value.replace(/[^\d.]/g, ""))} className={control} />
             </label>
           </div>
-          <div className="mt-2 flex justify-end">
-            <ActionButton loading={saving} type="submit"><Plus className="h-4 w-4" /> Create Scheme</ActionButton>
+          <p className="mt-1 text-[10px] text-slate-500"><Req /> Required</p>
+          <div className="mt-1 flex items-center justify-end gap-2">
+            {formProblem && <span className="text-[11px] text-amber-400">{formProblem}</span>}
+            <ActionButton loading={saving} type="submit" disabled={Boolean(formProblem)} title={formProblem ?? "Create this scheme"}><Plus className="h-4 w-4" /> Create Scheme</ActionButton>
           </div>
         </form>
 

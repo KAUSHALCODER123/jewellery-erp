@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ClipboardList, PackageCheck, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
+import { DateInput } from "./ui.js";
 
 type ApprovalMemoModuleProps = { apiBaseUrl?: string };
 
@@ -278,11 +279,11 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
               <div className="grid grid-cols-2 gap-2">
                 <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                   Issue Date
-                  <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={controlClassName} />
+                  <DateInput value={issueDate} onChange={setIssueDate} className={controlClassName} />
                 </label>
                 <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                   Expected Return
-                  <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={controlClassName} />
+                  <DateInput value={dueDate} onChange={setDueDate} className={controlClassName} />
                 </label>
               </div>
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">

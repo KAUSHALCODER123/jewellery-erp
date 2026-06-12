@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Wrench, Plus, ArrowRight, CheckCircle2, User, CalendarClock, X } from "lucide-react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
-import { ActionButton, Spinner, StatusBadge, Toaster, useToasts, rupees, type BadgeTone } from "./ui.js";
+import { ActionButton, DateInput, Spinner, StatusBadge, Toaster, useToasts, rupees, type BadgeTone } from "./ui.js";
 
 type RepairDeskModuleProps = { apiBaseUrl?: string };
 
@@ -48,6 +48,7 @@ export default function RepairDeskModule({ apiBaseUrl = "" }: RepairDeskModulePr
   const [filter, setFilter] = useState<"ALL" | RepairStatus>("ALL");
   const [showForm, setShowForm] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [deliverFor, setDeliverFor] = useState<Repair | null>(null);
 
   const customerName = useCallback((id: number) => customers.find((c) => c.id === id)?.name ?? `Customer #${id}`, [customers]);
 
@@ -71,31 +72,15 @@ export default function RepairDeskModule({ apiBaseUrl = "" }: RepairDeskModulePr
 
   useEffect(() => { void load(); }, [load]);
 
-  const advance = async (repair: Repair) => {
-    const next = STATUS_FLOW[repair.status];
-    if (!next) return;
-
-    const body: Record<string, unknown> = { status: next };
-    if (next === "DELIVERED") {
-      // Capture the actual charge at delivery (defaulting to the estimate) rather
-      // than silently storing the estimate — the two often differ.
-      const estimateRupees = (repair.estimated_charge_paise / 100).toFixed(2);
-      const entered = window.prompt(`Actual charge collected for delivery (Rs):`, estimateRupees);
-      if (entered === null) return; // dismissed — don't deliver
-      const amount = Number(entered);
-      if (!Number.isFinite(amount) || amount < 0) {
-        push("Enter a valid, non-negative charge.", "bad");
-        return;
-      }
-      body.actual_charge_paise = Math.round(amount * 100);
-    }
-
+  // Push a status change to the backend. Delivery carries the actual charge,
+  // captured in a styled modal (see DeliverModal) rather than a raw browser prompt.
+  const applyStatus = async (repair: Repair, next: RepairStatus, extra?: Record<string, unknown>) => {
     setBusyId(repair.id);
     try {
       const res = await fetch(`${apiBaseUrl}/api/karigar/repairs/${repair.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ status: next, ...extra })
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.errors?.join(" ") || "Update failed.");
@@ -106,6 +91,17 @@ export default function RepairDeskModule({ apiBaseUrl = "" }: RepairDeskModulePr
     } finally {
       setBusyId(null);
     }
+  };
+
+  const advance = (repair: Repair) => {
+    const next = STATUS_FLOW[repair.status];
+    if (!next) return;
+    // The actual charge often differs from the estimate, so collect it on delivery.
+    if (next === "DELIVERED") {
+      setDeliverFor(repair);
+      return;
+    }
+    void applyStatus(repair, next);
   };
 
   const counts = useMemo(() => {
@@ -203,7 +199,82 @@ export default function RepairDeskModule({ apiBaseUrl = "" }: RepairDeskModulePr
           onCreated={() => { setShowForm(false); push("Repair intake created.", "good"); void load(); }}
         />
       )}
+
+      {deliverFor && (
+        <DeliverModal
+          repair={deliverFor}
+          busy={busyId === deliverFor.id}
+          onClose={() => setDeliverFor(null)}
+          onConfirm={async (actualPaise) => {
+            const repair = deliverFor;
+            setDeliverFor(null);
+            await applyStatus(repair, "DELIVERED", { actual_charge_paise: actualPaise });
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+// Collect the final charge on delivery in a themed dialog, showing the original
+// estimate and the difference so staff can confirm before money changes hands.
+function DeliverModal({
+  repair,
+  busy,
+  onClose,
+  onConfirm
+}: {
+  repair: Repair;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (actualPaise: number) => void;
+}) {
+  const [actualRs, setActualRs] = useState((repair.estimated_charge_paise / 100).toFixed(2));
+  const [error, setError] = useState("");
+  const actualPaise = Math.round((Number(actualRs) || 0) * 100);
+  const diffPaise = actualPaise - repair.estimated_charge_paise;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const amount = Number(actualRs);
+    if (!Number.isFinite(amount) || amount < 0) return setError("Enter a valid, non-negative charge.");
+    onConfirm(Math.round(amount * 100));
+  };
+
+  const control = "w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none transition focus:border-emerald-500";
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 animate-fade-in" onClick={onClose}>
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="animate-scale-in w-full max-w-sm rounded-lg border border-slate-700 bg-slate-950 p-4 shadow-xl">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-bold text-emerald-300">Deliver Repair</h2>
+          <button type="button" onClick={onClose} className="text-slate-400 transition hover:text-slate-200"><X className="h-4 w-4" /></button>
+        </div>
+        {error && <p className="mb-2 rounded bg-rose-950/40 px-2 py-1 text-xs text-rose-300 animate-fade-in">{error}</p>}
+        <div className="mb-2 flex items-center justify-between rounded-md border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs">
+          <span className="text-slate-400">Original estimate</span>
+          <span className="font-mono text-slate-200">{rupees(repair.estimated_charge_paise)}</span>
+        </div>
+        <label className="grid gap-1 text-xs text-slate-300">Actual charge collected (₹)
+          <input autoFocus value={actualRs} onChange={(e) => { setActualRs(e.target.value.replace(/[^\d.]/g, "")); if (error) setError(""); }} className={control} inputMode="decimal" />
+        </label>
+        {diffPaise !== 0 && (
+          <p className={`mt-1 text-[11px] ${diffPaise > 0 ? "text-amber-400" : "text-sky-400"}`}>
+            Difference: {diffPaise > 0 ? "+" : "−"}{rupees(Math.abs(diffPaise))} {diffPaise > 0 ? "over" : "under"} estimate
+          </p>
+        )}
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-md border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800">Cancel</button>
+          <ActionButton loading={busy} type="submit"><CheckCircle2 className="h-4 w-4" /> Confirm Delivery</ActionButton>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -268,7 +339,7 @@ function RepairForm({
         {error && <p className="mb-2 rounded bg-rose-950/40 px-2 py-1 text-xs text-rose-300 animate-fade-in">{error}</p>}
         <div className="grid gap-2">
           <label className="grid gap-1 text-xs text-slate-300">Customer
-            <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className={control}>
+            <select autoFocus value={customerId} onChange={(e) => setCustomerId(e.target.value)} className={control}>
               <option value="">Select customer…</option>
               {customers.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}
             </select>
@@ -281,10 +352,10 @@ function RepairForm({
               <input value={estimateRs} onChange={(e) => setEstimateRs(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" className={control} />
             </label>
             <label className="grid gap-1 text-xs text-slate-300">Intake
-              <input type="date" value={intakeDate} onChange={(e) => setIntakeDate(e.target.value)} className={control} />
+              <DateInput value={intakeDate} onChange={setIntakeDate} className={control} />
             </label>
             <label className="grid gap-1 text-xs text-slate-300">Delivery
-              <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className={control} />
+              <DateInput value={deliveryDate} onChange={setDeliveryDate} className={control} />
             </label>
           </div>
         </div>

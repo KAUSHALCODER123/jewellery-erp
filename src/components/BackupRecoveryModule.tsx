@@ -101,9 +101,13 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
   }, []);
 
   async function loadLastStatus() {
-    const res = await fetch(`${apiBaseUrl}/api/backup/last-status`, { headers: authHeaders });
-    const data = (await res.json().catch(() => null)) as typeof lastStatus | null;
-    if (res.ok && data) setLastStatus(data);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/backup/last-status`, { headers: authHeaders });
+      const data = (await res.json().catch(() => null)) as typeof lastStatus | null;
+      if (res.ok && data) setLastStatus(data);
+    } catch {
+      // network unavailable — silently skip; UI shows no status
+    }
   }
 
   useEffect(() => {
@@ -113,39 +117,51 @@ export default function BackupRecoveryModule({ apiBaseUrl = "" }: BackupRecovery
   }, [activeTab]);
 
   async function loadLogs() {
-    const res = await fetch(`${apiBaseUrl}/api/backup/logs?limit=50`, { headers: authHeaders });
-    const data = (await res.json().catch(() => null)) as { logs?: BackupLog[] } | null;
-    if (res.ok && data?.logs) setLogs(data.logs);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/backup/logs?limit=50`, { headers: authHeaders });
+      const data = (await res.json().catch(() => null)) as { logs?: BackupLog[] } | null;
+      if (res.ok && data?.logs) setLogs(data.logs);
+    } catch {
+      // network unavailable — silently skip
+    }
   }
 
   async function loadSchedule() {
-    const res = await fetch(`${apiBaseUrl}/api/backup/schedule`, { headers: authHeaders });
-    const data = (await res.json().catch(() => null)) as {
-      config?: ScheduleConfig;
-      default_local_backup_dir?: string;
-    } | null;
-    if (res.ok && data?.config) {
-      setSchedule(data.config);
-      setDefaultLocalDir(data.default_local_backup_dir ?? "");
-      setScheduleDraft({
-        is_enabled: data.config.is_enabled,
-        interval_hours: data.config.interval_hours,
-        target: data.config.target,
-        local_backup_dir: data.config.local_backup_dir ?? "",
-        usb_backup_dir: data.config.usb_backup_dir ?? "",
-        cloud_upload_url: data.config.cloud_upload_url ?? "",
-        max_retained_backups: data.config.max_retained_backups,
-        passphrase: "",
-        clear_passphrase: false,
-        backup_on_exit: data.config.backup_on_exit || false
-      });
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/backup/schedule`, { headers: authHeaders });
+      const data = (await res.json().catch(() => null)) as {
+        config?: ScheduleConfig;
+        default_local_backup_dir?: string;
+      } | null;
+      if (res.ok && data?.config) {
+        setSchedule(data.config);
+        setDefaultLocalDir(data.default_local_backup_dir ?? "");
+        setScheduleDraft({
+          is_enabled: data.config.is_enabled,
+          interval_hours: data.config.interval_hours,
+          target: data.config.target,
+          local_backup_dir: data.config.local_backup_dir ?? "",
+          usb_backup_dir: data.config.usb_backup_dir ?? "",
+          cloud_upload_url: data.config.cloud_upload_url ?? "",
+          max_retained_backups: data.config.max_retained_backups,
+          passphrase: "",
+          clear_passphrase: false,
+          backup_on_exit: data.config.backup_on_exit || false
+        });
+      }
+    } catch {
+      // network unavailable — silently skip
     }
   }
 
   async function loadCrashRecovery() {
-    const res = await fetch(`${apiBaseUrl}/api/backup/crash-recovery`, { headers: authHeaders });
-    const data = await res.json().catch(() => null);
-    if (res.ok) setCrashData(data);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/backup/crash-recovery`, { headers: authHeaders });
+      const data = await res.json().catch(() => null);
+      if (res.ok) setCrashData(data);
+    } catch {
+      // network unavailable — silently skip
+    }
   }
 
   async function runBackup() {

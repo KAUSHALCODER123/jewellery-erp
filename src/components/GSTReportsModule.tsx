@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { withDocumentToken } from "../utils/documentAuth.js";
+import { DateInput } from "./ui.js";
 
 type GSTReportsModuleProps = {
   apiBaseUrl?: string;
@@ -109,22 +110,20 @@ function AuditLocksView({
         
         <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
           Period From:
-          <input
-            type="date"
+          <DateInput
             required
             value={lockFrom}
-            onChange={(e) => setLockFrom(e.target.value)}
+            onChange={setLockFrom}
             className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
           />
         </label>
 
         <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
           Period To:
-          <input
-            type="date"
+          <DateInput
             required
             value={lockTo}
-            onChange={(e) => setLockTo(e.target.value)}
+            onChange={setLockTo}
             className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
           />
         </label>
@@ -444,21 +443,19 @@ function BisWorkflowView({
 
               <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
                 Submission Date:
-                <input
-                  type="date"
+                <DateInput
                   required
                   value={bisSubmittedDate}
-                  onChange={(e) => setBisSubmittedDate(e.target.value)}
+                  onChange={setBisSubmittedDate}
                   className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                 />
               </label>
 
               <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
                 Expected Return Date:
-                <input
-                  type="date"
+                <DateInput
                   value={expectedReturnDate}
-                  onChange={(e) => setExpectedReturnDate(e.target.value)}
+                  onChange={setExpectedReturnDate}
                   className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 rounded outline-none focus:border-emerald-500"
                 />
               </label>
@@ -1394,20 +1391,18 @@ export default function GSTReportsModule({ apiBaseUrl = "" }: GSTReportsModulePr
           <div className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs">
             <label className="flex items-center gap-2 font-semibold uppercase text-slate-400">
               From Date:
-              <input
-                type="date"
+              <DateInput
                 value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
+                onChange={setFromDate}
                 className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded"
               />
             </label>
 
             <label className="flex items-center gap-2 font-semibold uppercase text-slate-400">
               To Date:
-              <input
-                type="date"
+              <DateInput
                 value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
+                onChange={setToDate}
                 className="h-8 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400 rounded"
               />
             </label>
