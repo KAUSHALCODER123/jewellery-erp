@@ -401,11 +401,11 @@ function buildInventoryFilters(query: Record<string, unknown>) {
   const filters: SQL[] = [];
 
   if (typeof query.category === "string" && query.category.trim()) {
-    filters.push(eq(items.category, query.category.trim()));
+    filters.push(eq(sql`lower(${items.category})`, query.category.trim().toLowerCase()));
   }
 
   if (typeof query.metal_type === "string" && query.metal_type.trim()) {
-    filters.push(eq(items.metal_type, query.metal_type.trim()));
+    filters.push(eq(sql`lower(${items.metal_type})`, query.metal_type.trim().toLowerCase()));
   }
 
   if (typeof query.purity_karat === "string" && query.purity_karat.trim()) {

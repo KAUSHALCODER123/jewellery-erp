@@ -1,9 +1,10 @@
 import { desc, eq, like, or } from "drizzle-orm";
 import { Router } from "express";
-import { requireAdmin, requireAuth } from "../auth/middleware.js";
+import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
 import { customerOrders, customers } from "../db/schema.js";
 import { paiseToRupees } from "../utils/decimal.js";
+import { postBalancedVoucher } from "../accounts/posting.js";
 
 export const ordersRouter = Router();
 ordersRouter.use(requireAuth);
@@ -100,19 +101,41 @@ ordersRouter.post("/", requireAdmin, (req, res) => {
   const customer = db.query.customers.findFirst({ where: eq(customers.id, customerId) }).sync();
   if (!customer) return res.status(404).json({ errors: ["Customer not found."] });
 
-  const order = db.insert(customerOrders).values({
-    order_number: orderNumber,
-    customer_id: customerId,
-    item_description: itemDescription,
-    target_weight_mg: targetWeightMg,
-    target_purity: targetPurity,
-    notes,
-    customer_gold_mg: customerGoldMg,
-    customer_gold_purity_tunch: customerGoldPurityTunch,
-    expected_by_date: expectedByDate,
-    advance_paise: advancePaise,
-    status: "OPEN"
-  }).returning().get();
+  const userId = (req as AuthenticatedRequest).user.id;
+  const order = db.transaction((tx) => {
+    const created = tx.insert(customerOrders).values({
+      order_number: orderNumber,
+      customer_id: customerId,
+      item_description: itemDescription,
+      target_weight_mg: targetWeightMg,
+      target_purity: targetPurity,
+      notes,
+      customer_gold_mg: customerGoldMg,
+      customer_gold_purity_tunch: customerGoldPurityTunch,
+      expected_by_date: expectedByDate,
+      advance_paise: advancePaise,
+      status: "OPEN"
+    }).returning().get();
+
+    // An advance is cash received against an undelivered order: record it as a
+    // customer credit (their udhari ledger goes negative — the shop owes them goods
+    // or a refund). It is consumed when the order is converted to an invoice.
+    if (advancePaise > 0) {
+      postBalancedVoucher(tx, {
+        voucherType: "CUSTOMER_ORDER_ADVANCE",
+        referenceType: "CUSTOMER_ORDER_ADVANCE",
+        referenceId: created.id,
+        narration: `Advance received for order ${created.order_number}`,
+        createdBy: userId,
+        lines: [
+          { ledgerName: "Cash", accountType: "CASH", transactionType: "DEBIT", amountPaise: advancePaise, description: `Advance received for ${created.order_number}` },
+          { ledgerName: `Customer Udhari ${customerId}`, accountType: "CUSTOMER_UDHARI", entityId: customerId, transactionType: "CREDIT", amountPaise: advancePaise, description: `Advance credit for ${created.order_number}` }
+        ]
+      });
+    }
+
+    return created;
+  });
 
   return res.status(201).json({
     order: {

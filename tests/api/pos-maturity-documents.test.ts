@@ -2,7 +2,7 @@ import request from "supertest";
 import { eq } from "drizzle-orm";
 import { app } from "../../src/server.js";
 import { db } from "../../src/db/client.js";
-import { invoices, items, ledgers, voucherLines } from "../../src/db/schema.js";
+import { invoices, items, itemStones, ledgers, voucherLines } from "../../src/db/schema.js";
 
 describe("POS maturity documents", () => {
   let adminToken: string;
@@ -134,6 +134,86 @@ describe("POS maturity documents", () => {
 
     const persisted = db.select().from(items).where(eq(items.category, "Bar Lot")).all();
     expect(persisted).toHaveLength(1);
+  });
+
+  it("ingests a loose-stone (diamond) line as quantity-wise stock with gemstone detail", async () => {
+    const response = await request(app)
+      .post("/api/pos/purchases")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        supplier_name: "Surat Diamond House",
+        purchase_date: "2026-06-04",
+        payment_mode: "CREDIT",
+        gross_total_paise: 30000000,
+        gst_amount_paise: 0,
+        total_amount_paise: 30000000,
+        lines: [
+          {
+            line_kind: "STONE",
+            description: "Round brilliant diamonds",
+            category: "Loose Diamond",
+            quantity: 2,
+            stock_mode: "PIECES",
+            stone_type: "DIAMOND",
+            carat_weight: 1.5, // total carats across the 2 stones
+            stone_rate_paise_per_carat: 20000000,
+            stone_value_paise: 30000000,
+            gst_paise: 0,
+            line_total_paise: 30000000
+          }
+        ]
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.stock_items).toHaveLength(2);
+    const created = response.body.stock_items as Array<{
+      id: number;
+      metal_type: string;
+      sale_mode: string;
+      uom: string;
+      purity_karat: number;
+      net_weight_mg: number;
+      unit_price_paise: number;
+    }>;
+    // A loose stone has no metal: stored as a quantity-wise item, zero karat / zero metal weight.
+    expect(created.every((item) => item.metal_type === "STONE")).toBe(true);
+    expect(created.every((item) => item.sale_mode === "QUANTITY_WISE" && item.uom === "CARAT")).toBe(true);
+    expect(created.every((item) => item.purity_karat === 0 && item.net_weight_mg === 0)).toBe(true);
+    // Per-piece price sums back to the line's stone value.
+    expect(created.reduce((sum, item) => sum + item.unit_price_paise, 0)).toBe(30000000);
+
+    // Each created item carries its gemstone detail row.
+    const stoneRows = db.select().from(itemStones).where(eq(itemStones.item_id, created[0].id)).all();
+    expect(stoneRows).toHaveLength(1);
+    expect(stoneRows[0].stone_type).toBe("DIAMOND");
+    expect(stoneRows[0].carat_weight).toBeCloseTo(0.75, 3);
+  });
+
+  it("rejects a loose-stone line with no carat weight", async () => {
+    const response = await request(app)
+      .post("/api/pos/purchases")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        supplier_name: "Surat Diamond House",
+        purchase_date: "2026-06-04",
+        payment_mode: "CREDIT",
+        gross_total_paise: 100000,
+        gst_amount_paise: 0,
+        total_amount_paise: 100000,
+        lines: [
+          {
+            line_kind: "STONE",
+            description: "Mystery stone",
+            stone_type: "DIAMOND",
+            carat_weight: 0,
+            stone_value_paise: 100000,
+            line_total_paise: 100000
+          }
+        ]
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors.join(" ")).toMatch(/carat_weight/i);
   });
 
   it("creates sales return and moves returned item back to stock", async () => {

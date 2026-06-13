@@ -16,8 +16,12 @@ type Supplier = {
 
 type PaymentMode = "CREDIT" | "CASH" | "BANK" | "UPI";
 
+type LineKind = "METAL" | "STONE";
+type StoneType = "DIAMOND" | "RUBY" | "SAPPHIRE" | "EMERALD" | "OTHER";
+
 type LineForm = {
   key: string;
+  lineKind: LineKind;
   category: string;
   description: string;
   metalType: "GOLD" | "SILVER";
@@ -29,13 +33,22 @@ type LineForm = {
   ratePerGramRupees: string;
   makingRupees: string;
   gstRupees: string;
+  // Stone-line fields (used when lineKind === "STONE")
+  stoneType: StoneType;
+  caratWeight: string;
+  stonePricingMode: "PER_CARAT" | "FLAT";
+  ratePerCaratRupees: string;
+  flatAmountRupees: string;
 };
+
+const STONE_TYPES: StoneType[] = ["DIAMOND", "RUBY", "SAPPHIRE", "EMERALD", "OTHER"];
 
 const controlClassName = "h-8 w-full border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400";
 
 function emptyLine(key: string): LineForm {
   return {
     key,
+    lineKind: "METAL",
     category: "Gold Chains",
     description: "",
     metalType: "GOLD",
@@ -46,7 +59,12 @@ function emptyLine(key: string): LineForm {
     stoneGrams: "0",
     ratePerGramRupees: "",
     makingRupees: "0",
-    gstRupees: "0"
+    gstRupees: "0",
+    stoneType: "DIAMOND",
+    caratWeight: "",
+    stonePricingMode: "PER_CARAT",
+    ratePerCaratRupees: "",
+    flatAmountRupees: ""
   };
 }
 
@@ -83,7 +101,11 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
   const saveDisabled =
     !selectedSupplier ||
     computedLines.length === 0 ||
-    computedLines.some((line) => line.netWeightMg <= 0 || line.lineTotalPaise <= 0);
+    computedLines.some((line) =>
+      line.isStone
+        ? line.caratWeightMg <= 0 || line.lineTotalPaise <= 0
+        : line.netWeightMg <= 0 || line.lineTotalPaise <= 0
+    );
 
   async function loadSuppliers() {
     try {
@@ -147,7 +169,23 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
 
     const payloadLines = lines.map((line) => {
       const c = computeLine(line);
+      if (c.isStone) {
+        return {
+          line_kind: "STONE",
+          description: line.description.trim() || `${line.stoneType} stone`,
+          category: line.category.trim() || "Loose Stone",
+          quantity: c.quantity,
+          stock_mode: line.stockMode,
+          stone_type: line.stoneType,
+          carat_weight: Number(line.caratWeight) || 0,
+          stone_rate_paise_per_carat: c.ratePerCaratPaise,
+          stone_value_paise: c.stoneValuePaise,
+          gst_paise: c.gstPaise,
+          line_total_paise: c.lineTotalPaise
+        };
+      }
       return {
+        line_kind: "METAL",
         description: line.description.trim() || line.category.trim(),
         category: line.category.trim() || "Purchase Stock",
         quantity: c.quantity,
@@ -271,35 +309,86 @@ export default function PurchaseInvoiceModule({ apiBaseUrl = "" }: PurchaseInvoi
                     <button type="button" onClick={() => removeLine(line.key)} disabled={lines.length <= 1} className="text-[10px] font-bold uppercase text-red-300 hover:text-red-200 disabled:text-slate-700">✕ Remove</button>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
+                    <Field label="Buy As">
+                      <select value={line.lineKind} onChange={(event) => updateLine(line.key, { lineKind: event.target.value as LineKind })} className={controlClassName}>
+                        <option value="METAL">Metal (gold/silver)</option>
+                        <option value="STONE">Stone / Diamond</option>
+                      </select>
+                    </Field>
                     <Field label="Category"><input value={line.category} onChange={(event) => updateLine(line.key, { category: event.target.value })} className={controlClassName} /></Field>
                     <Field label="Description"><input value={line.description} onChange={(event) => updateLine(line.key, { description: event.target.value })} className={controlClassName} placeholder="optional" /></Field>
-                    <Field label="Metal">
-                      <select value={line.metalType} onChange={(event) => updateLine(line.key, { metalType: event.target.value as LineForm["metalType"] })} className={controlClassName}>
-                        <option value="GOLD">Gold</option>
-                        <option value="SILVER">Silver</option>
-                      </select>
-                    </Field>
-                    <Field label="Purity (K)"><input value={line.purityKarat} onChange={(event) => updateLine(line.key, { purityKarat: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                    {line.lineKind === "STONE" ? (
+                      <Field label="Stone Type">
+                        <select value={line.stoneType} onChange={(event) => updateLine(line.key, { stoneType: event.target.value as StoneType })} className={controlClassName}>
+                          {STONE_TYPES.map((type) => <option key={type} value={type}>{type.charAt(0) + type.slice(1).toLowerCase()}</option>)}
+                        </select>
+                      </Field>
+                    ) : (
+                      <Field label="Metal">
+                        <select value={line.metalType} onChange={(event) => updateLine(line.key, { metalType: event.target.value as LineForm["metalType"] })} className={controlClassName}>
+                          <option value="GOLD">Gold</option>
+                          <option value="SILVER">Silver</option>
+                        </select>
+                      </Field>
+                    )}
                   </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    <Field label="Stock As">
-                      <select value={line.stockMode} onChange={(event) => updateLine(line.key, { stockMode: event.target.value as LineForm["stockMode"] })} className={controlClassName}>
-                        <option value="PIECES">Pieces (1 tag each)</option>
-                        <option value="LOT">Lot (1 tag, total wt)</option>
-                      </select>
-                    </Field>
-                    <Field label="Qty (pieces)"><input value={line.quantity} disabled={line.stockMode === "LOT"} onChange={(event) => updateLine(line.key, { quantity: event.target.value })} onFocus={selectOnFocus} className={`${controlClassName} disabled:bg-slate-900 disabled:text-slate-600`} inputMode="numeric" /></Field>
-                    <Field label="Gross Wt (g)"><input value={line.grossGrams} onChange={(event) => updateLine(line.key, { grossGrams: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
-                    <Field label="Stone/Less (g)"><input value={line.stoneGrams} onChange={(event) => updateLine(line.key, { stoneGrams: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
-                    <Field label="Net Wt (g)"><input value={(c.netWeightMg / 1000).toFixed(3)} readOnly tabIndex={-1} className={`${controlClassName} bg-slate-900 text-slate-300`} /></Field>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    <Field label="Rate / g (Rs)"><input value={line.ratePerGramRupees} onChange={(event) => updateLine(line.key, { ratePerGramRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
-                    <Field label="Making (Rs)"><input value={line.makingRupees} onChange={(event) => updateLine(line.key, { makingRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
-                    <Field label="GST (Rs)"><input value={line.gstRupees} onChange={(event) => updateLine(line.key, { gstRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
-                    <MetricBox label="Line Total" value={formatPaise(c.lineTotalPaise)} />
-                  </div>
-                  <div className="text-[10px] uppercase text-slate-500">Metal amount: {formatPaise(c.metalPaise)} • creates {line.stockMode === "LOT" ? 1 : c.quantity} barcoded item(s)</div>
+
+                  {line.lineKind === "STONE" ? (
+                    <>
+                      <div className="grid grid-cols-4 gap-2">
+                        <Field label="Stock As">
+                          <select value={line.stockMode} onChange={(event) => updateLine(line.key, { stockMode: event.target.value as LineForm["stockMode"] })} className={controlClassName}>
+                            <option value="PIECES">Pieces (1 tag each)</option>
+                            <option value="LOT">Lot (1 tag, total)</option>
+                          </select>
+                        </Field>
+                        <Field label="Qty (stones)"><input value={line.quantity} disabled={line.stockMode === "LOT"} onChange={(event) => updateLine(line.key, { quantity: event.target.value })} onFocus={selectOnFocus} className={`${controlClassName} disabled:bg-slate-900 disabled:text-slate-600`} inputMode="numeric" /></Field>
+                        <Field label="Carat Wt (ct)"><input value={line.caratWeight} onChange={(event) => updateLine(line.key, { caratWeight: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" placeholder="total carats" /></Field>
+                        <Field label="Pricing">
+                          <select value={line.stonePricingMode} onChange={(event) => updateLine(line.key, { stonePricingMode: event.target.value as LineForm["stonePricingMode"] })} className={controlClassName}>
+                            <option value="PER_CARAT">Per carat</option>
+                            <option value="FLAT">Flat amount</option>
+                          </select>
+                        </Field>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {line.stonePricingMode === "PER_CARAT" ? (
+                          <Field label="Rate / ct (Rs)"><input value={line.ratePerCaratRupees} onChange={(event) => updateLine(line.key, { ratePerCaratRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                        ) : (
+                          <Field label="Flat Amount (Rs)"><input value={line.flatAmountRupees} onChange={(event) => updateLine(line.key, { flatAmountRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                        )}
+                        <MetricBox label="Stone Value" value={formatPaise(c.stoneValuePaise)} />
+                        <Field label="GST (Rs)"><input value={line.gstRupees} onChange={(event) => updateLine(line.key, { gstRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                        <MetricBox label="Line Total" value={formatPaise(c.lineTotalPaise)} />
+                      </div>
+                      <div className="text-[10px] uppercase text-slate-500">{(Number(line.caratWeight) || 0).toFixed(3)} ct • creates {line.stockMode === "LOT" ? 1 : c.quantity} stock item(s) with gemstone detail</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-5 gap-2">
+                        <Field label="Purity (K)"><input value={line.purityKarat} onChange={(event) => updateLine(line.key, { purityKarat: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                        <Field label="Stock As">
+                          <select value={line.stockMode} onChange={(event) => updateLine(line.key, { stockMode: event.target.value as LineForm["stockMode"] })} className={controlClassName}>
+                            <option value="PIECES">Pieces (1 tag each)</option>
+                            <option value="LOT">Lot (1 tag, total wt)</option>
+                          </select>
+                        </Field>
+                        <Field label="Qty (pieces)"><input value={line.quantity} disabled={line.stockMode === "LOT"} onChange={(event) => updateLine(line.key, { quantity: event.target.value })} onFocus={selectOnFocus} className={`${controlClassName} disabled:bg-slate-900 disabled:text-slate-600`} inputMode="numeric" /></Field>
+                        <Field label="Gross Wt (g)"><input value={line.grossGrams} onChange={(event) => updateLine(line.key, { grossGrams: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                        <Field label="Stone/Less (g)"><input value={line.stoneGrams} onChange={(event) => updateLine(line.key, { stoneGrams: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <Field label="Net Wt (g)"><input value={(c.netWeightMg / 1000).toFixed(3)} readOnly tabIndex={-1} className={`${controlClassName} bg-slate-900 text-slate-300`} /></Field>
+                        <Field label="Rate / g (Rs)"><input value={line.ratePerGramRupees} onChange={(event) => updateLine(line.key, { ratePerGramRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                        <Field label="Making (Rs)"><input value={line.makingRupees} onChange={(event) => updateLine(line.key, { makingRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                        <Field label="GST (Rs)"><input value={line.gstRupees} onChange={(event) => updateLine(line.key, { gstRupees: event.target.value })} onFocus={selectOnFocus} className={controlClassName} inputMode="decimal" /></Field>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <MetricBox label="Line Total" value={formatPaise(c.lineTotalPaise)} />
+                        <div className="col-span-3 flex items-end text-[10px] uppercase text-slate-500">Metal amount: {formatPaise(c.metalPaise)} • creates {line.stockMode === "LOT" ? 1 : c.quantity} barcoded item(s)</div>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -344,20 +433,51 @@ type ComputedLine = {
   gstPaise: number;
   metalPaise: number;
   lineTotalPaise: number;
+  // Stone-line extras
+  isStone: boolean;
+  caratWeightMg: number;
+  ratePerCaratPaise: number;
+  stoneValuePaise: number;
 };
 
 function computeLine(line: LineForm): ComputedLine {
   const quantity = Math.max(1, Math.floor(Number(line.quantity) || 1));
+  const gstPaise = rupeesToPaise(line.gstRupees);
+
+  if (line.lineKind === "STONE") {
+    const carats = Number(line.caratWeight) || 0;
+    const caratWeightMg = Math.round(carats * 200); // 1 carat = 200 mg
+    const ratePerCaratPaise = rupeesToPaise(line.ratePerCaratRupees);
+    const stoneValuePaise = line.stonePricingMode === "PER_CARAT"
+      ? Math.round(carats * ratePerCaratPaise)
+      : rupeesToPaise(line.flatAmountRupees);
+    const lineTotalPaise = stoneValuePaise + gstPaise;
+    return {
+      quantity,
+      grossWeightMg: caratWeightMg,
+      stoneWeightMg: caratWeightMg,
+      netWeightMg: 0,
+      ratePerGramPaise: 0,
+      makingPaise: 0,
+      gstPaise,
+      metalPaise: 0,
+      lineTotalPaise,
+      isStone: true,
+      caratWeightMg,
+      ratePerCaratPaise,
+      stoneValuePaise
+    };
+  }
+
   const grossWeightMg = gramsToMg(line.grossGrams);
   const stoneWeightMg = gramsToMg(line.stoneGrams);
   const netWeightMg = Math.max(0, grossWeightMg - stoneWeightMg);
   const ratePerGramPaise = rupeesToPaise(line.ratePerGramRupees);
   const makingPaise = rupeesToPaise(line.makingRupees);
-  const gstPaise = rupeesToPaise(line.gstRupees);
   const metalPaise = Math.floor((netWeightMg * ratePerGramPaise) / 1000);
   const lineTotalPaise = metalPaise + makingPaise + gstPaise;
 
-  return { quantity, grossWeightMg, stoneWeightMg, netWeightMg, ratePerGramPaise, makingPaise, gstPaise, metalPaise, lineTotalPaise };
+  return { quantity, grossWeightMg, stoneWeightMg, netWeightMg, ratePerGramPaise, makingPaise, gstPaise, metalPaise, lineTotalPaise, isStone: false, caratWeightMg: 0, ratePerCaratPaise: 0, stoneValuePaise: metalPaise + makingPaise };
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {

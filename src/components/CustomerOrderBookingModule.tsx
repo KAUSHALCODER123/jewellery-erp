@@ -1,6 +1,7 @@
 import { ClipboardList, Plus, Search, X } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { DateInput } from "./ui.js";
 
@@ -56,6 +57,7 @@ const ctrl = "h-9 w-full border border-slate-700 bg-slate-950 px-2 text-sm text-
 
 export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: CustomerOrderBookingModuleProps) {
   const { session } = useAuthSession();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
@@ -461,6 +463,22 @@ export default function CustomerOrderBookingModule({ apiBaseUrl = "" }: Customer
                   <p className="mt-1 text-xs text-slate-500">Booked {selectedOrder.created_at?.slice(0, 10) ?? ""}</p>
                 </div>
                 <div className="flex gap-2">
+                  {(selectedOrder.status === "OPEN" || selectedOrder.status === "IN_PROGRESS") && (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/pos", {
+                        state: {
+                          customerOrderId: selectedOrder.id,
+                          customerId: selectedOrder.customer_id,
+                          advancePaise: selectedOrder.advance_paise,
+                          orderNumber: selectedOrder.order_number
+                        }
+                      })}
+                      className="h-7 bg-emerald-500 px-3 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400"
+                    >
+                      Convert to Invoice
+                    </button>
+                  )}
                   {selectedOrder.status === "OPEN" && (
                     <button
                       type="button"

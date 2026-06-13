@@ -204,7 +204,7 @@ export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInven
         </div>
 
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
-          <Field label="Barcode">
+          <Field label="Barcode" required>
             <input value={form.barcode} onChange={(e) => setField("barcode", e.target.value.toUpperCase())} placeholder={isQty ? "COIN-0001" : "auto / HUID"} className={controlClassName} />
           </Field>
 
@@ -235,13 +235,13 @@ export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInven
                   <option value="CARAT">Carat</option>
                 </select>
               </Field>
-              <Field label="Unit Price (₹)">
+              <Field label="Unit Price (₹)" required>
                 <input value={form.unitPriceRs} onChange={(e) => setField("unitPriceRs", e.target.value)} inputMode="decimal" placeholder="5000.00" className={`${controlClassName} border-amber-700/60`} />
               </Field>
             </>
           ) : (
             <>
-              <Field label="Gross Weight (g)">
+              <Field label="Gross Weight (g)" required>
                 <div className="flex gap-1">
                   <input value={form.grossWeightG} onChange={(e) => setField("grossWeightG", e.target.value)} inputMode="decimal" placeholder="10.550" className={controlClassName} />
                   <ScaleCaptureButton apiBaseUrl={apiBaseUrl} onCapture={(grams) => setField("grossWeightG", grams)} />
@@ -256,7 +256,7 @@ export default function ItemMasterInventory({ apiBaseUrl = "" }: ItemMasterInven
                   <option value="FLAT">Flat ₹ for the whole item</option>
                 </select>
               </Field>
-              <Field label="Making Charge (₹)">
+              <Field label="Making Charge (₹)" required>
                 <input value={form.makingChargeValueRs} onChange={(e) => setField("makingChargeValueRs", e.target.value)} inputMode="decimal" placeholder="1500.50" className={controlClassName} />
               </Field>
             </>
@@ -319,10 +319,10 @@ function SegButton({ active, onClick, icon: Icon, children }: { active: boolean;
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, required }: { label: string; children: ReactNode; required?: boolean }) {
   return (
     <label className="grid gap-1 text-[11px] font-medium uppercase text-slate-400">
-      <span className="truncate">{label}</span>
+      <span className="truncate">{label}{required ? <span className="text-red-400"> *</span> : null}</span>
       {children}
     </label>
   );

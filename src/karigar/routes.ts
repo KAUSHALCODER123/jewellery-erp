@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql, or } from "drizzle-orm";
 import { Router } from "express";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { logAction } from "../audit/logAction.js";
@@ -12,7 +12,8 @@ import {
   materialIssues,
   items,
   repairJobs,
-  customers
+  customers,
+  customerOrders
 } from "../db/schema.js";
 import { paiseToRupees, milligramsToGrams } from "../utils/decimal.js";
 
@@ -205,27 +206,61 @@ karigarRouter.post("/jobs", requireAuth, requireAdmin, (request, response) => {
     return response.status(404).json({ errors: ["Karigar not found."] });
   }
 
-  const job = db
-    .insert(jobOrders)
-    .values({
-      order_number: validation.job.orderNumber,
-      job_name: validation.job.jobName,
-      karigar_id: validation.job.karigarId,
-      customer_id: validation.job.customerId,
-      design_image_path: validation.job.designImagePath,
-      target_purity: validation.job.targetPurity,
-      target_weight_mg: validation.job.targetWeightMg,
-      status: "PENDING"
-    })
-    .returning()
-    .get();
+  const { job, linkedOrder } = db.transaction((tx) => {
+    const job = tx
+      .insert(jobOrders)
+      .values({
+        order_number: validation.job.orderNumber,
+        job_name: validation.job.jobName,
+        karigar_id: validation.job.karigarId,
+        customer_id: validation.job.customerId,
+        design_image_path: validation.job.designImagePath,
+        target_purity: validation.job.targetPurity,
+        target_weight_mg: validation.job.targetWeightMg,
+        status: "PENDING"
+      })
+      .returning()
+      .get();
+
+    // Auto-link a customer order booked under this same number to its workshop
+    // job slip. Job numbers are upper-cased; customer order numbers may be mixed
+    // case, so compare case-insensitively. Only link an order that isn't already
+    // linked, so re-using a number can't silently re-point an existing booking.
+    const matchingOrder = tx
+      .select()
+      .from(customerOrders)
+      .where(and(
+        eq(sql`upper(${customerOrders.order_number})`, validation.job.orderNumber),
+        isNull(customerOrders.karigar_job_id)
+      ))
+      .get();
+
+    let linkedOrder: typeof customerOrders.$inferSelect | null = null;
+    if (matchingOrder) {
+      linkedOrder = tx
+        .update(customerOrders)
+        .set({
+          karigar_job_id: job.id,
+          // A booking enters production the moment its workshop slip exists.
+          status: matchingOrder.status === "OPEN" ? "IN_PROGRESS" : matchingOrder.status
+        })
+        .where(eq(customerOrders.id, matchingOrder.id))
+        .returning()
+        .get();
+    }
+
+    return { job, linkedOrder };
+  });
 
   return response.status(201).json({
     job: {
       ...job,
       target_purity_display: formatBasisPoints(job.target_purity),
       target_weight_grams: milligramsToGrams(job.target_weight_mg)
-    }
+    },
+    linked_customer_order: linkedOrder
+      ? { id: linkedOrder.id, order_number: linkedOrder.order_number, status: linkedOrder.status }
+      : null
   });
 });
 

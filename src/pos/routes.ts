@@ -9,6 +9,7 @@ import {
   invoiceLines,
   invoices,
   items,
+  itemStones,
   kycVault,
   loyaltyLedger,
   organizationSettings,
@@ -25,7 +26,9 @@ import {
   urdPurchases,
   urdVouchers,
   scannerAuditLogs,
-  ledgers
+  ledgers,
+  customerOrders,
+  voucherHeaders
 } from "../db/schema.js";
 import { paiseToRupees } from "../utils/decimal.js";
 import { triggerMessage } from "../utils/messageService.js";
@@ -67,6 +70,39 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
         errors: [`Customer is blacklisted${customer.blacklist_reason ? `: ${customer.blacklist_reason}` : ""}. Udhari (credit) is not allowed.`]
       });
     }
+  }
+
+  // Order-conversion: validate the booked order and decide how its advance is funded.
+  // A booking voucher (CUSTOMER_ORDER_ADVANCE) means the advance is already sitting as a
+  // customer credit, so the sale consumes it from the udhari ledger. Legacy orders booked
+  // before advances were journaled have no such voucher, so the advance is recognised as
+  // cash received at delivery instead.
+  let advanceFundedFromCredit = false;
+  if (validation.checkout.customerOrderId !== null) {
+    const order = db.select().from(customerOrders).where(eq(customerOrders.id, validation.checkout.customerOrderId)).get();
+
+    if (!order) {
+      return response.status(404).json({ errors: ["Customer order not found."] });
+    }
+
+    if (order.status === "COMPLETED" || order.status === "CANCELLED") {
+      return response.status(422).json({ errors: [`Order ${order.order_number} is already ${order.status.toLowerCase()} and cannot be billed again.`] });
+    }
+
+    if (validation.checkout.customerId !== null && order.customer_id !== validation.checkout.customerId) {
+      return response.status(422).json({ errors: ["Customer order belongs to a different customer."] });
+    }
+
+    if (validation.checkout.payments.advance > order.advance_paise) {
+      return response.status(422).json({ errors: [`Applied advance exceeds the Rs ${paiseToRupees(order.advance_paise)} advance collected on order ${order.order_number}.`] });
+    }
+
+    const advanceVoucher = db
+      .select()
+      .from(voucherHeaders)
+      .where(and(eq(voucherHeaders.reference_type, "CUSTOMER_ORDER_ADVANCE"), eq(voucherHeaders.reference_id, order.id)))
+      .get();
+    advanceFundedFromCredit = Boolean(advanceVoucher);
   }
 
   const settings = db.select().from(organizationSettings).get();
@@ -266,8 +302,16 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
         referenceId: invoice.id,
         narration: `POS invoice ${invoice.invoice_number}`,
         createdBy: userId,
-        lines: buildPosSaleVoucherLines(validation.checkout, gstAmountPaise, invoice.invoice_number)
+        lines: buildPosSaleVoucherLines(validation.checkout, gstAmountPaise, invoice.invoice_number, advanceFundedFromCredit)
       });
+
+      // Converting a booked order: consume its advance (above) and close it out.
+      if (validation.checkout.customerOrderId !== null) {
+        tx.update(customerOrders)
+          .set({ status: "COMPLETED" })
+          .where(eq(customerOrders.id, validation.checkout.customerOrderId))
+          .run();
+      }
 
       // Log checkout scans to scanner audit logs
       for (const line of validation.checkout.salesItems) {
@@ -1447,6 +1491,9 @@ type CheckoutPayload = {
   customerId: number | null;
   walkInName: string | null;
   gssAccountId: number | null;
+  // When converting a booked customer order, the advance collected at booking is
+  // applied as a tender (see payments.advance) and the order is marked COMPLETED.
+  customerOrderId: number | null;
   salesItems: SalesItemPayload[];
   urdItems: UrdItemPayload[];
   totals: {
@@ -1464,6 +1511,7 @@ type CheckoutPayload = {
     neft: number;
     udhari: number;
     gssCredit: number;
+    advance: number;
   };
   paymentReferences: {
     cash: string | null;
@@ -1541,6 +1589,14 @@ type CommercialDocumentLine = {
   makingChargePaise: number;
   gstPaise: number;
   lineTotalPaise: number;
+  // METAL = weight-priced jewellery (the default). STONE = a loose stone/diamond
+  // priced by carat or as a flat amount, carried as a quantity-wise stock item.
+  lineKind: "METAL" | "STONE";
+  stoneType?: "DIAMOND" | "RUBY" | "SAPPHIRE" | "EMERALD" | "OTHER";
+  caratWeightTotal?: number;
+  stoneRatePaisePerCarat?: number;
+  // Stone value excluding GST for the whole line; split per piece on ingest.
+  stoneValuePaise?: number;
 };
 
 type CommercialDocumentPayload = {
@@ -1623,6 +1679,13 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
     errors.push("gss_account_id must be a positive integer when provided.");
   }
 
+  const rawCustomerOrderId = body.customer_order_id ?? body.customerOrderId ?? null;
+  const customerOrderId = rawCustomerOrderId === null ? null : Number(rawCustomerOrderId);
+
+  if (customerOrderId !== null && (!Number.isInteger(customerOrderId) || customerOrderId <= 0)) {
+    errors.push("customer_order_id must be a positive integer when provided.");
+  }
+
   const panNumber = optionalTrimmedText(body.pan_number ?? body.panNumber) ?? null;
   const aadhaarNumber = optionalTrimmedText(body.aadhaar_number ?? body.aadhaarNumber) ?? null;
   const documentImagePath = optionalTrimmedText(body.document_image_path ?? body.kyc_photo_path ?? body.kycPhotoPath) ?? null;
@@ -1664,7 +1727,7 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
     const calculatedUrdDeduction = urdItems.reduce((total, line) => total + line.totalValuePaise, 0);
     const payableBeforeLoyalty = calculatedGrossTotal - totals.discountPaise - calculatedUrdDeduction - payments.gssCredit;
     const calculatedNetPayable = Math.max(payableBeforeLoyalty - loyaltyRedeemPaise, 0);
-    const totalPaid = payments.cash + payments.upi + payments.card + payments.cheque + payments.neft + payments.udhari;
+    const totalPaid = payments.cash + payments.upi + payments.card + payments.cheque + payments.neft + payments.udhari + payments.advance;
 
     if (loyaltyRedeemPaise > Math.max(payableBeforeLoyalty, 0)) {
       errors.push("loyalty redemption cannot exceed the payable amount.");
@@ -1688,6 +1751,14 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
 
     if (payments.udhari > 0 && customerId === null) {
       errors.push("customer_id is required when udhari payment is used.");
+    }
+
+    if (payments.advance > 0 && customerId === null) {
+      errors.push("customer_id is required when an order advance is applied.");
+    }
+
+    if (payments.advance > 0 && customerOrderId === null) {
+      errors.push("customer_order_id is required to apply an order advance.");
     }
 
     if (payments.cash >= CASH_PAN_AADHAAR_THRESHOLD_PAISE) {
@@ -1737,6 +1808,7 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
       customerId: customerId as number | null,
       walkInName,
       gssAccountId: (gssAccountId ?? null) as number | null,
+      customerOrderId: (customerOrderId ?? null) as number | null,
       salesItems,
       urdItems,
       totals,
@@ -2045,6 +2117,7 @@ function validatePayments(value: unknown, errors: string[]): PaymentsPayload | u
   const neft = optionalNonNegativeInteger(value.neft, "payments.neft", errors) ?? 0;
   const udhari = requiredNonNegativeInteger(value.udhari, "payments.udhari", errors);
   const gssCredit = optionalNonNegativeInteger(value.gss_credit ?? value.gssCredit, "payments.gss_credit", errors) ?? 0;
+  const advance = optionalNonNegativeInteger(value.advance, "payments.advance", errors) ?? 0;
 
   if (cash === undefined || upi === undefined || card === undefined || udhari === undefined || gssCredit === undefined || cheque === undefined || neft === undefined) {
     return undefined;
@@ -2057,7 +2130,8 @@ function validatePayments(value: unknown, errors: string[]): PaymentsPayload | u
     cheque,
     neft,
     udhari,
-    gssCredit
+    gssCredit,
+    advance
   };
 }
 
@@ -2108,10 +2182,11 @@ function getInvoicePaymentMode(payments: CheckoutPayload["payments"]) {
     payments.cheque > 0 ? "CHEQUE" : null,
     payments.neft > 0 ? "NEFT" : null,
     payments.udhari > 0 ? "UDHARI" : null,
-    payments.gssCredit > 0 ? "GSS_CREDIT" : null
+    payments.gssCredit > 0 ? "GSS_CREDIT" : null,
+    payments.advance > 0 ? "ADVANCE" : null
   ].filter(isDefined);
 
-  return activeModes.length === 1 ? activeModes[0] : "MIXED";
+  return activeModes.length === 0 ? "CASH" : activeModes.length === 1 ? activeModes[0] : "MIXED";
 }
 
 function calculateInclusiveTaxPaise(totalPaise: number, gstPercentage: number) {
@@ -2122,7 +2197,7 @@ function calculateInclusiveTaxPaise(totalPaise: number, gstPercentage: number) {
   return Math.round((totalPaise * gstPercentage) / (100 + gstPercentage));
 }
 
-function buildPosSaleVoucherLines(checkout: CheckoutPayload, gstAmountPaise: number, invoiceNumber: string): VoucherPostingLine[] {
+function buildPosSaleVoucherLines(checkout: CheckoutPayload, gstAmountPaise: number, invoiceNumber: string, advanceFundedFromCredit = false): VoucherPostingLine[] {
   const taxableSalePaise = checkout.totals.grossTotalPaise - checkout.totals.discountPaise;
   const salesRevenuePaise = Math.max(taxableSalePaise - gstAmountPaise, 0);
   const lines: VoucherPostingLine[] = [];
@@ -2198,6 +2273,27 @@ function buildPosSaleVoucherLines(checkout: CheckoutPayload, gstAmountPaise: num
     });
   }
 
+  // Order advance applied. If it was journaled at booking it sits as a customer credit,
+  // so consume it from the udhari ledger; otherwise (legacy order) recognise it as cash.
+  if (checkout.payments.advance > 0) {
+    lines.push(advanceFundedFromCredit
+      ? {
+          ledgerName: `Customer Udhari ${checkout.customerId}`,
+          accountType: "CUSTOMER_UDHARI",
+          entityId: checkout.customerId,
+          transactionType: "DEBIT",
+          amountPaise: checkout.payments.advance,
+          description: `Order advance adjusted against ${invoiceNumber}`
+        }
+      : {
+          ledgerName: "Cash",
+          accountType: "CASH",
+          transactionType: "DEBIT",
+          amountPaise: checkout.payments.advance,
+          description: `Order advance (cash) for ${invoiceNumber}`
+        });
+  }
+
   if (checkout.totals.urdDeductionPaise > 0) {
     lines.push({
       ledgerName: "Old Gold / URD Stock",
@@ -2260,6 +2356,12 @@ function createPurchaseStockItems(
     }).sync();
     const firstNumber = sequence?.next_number ?? 1;
 
+    if (line.lineKind === "STONE") {
+      createPurchaseStoneItems(tx, document, line, prefix, firstNumber, quantity, created);
+      bumpBarcodeSequence(tx, sequence, prefix, firstNumber, quantity);
+      continue;
+    }
+
     const perGross = Math.floor(line.grossWeightMg / quantity);
     const perStone = Math.floor(line.stoneWeightMg / quantity);
     const perNet = Math.floor(line.netWeightMg / quantity);
@@ -2310,17 +2412,110 @@ function createPurchaseStockItems(
       );
     }
 
-    if (sequence) {
-      tx.update(barcodeSequences)
-        .set({ next_number: firstNumber + quantity, updated_at: sql`CURRENT_TIMESTAMP` })
-        .where(eq(barcodeSequences.id, sequence.id))
-        .run();
-    } else {
-      tx.insert(barcodeSequences).values({ prefix, next_number: firstNumber + quantity }).run();
-    }
+    bumpBarcodeSequence(tx, sequence, prefix, firstNumber, quantity);
   }
 
   return created;
+}
+
+// Ingest a loose-stone purchase line: one quantity-wise stock item per piece, each
+// with its gemstone detail (type, carat, rate) recorded in item_stones. Priced by a
+// fixed per-piece amount (carat-rate or flat split evenly), not by metal weight.
+function createPurchaseStoneItems(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  document: CommercialDocumentPayload,
+  line: CommercialDocumentLine,
+  prefix: string,
+  firstNumber: number,
+  quantity: number,
+  created: (typeof items.$inferSelect)[]
+) {
+  const totalStoneMg = line.stoneWeightMg;
+  const totalValuePaise = line.stoneValuePaise ?? 0;
+  const totalCarats = line.caratWeightTotal ?? 0;
+  const perStone = Math.floor(totalStoneMg / quantity);
+  const perValue = Math.floor(totalValuePaise / quantity);
+
+  for (let piece = 0; piece < quantity; piece += 1) {
+    const isLast = piece === quantity - 1;
+    // The last piece absorbs the rounding remainder so per-piece figures sum to the line total.
+    const stoneMg = isLast ? totalStoneMg - perStone * (quantity - 1) : perStone;
+    const valuePaise = isLast ? totalValuePaise - perValue * (quantity - 1) : perValue;
+    const caratThis = quantity === 1 ? totalCarats : Number((totalCarats / quantity).toFixed(3));
+    const tagNumber = firstNumber + piece;
+    const barcode = formatPurchaseBarcode(prefix, tagNumber);
+
+    const duplicate = tx.query.items.findFirst({ where: eq(items.barcode, barcode) }).sync();
+    if (duplicate) {
+      throw new Error(`Cannot ingest purchase stock: barcode ${barcode} already exists.`);
+    }
+
+    const item = tx.insert(items)
+      .values({
+        barcode,
+        huid: null,
+        category: line.category,
+        metal_type: "STONE",
+        purity_karat: 0,
+        gross_weight_mg: stoneMg,
+        stone_weight_mg: stoneMg,
+        black_bead_weight_mg: 0,
+        net_weight_mg: 0,
+        final_weight_mg: 0,
+        fine_weight_mg: 0,
+        making_charge_type: "FLAT",
+        making_charge_value: 0,
+        design_name: line.description,
+        tag_prefix: prefix,
+        tag_number: tagNumber,
+        location: "VAULT",
+        vendor_id: document.supplierId,
+        purchase_rate_paise: line.stoneRatePaisePerCarat ?? 0,
+        purchase_date: document.documentDate,
+        status: "IN_STOCK",
+        // Loose stones are sold per piece at a fixed price, not by metal weight.
+        sale_mode: "QUANTITY_WISE",
+        uom: "CARAT",
+        unit_price_paise: valuePaise,
+        stock_form: line.stockMode === "LOT" ? "LOOSE" : "TAGGED"
+      })
+      .returning()
+      .get();
+
+    tx.insert(itemStones)
+      .values({
+        item_id: item.id,
+        stone_type: line.stoneType ?? "OTHER",
+        shape: null,
+        carat_weight: caratThis,
+        color_grade: null,
+        clarity_grade: null,
+        cut_grade: null,
+        certificate_number: null,
+        certificate_lab: "NONE",
+        stone_rate_paise: line.stoneRatePaisePerCarat ?? 0
+      })
+      .run();
+
+    created.push(item);
+  }
+}
+
+function bumpBarcodeSequence(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  sequence: typeof barcodeSequences.$inferSelect | undefined,
+  prefix: string,
+  firstNumber: number,
+  quantity: number
+) {
+  if (sequence) {
+    tx.update(barcodeSequences)
+      .set({ next_number: firstNumber + quantity, updated_at: sql`CURRENT_TIMESTAMP` })
+      .where(eq(barcodeSequences.id, sequence.id))
+      .run();
+  } else {
+    tx.insert(barcodeSequences).values({ prefix, next_number: firstNumber + quantity }).run();
+  }
 }
 
 function purchaseBarcodePrefix(category: string) {
@@ -2720,10 +2915,78 @@ function validateReturnDocumentPayload(body: unknown, documentType: "sales" | "p
   };
 }
 
+const STONE_TYPES = ["DIAMOND", "RUBY", "SAPPHIRE", "EMERALD", "OTHER"] as const;
+
+function validateStoneLine(value: Record<string, unknown>, index: number, errors: string[]): CommercialDocumentLine | undefined {
+  const description = requiredText(value.description, `lines[${index}].description`, errors);
+  const category = optionalTrimmedText(value.category) ?? "Loose Stone";
+  const quantity = value.quantity === undefined || value.quantity === null
+    ? 1
+    : requiredPositiveInteger(value.quantity, `lines[${index}].quantity`, errors);
+  const stockMode = (optionalTrimmedText(value.stock_mode ?? value.stockMode) ?? "PIECES").toUpperCase() === "LOT" ? "LOT" : "PIECES";
+
+  const stoneTypeRaw = (optionalTrimmedText(value.stone_type ?? value.stoneType) ?? "OTHER").toUpperCase();
+  const stoneType = (STONE_TYPES as readonly string[]).includes(stoneTypeRaw)
+    ? (stoneTypeRaw as CommercialDocumentLine["stoneType"])
+    : "OTHER";
+
+  const caratRaw = value.carat_weight ?? value.caratWeight;
+  let caratWeightTotal: number | undefined;
+  if (typeof caratRaw === "number" && Number.isFinite(caratRaw) && caratRaw > 0) {
+    caratWeightTotal = caratRaw;
+  } else {
+    errors.push(`lines[${index}].carat_weight must be a positive number.`);
+  }
+
+  const stoneRatePaisePerCarat = optionalNonNegativeInteger(value.stone_rate_paise_per_carat ?? value.stoneRatePaisePerCarat, `lines[${index}].stone_rate_paise_per_carat`, errors) ?? 0;
+  const stoneValuePaise = requiredNonNegativeInteger(value.stone_value_paise ?? value.stoneValuePaise, `lines[${index}].stone_value_paise`, errors);
+  const gstPaise = optionalNonNegativeInteger(value.gst_paise ?? value.gstPaise, `lines[${index}].gst_paise`, errors) ?? 0;
+  const lineTotalPaise = requiredNonNegativeInteger(value.line_total_paise ?? value.lineTotalPaise, `lines[${index}].line_total_paise`, errors);
+
+  if (quantity !== undefined && quantity > 500) {
+    errors.push(`lines[${index}].quantity cannot exceed 500.`);
+  }
+
+  if (!description || quantity === undefined || caratWeightTotal === undefined || stoneValuePaise === undefined || lineTotalPaise === undefined) {
+    return undefined;
+  }
+
+  // 1 carat = 200 mg. A loose stone has no metal, so net (metal) weight is zero
+  // and the whole physical weight is recorded as stone weight.
+  const stoneWeightMg = Math.round(caratWeightTotal * 200);
+
+  return {
+    itemId: null,
+    description,
+    category,
+    quantity,
+    stockMode,
+    metalType: "STONE",
+    purityKarat: 0,
+    grossWeightMg: stoneWeightMg,
+    stoneWeightMg,
+    netWeightMg: 0,
+    metalRatePaisePerGram: 0,
+    makingChargePaise: 0,
+    gstPaise,
+    lineTotalPaise,
+    lineKind: "STONE",
+    stoneType,
+    caratWeightTotal,
+    stoneRatePaisePerCarat,
+    stoneValuePaise
+  };
+}
+
 function validateCommercialLine(value: unknown, index: number, errors: string[]): CommercialDocumentLine | undefined {
   if (!isRecord(value)) {
     errors.push(`lines[${index}] must be an object.`);
     return undefined;
+  }
+
+  const lineKind = (optionalTrimmedText(value.line_kind ?? value.lineKind) ?? "METAL").toUpperCase() === "STONE" ? "STONE" : "METAL";
+  if (lineKind === "STONE") {
+    return validateStoneLine(value, index, errors);
   }
 
   const itemId = value.item_id === undefined || value.item_id === null ? null : value.item_id;
@@ -2773,7 +3036,8 @@ function validateCommercialLine(value: unknown, index: number, errors: string[])
     metalRatePaisePerGram,
     makingChargePaise,
     gstPaise,
-    lineTotalPaise
+    lineTotalPaise,
+    lineKind: "METAL"
   };
 }
 

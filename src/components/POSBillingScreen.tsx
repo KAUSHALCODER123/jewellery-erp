@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { useBarcodeScanner } from "../hooks/useBarcodeScanner.js";
 import { usePOSCredit } from "../pos/POSCreditContext.js";
@@ -134,6 +135,9 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const [paymentReferences, setPaymentReferences] = useState<PaymentReferenceState>(emptyPaymentReferences);
   const [invoiceMeta, setInvoiceMeta] = useState<InvoiceMetaState>(emptyInvoiceMeta);
   const [gssCreditAppliedPaise, setGssCreditAppliedPaise] = useState(0);
+  // Set when arriving from "Convert to Invoice" on a booked order: its collected
+  // advance is applied as a tender and the order is closed out on checkout.
+  const [orderContext, setOrderContext] = useState<{ orderId: number; advancePaise: number; orderNumber: string } | null>(null);
   const [discountRupees, setDiscountRupees] = useState("");
   const [rates, setRates] = useState<RatesState>(emptyRates);
   const [message, setMessage] = useState("");
@@ -351,10 +355,24 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
 
   useBarcodeScanner(appendScannedItem);
 
+  const location = useLocation();
+  // Arriving from a customer order's "Convert to Invoice" — prefill the customer and
+  // carry the advance so it auto-applies as a tender. Runs once per navigation.
+  useEffect(() => {
+    const state = location.state as { customerOrderId?: number; customerId?: number; advancePaise?: number; orderNumber?: string } | null;
+    if (state && typeof state.customerOrderId === "number") {
+      setOrderContext({ orderId: state.customerOrderId, advancePaise: state.advancePaise ?? 0, orderNumber: state.orderNumber ?? "" });
+      if (typeof state.customerId === "number") {
+        setCustomerId(String(state.customerId));
+      }
+    }
+  }, [location.state]);
+
   const loyaltyRedeemPaiseInput = Math.max(0, Math.trunc(Number(loyaltyRedeemPoints) || 0)) * 100;
+  const advanceAvailablePaise = orderContext?.advancePaise ?? 0;
   const totals = useMemo(
-    () => calculateTotals(cart, urdLines, discountRupees, payments, gssCreditAppliedPaise, loyaltyRedeemPaiseInput),
-    [cart, discountRupees, gssCreditAppliedPaise, payments, urdLines, loyaltyRedeemPaiseInput]
+    () => calculateTotals(cart, urdLines, discountRupees, payments, gssCreditAppliedPaise, loyaltyRedeemPaiseInput, advanceAvailablePaise),
+    [cart, discountRupees, gssCreditAppliedPaise, payments, urdLines, loyaltyRedeemPaiseInput, advanceAvailablePaise]
   );
   const cashComplianceRequired = totals.cashPaidPaise >= CASH_PAN_AADHAAR_THRESHOLD_PAISE;
   const kycRequired = cashComplianceRequired || urdLines.length > 0;
@@ -467,6 +485,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         gssCreditAppliedPaise,
         oldDuesRupees,
         loyaltyRedeemPoints,
+        customerOrderId: orderContext?.orderId ?? null,
         totals
       });
 
@@ -498,6 +517,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
       setPaymentReferences(emptyPaymentReferences);
       setInvoiceMeta(emptyInvoiceMeta);
       setGssCreditAppliedPaise(0);
+      setOrderContext(null);
       clearPosCreditBalance();
       setDiscountRupees("");
       setOldDuesRupees("");
@@ -980,6 +1000,12 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           <SummaryLine label="URD Deduction" value={formatPaise(totals.urdDeductionPaise)} />
           <SummaryLine label="GSS Credit Applied" value={formatPaise(totals.gssCreditAppliedPaise)} />
           <SummaryLine label="Net Payable" strong testId="net-payable" dataPaise={totals.netPayablePaise} value={<CountUp value={totals.netPayablePaise} format={(n) => formatPaise(Math.round(n))} />} />
+          {orderContext && (
+            <>
+              <SummaryLine label={`Advance (${orderContext.orderNumber || "order"})`} value={`- ${formatPaise(totals.advanceAppliedPaise)}`} />
+              <SummaryLine label="Balance to Collect" strong value={formatPaise(Math.max(totals.netPayablePaise - totals.advanceAppliedPaise, 0))} />
+            </>
+          )}
         </section>
 
         <section className="grid gap-2 border-b border-slate-800 py-3">
@@ -1460,7 +1486,8 @@ function calculateTotals(
   discountRupees: string,
   payments: PaymentState,
   gssCreditAppliedPaise: number,
-  loyaltyRedeemPaise = 0
+  loyaltyRedeemPaise = 0,
+  advanceAvailablePaise = 0
 ) {
   const grossTotalPaise = cart.reduce((total, line) => total + calculateCartLineTotalPaise(line), 0);
   const discountPaise = rupeesToPaise(discountRupees);
@@ -1470,6 +1497,9 @@ function calculateTotals(
   const netAfterGssPaise = Math.max(netPayableBeforeGssPaise - boundedGssCreditAppliedPaise, 0);
   const boundedLoyaltyRedeemPaise = Math.min(Math.max(loyaltyRedeemPaise, 0), netAfterGssPaise);
   const netPayablePaise = Math.max(netAfterGssPaise - boundedLoyaltyRedeemPaise, 0);
+  // The order advance is a tender, not a discount: it does not reduce the bill (so GST
+  // stays on full value), it counts toward what's been paid, capped at the bill.
+  const advanceAppliedPaise = Math.min(Math.max(advanceAvailablePaise, 0), netPayablePaise);
   const cashPaidPaise = rupeesToPaise(payments.cash);
   const paidPaise =
     cashPaidPaise +
@@ -1477,7 +1507,8 @@ function calculateTotals(
     rupeesToPaise(payments.card) +
     rupeesToPaise(payments.cheque) +
     rupeesToPaise(payments.neft) +
-    rupeesToPaise(payments.udhari);
+    rupeesToPaise(payments.udhari) +
+    advanceAppliedPaise;
 
   return {
     grossTotalPaise,
@@ -1486,6 +1517,7 @@ function calculateTotals(
     netPayableBeforeGssPaise,
     gssCreditAppliedPaise: boundedGssCreditAppliedPaise,
     loyaltyRedeemPaise: boundedLoyaltyRedeemPaise,
+    advanceAppliedPaise,
     netPayablePaise,
     cashPaidPaise,
     paidPaise,
@@ -1542,6 +1574,7 @@ function buildCheckoutPayload({
   gssCreditAppliedPaise,
   oldDuesRupees,
   loyaltyRedeemPoints,
+  customerOrderId,
   totals
 }: {
   customerId: string;
@@ -1559,10 +1592,12 @@ function buildCheckoutPayload({
   gssCreditAppliedPaise: number;
   oldDuesRupees: string;
   loyaltyRedeemPoints: string;
+  customerOrderId: number | null;
   totals: ReturnType<typeof calculateTotals>;
 }) {
   return {
     customer_id: customerId ? Number(customerId) : null,
+    customer_order_id: customerOrderId,
     walk_in_name: walkInName.trim() || null,
     pan_number: panNumber.trim() || null,
     aadhaar_number: aadhaarNumber.trim() || null,
@@ -1597,7 +1632,8 @@ function buildCheckoutPayload({
       cheque: rupeesToPaise(payments.cheque),
       neft: rupeesToPaise(payments.neft),
       udhari: rupeesToPaise(payments.udhari),
-      gss_credit: totals.gssCreditAppliedPaise
+      gss_credit: totals.gssCreditAppliedPaise,
+      advance: totals.advanceAppliedPaise
     },
     payment_references: {
       bank_name: paymentReferences.bankName.trim() || null,

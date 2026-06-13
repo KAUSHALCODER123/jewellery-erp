@@ -19,6 +19,7 @@ import {
   materialIssues,
   ledgers,
   jobOrders,
+  customerOrders,
   organizationSettings,
   journalEntries,
   kycVault,
@@ -128,6 +129,8 @@ beforeEach(async () => {
   db.delete(hardwareDevices).run();
   db.delete(jobReceipts).run();
   db.delete(materialIssues).run();
+  // customer_orders references job_orders (and customers), so clear it first.
+  db.delete(customerOrders).run();
   db.delete(jobOrders).run();
   db.delete(purchaseReturnLines).run();
   db.delete(purchaseReturns).run();
