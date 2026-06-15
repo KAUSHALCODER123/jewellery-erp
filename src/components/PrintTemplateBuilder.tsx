@@ -37,6 +37,8 @@ type TemplateContent = {
   signatureLabel?: string;
   showTerms?: boolean;
   termsText?: string;
+  logoImagePath?: string | null;
+  logoHeight?: number;
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -160,6 +162,36 @@ export default function PrintTemplateBuilder({ apiBaseUrl = "" }: PrintTemplateB
   const [activeTab, setActiveTab] = useState<"branding" | "content" | "advanced">("branding");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setLogoUploading(true);
+    setError("");
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/upload/image`, {
+        method: "POST",
+        headers: authHeaders,
+        body: formData
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.errors?.join(" ") || "Failed to upload logo.");
+      }
+
+      setContent("logoImagePath", result.image_path);
+    } catch (err: any) {
+      setError(err.message || "Failed to upload logo.");
+    } finally {
+      setLogoUploading(false);
+    }
+  }
 
   useEffect(() => { void loadTemplates(); }, []);
 
@@ -382,18 +414,51 @@ export default function PrintTemplateBuilder({ apiBaseUrl = "" }: PrintTemplateB
                 </div>
 
                 {/* Logo */}
-                <div className="grid gap-2">
-                  <div className={secLabel}>Logo</div>
+                <div className="grid gap-3">
+                  <div className={secLabel}>Logo Settings</div>
                   <div className="flex items-center gap-3">
                     <Toggle label="Show Logo" checked={draft.content.showLogo} onChange={(v) => setContent("showLogo", v)} />
                     {draft.content.showLogo && (
                       <select value={draft.content.logoPosition ?? "left"} onChange={(e) => setContent("logoPosition", e.target.value as TemplateContent["logoPosition"])} className={`${ctrl} flex-1`}>
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                        <option value="right">Right</option>
+                        <option value="left">Left Alignment</option>
+                        <option value="center">Center Alignment</option>
+                        <option value="right">Right Alignment</option>
                       </select>
                     )}
                   </div>
+
+                  {draft.content.showLogo && (
+                    <div className="grid gap-2 border-t border-slate-800 pt-2 animate-fade-in">
+                      <div className="grid gap-1">
+                        <label className="text-[10px] font-semibold uppercase text-slate-400">Shop Logo File</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:border-0 file:text-[10px] file:font-semibold file:bg-slate-800 file:text-slate-200 file:cursor-pointer"
+                          />
+                          {logoUploading && <span className="text-[9px] text-amber-400 animate-pulse font-semibold uppercase">Uploading...</span>}
+                        </div>
+                        {draft.content.logoImagePath && (
+                          <span className="text-[9px] text-emerald-400 font-bold uppercase">✓ Logo Uploaded</span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mt-1">
+                        <Field label="Logo Height (px)">
+                          <input
+                            type="number"
+                            min={10}
+                            max={200}
+                            value={draft.content.logoHeight ?? 30}
+                            onChange={(e) => setContent("logoHeight", Math.max(10, Number(e.target.value) || 30))}
+                            className={ctrl}
+                          />
+                        </Field>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -572,7 +637,7 @@ export default function PrintTemplateBuilder({ apiBaseUrl = "" }: PrintTemplateB
 
         {/* ── Right: live preview ── */}
         <div className="min-h-0 overflow-auto bg-slate-800 p-6">
-          <Preview draft={draft} />
+          <Preview draft={draft} apiBaseUrl={apiBaseUrl} />
         </div>
       </main>
     </section>
@@ -697,7 +762,7 @@ function SortableTokenList({ title, all, active, onChange }: SortableTokenListPr
 
 // ── Live preview ───────────────────────────────────────────────────────────────
 
-function Preview({ draft }: { draft: Omit<PrintTemplate, "id"> }) {
+function Preview({ draft, apiBaseUrl = "" }: { draft: Omit<PrintTemplate, "id">; apiBaseUrl?: string }) {
   const { content, page_size, document_type } = draft;
   const narrow = page_size === "THERMAL_80" || document_type === "LABEL";
   const isA5 = page_size === "A5";
@@ -735,9 +800,17 @@ function Preview({ draft }: { draft: Omit<PrintTemplate, "id"> }) {
             logoPos === "right"  ? "flex-row-reverse" : ""
           }`}>
             {content.showLogo && (
-              <div className="h-8 w-14 shrink-0 rounded bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
-                LOGO
-              </div>
+              content.logoImagePath ? (
+                <img
+                  src={`${apiBaseUrl}${content.logoImagePath}`}
+                  style={{ height: `${content.logoHeight ?? 30}px`, width: "auto" }}
+                  className="shrink-0 object-contain"
+                />
+              ) : (
+                <div className="h-8 w-14 shrink-0 rounded bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                  LOGO
+                </div>
+              )
             )}
             <div className={logoPos === "center" ? "text-center" : ""}>
               {content.headerLines.map((line, i) => (

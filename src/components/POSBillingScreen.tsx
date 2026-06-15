@@ -43,6 +43,7 @@ type InventoryItem = {
 type CartLine = InventoryItem & {
   metalRateRupees: string;
   makingRupees: string;
+  isManual?: boolean;
 };
 
 type UrdLine = {
@@ -158,6 +159,17 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const [walkInName, setWalkInName] = useState("");
   const [itemQuery, setItemQuery] = useState("");
   const [showQuickBill, setShowQuickBill] = useState(false);
+  const [showManualItemModal, setShowManualItemModal] = useState(false);
+  const [manualItemForm, setManualItemForm] = useState({
+    category: "Ring",
+    metalType: "Gold",
+    purityKarat: "22",
+    grossWeightG: "",
+    stoneWeightG: "0",
+    makingChargeType: "PER_GRAM" as "PER_GRAM" | "FLAT",
+    makingChargeValueRs: "",
+    huid: ""
+  });
   const [showCreditConfirm, setShowCreditConfirm] = useState(false);
   const [printContext, setPrintContext] = useState<{ phone: string | null; invoiceNumber: string } | null>(null);
   const [scanNotice, setScanNotice] = useState("");
@@ -355,6 +367,77 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   );
 
   useBarcodeScanner(appendScannedItem);
+
+  function addManualItemToCart() {
+    const errors: string[] = [];
+    const grossVal = Number(manualItemForm.grossWeightG);
+    const stoneVal = Number(manualItemForm.stoneWeightG);
+    const makingVal = Number(manualItemForm.makingChargeValueRs);
+
+    if (isNaN(grossVal) || grossVal <= 0) {
+      errors.push("Gross weight must be a positive number.");
+    }
+    if (isNaN(stoneVal) || stoneVal < 0) {
+      errors.push("Stone weight must be 0 or a positive number.");
+    }
+    if (grossVal && stoneVal && stoneVal >= grossVal) {
+      errors.push("Stone weight must be less than gross weight.");
+    }
+    if (isNaN(makingVal) || makingVal < 0) {
+      errors.push("Making charge must be 0 or a positive number.");
+    }
+
+    const normalizedHuid = manualItemForm.huid.trim().toUpperCase();
+    if (normalizedHuid && !/^[A-Z0-9]{6}$/.test(normalizedHuid)) {
+      errors.push("HUID must be exactly 6 letters/digits (e.g. A1B2C3).");
+    }
+
+    if (errors.length > 0) {
+      setError(errors.join(" "));
+      return;
+    }
+
+    const grossWeightMg = Math.round(grossVal * 1000);
+    const stoneWeightMg = Math.round(stoneVal * 1000);
+    const netWeightMg = grossWeightMg - stoneWeightMg;
+    const makingChargeValuePaise = Math.round(makingVal * 100);
+
+    const tempId = -Math.trunc(Date.now());
+
+    const defaultRate = getDefaultRateForItem(
+      { metal_type: manualItemForm.metalType, purity_karat: Number(manualItemForm.purityKarat) } as any,
+      rates
+    );
+
+    const newItem: CartLine = {
+      id: tempId,
+      barcode: "MANUAL",
+      huid: normalizedHuid || null,
+      category: manualItemForm.category,
+      metal_type: manualItemForm.metalType,
+      purity_karat: Number(manualItemForm.purityKarat),
+      gross_weight_mg: grossWeightMg,
+      net_weight_mg: netWeightMg,
+      making_charge_type: manualItemForm.makingChargeType,
+      making_charge_value: makingChargeValuePaise,
+      sale_mode: "WEIGHT_WISE",
+      status: "IN_STOCK",
+      metalRateRupees: defaultRate,
+      makingRupees: manualItemForm.makingChargeValueRs,
+      isManual: true
+    };
+
+    setCart((current) => [...current, newItem]);
+    setShowManualItemModal(false);
+    setManualItemForm((prev) => ({
+      ...prev,
+      grossWeightG: "",
+      stoneWeightG: "0",
+      makingChargeValueRs: "",
+      huid: ""
+    }));
+    setError("");
+  }
 
   const location = useLocation();
   // Arriving from a customer order's "Convert to Invoice" — prefill the customer and
@@ -870,30 +953,41 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
             <h2 className="shrink-0 text-xs font-semibold uppercase text-slate-50">Sales Cart</h2>
             {/* Manual fallback when the scanner is unplugged or a tag is damaged —
                 without it the cart had no input path other than the hardware wedge. */}
-            <input
-              value={itemQuery}
-              onChange={(event) => setItemQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && itemQuery.trim()) {
-                  event.preventDefault();
-                  void appendScannedItem(itemQuery.trim()).then((added) => {
-                    if (added) setItemQuery("");
-                  });
-                }
-              }}
-              placeholder="Type barcode / HUID + Enter to add"
-              className="h-8 w-64 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
-            />
-            {/* Escape hatch for an item that was never tagged into inventory:
-                creates a real IN_STOCK item on the fly, then adds it to the cart. */}
-            <button
-              type="button"
-              onClick={() => setShowQuickBill(true)}
-              title="Bill an item that is not yet in inventory"
-              className="inline-flex h-8 shrink-0 items-center gap-1 rounded border border-emerald-700 bg-emerald-950/40 px-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900/50 active:scale-95"
-            >
-              <Plus className="h-3.5 w-3.5" /> Quick Bill
-            </button>
+            <div className="flex items-center gap-2">
+              <input
+                value={itemQuery}
+                onChange={(event) => setItemQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && itemQuery.trim()) {
+                    event.preventDefault();
+                    void appendScannedItem(itemQuery.trim()).then((added) => {
+                      if (added) setItemQuery("");
+                    });
+                  }
+                }}
+                placeholder="Type barcode / HUID + Enter to add"
+                className="h-8 w-64 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setShowManualItemModal(true);
+                }}
+                className="flex h-8 items-center gap-1 bg-emerald-600 px-3 text-[11px] font-bold uppercase text-white hover:bg-emerald-500 active:scale-95 transition-all"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowQuickBill(true)}
+                title="Bill an item that is not yet in inventory"
+                className="inline-flex h-8 shrink-0 items-center gap-1 rounded border border-emerald-700 bg-emerald-950/40 px-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900/50 active:scale-95 cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" /> Quick Bill
+              </button>
+            </div>
             {scanNotice ? (
               <span className="animate-fade-in shrink-0 rounded bg-rose-950/60 px-2 py-0.5 text-[11px] font-semibold text-rose-300">{scanNotice}</span>
             ) : (
@@ -1142,7 +1236,6 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           onClose={() => setShowCustomerLookup(false)}
         />
       )}
-
       {showCustomerModal && (
         <CustomerMaster
           apiBaseUrl={apiBaseUrl}
@@ -1165,10 +1258,134 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           onClose={() => setShowQuickBill(false)}
         />
       )}
+
+      {showManualItemModal && (
+        <div className="animate-fade-in fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={() => setShowManualItemModal(false)}>
+          <div className="animate-scale-in grid w-full max-w-md gap-4 rounded-lg border border-slate-700 bg-slate-950 p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase text-slate-50">Add Loose / Manual Item</h2>
+              <button type="button" onClick={() => setShowManualItemModal(false)} className="text-slate-400 hover:text-slate-200">✕</button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Category
+                <select
+                  value={manualItemForm.category}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, category: e.target.value })}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                >
+                  {["Ring", "Chain", "Bangle", "Bracelet", "Earring", "Pendant", "Other"].map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Metal Type
+                <select
+                  value={manualItemForm.metalType}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, metalType: e.target.value })}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                >
+                  <option value="Gold">Gold</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Platinum">Platinum</option>
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Purity
+                <select
+                  value={manualItemForm.purityKarat}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, purityKarat: e.target.value })}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                >
+                  <option value="24">24K</option>
+                  <option value="22">22K</option>
+                  <option value="18">18K</option>
+                  <option value="14">14K</option>
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                HUID (Optional)
+                <input
+                  placeholder="e.g. A1B2C3"
+                  value={manualItemForm.huid}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, huid: e.target.value.toUpperCase() })}
+                  maxLength={6}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                />
+              </label>
+
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Gross Wt (g)
+                <input
+                  placeholder="0.000"
+                  value={manualItemForm.grossWeightG}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, grossWeightG: sanitizeDecimalInput(e.target.value) })}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                  inputMode="decimal"
+                />
+              </label>
+
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Stone Wt (g)
+                <input
+                  placeholder="0.000"
+                  value={manualItemForm.stoneWeightG}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, stoneWeightG: sanitizeDecimalInput(e.target.value) })}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                  inputMode="decimal"
+                />
+              </label>
+
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Making Type
+                <select
+                  value={manualItemForm.makingChargeType}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, makingChargeType: e.target.value as any })}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                >
+                  <option value="PER_GRAM">Per Gram</option>
+                  <option value="FLAT">Flat Rate</option>
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-[10px] font-semibold uppercase text-slate-400">
+                Making Charge (₹)
+                <input
+                  placeholder="0.00"
+                  value={manualItemForm.makingChargeValueRs}
+                  onChange={(e) => setManualItemForm({ ...manualItemForm, makingChargeValueRs: sanitizeDecimalInput(e.target.value) })}
+                  className="h-8 border border-slate-800 bg-slate-900 px-2 text-xs text-slate-200 outline-none focus:border-emerald-400"
+                  inputMode="decimal"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowManualItemModal(false)}
+                className="h-8 rounded border border-slate-700 px-4 text-xs font-semibold text-slate-300 hover:bg-slate-900 transition active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={addManualItemToCart}
+                className="h-8 rounded bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-500 transition active:scale-95"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
-}
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-1 text-xs font-semibold uppercase text-slate-400">
@@ -1821,8 +2038,17 @@ function buildCheckoutPayload({
     aadhaar_number: aadhaarNumber.trim() || null,
     document_image_path: documentImagePath,
     sales_items: cart.map((line) => ({
-      item_id: line.id,
+      item_id: line.isManual ? null : line.id,
       barcode: line.barcode,
+      isManual: line.isManual || false,
+      category: line.category,
+      metal_type: line.metal_type,
+      purity_karat: line.purity_karat,
+      gross_weight_mg: line.gross_weight_mg,
+      stone_weight_mg: Math.max(line.gross_weight_mg - line.net_weight_mg, 0),
+      making_charge_type: line.making_charge_type,
+      making_charge_value: line.making_charge_value,
+      huid: line.huid,
       // Quantity-wise items (coins) have no weight; omit it so the backend's
       // "must be greater than zero" guard doesn't reject the fixed-price line.
       net_weight_mg: line.net_weight_mg > 0 ? line.net_weight_mg : undefined,

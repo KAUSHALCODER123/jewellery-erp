@@ -2,7 +2,7 @@ import request from "supertest";
 import { eq } from "drizzle-orm";
 import { app } from "../../src/server.js";
 import { db } from "../../src/db/client.js";
-import { items, invoices, urdPurchases, syncQueue } from "../../src/db/schema.js";
+import { items, invoices, urdPurchases, syncQueue, invoiceLines } from "../../src/db/schema.js";
 
 describe("POS sale flows", () => {
   let adminToken: string;
@@ -152,5 +152,56 @@ describe("POS sale flows", () => {
     // 4. The invoice was persisted regardless of sync state.
     const invoice = db.select().from(invoices).where(eq(invoices.id, invoiceId)).get();
     expect(invoice).toBeDefined();
+  });
+
+  it("sells a manual item successfully on-the-fly without an existing item in the DB", async () => {
+    const itemTotalPaise = 5000000;
+    const checkoutRes = await request(app)
+      .post("/api/pos/checkout")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        cartItems: [
+          {
+            itemId: null,
+            barcode: "MANUAL",
+            isManual: true,
+            category: "Ring",
+            metalType: "Gold",
+            purityKarat: 22,
+            grossWeightMg: 10000,
+            netWeightMg: 10000,
+            stoneWeightMg: 0,
+            metalRatePaisePerGram: 500000,
+            makingChargePaise: 0,
+            wastageChargePaise: 0,
+            gstPaise: 0,
+            itemTotalPaise,
+            makingChargeType: "PER_GRAM",
+            makingChargeValue: 0
+          }
+        ],
+        urdItems: [],
+        totals: { grossTotalPaise: itemTotalPaise, discountPaise: 0, urdDeductionPaise: 0, netPayablePaise: itemTotalPaise, gstPaise: 0 },
+        payments: { cash: itemTotalPaise, upi: 0, card: 0, udhari: 0, gssCredit: 0 },
+        paymentReferences: { cash: null, upi: null, card: null, cheque: null, dd: null, neft: null, bankName: null },
+        invoice: { billPrefix: null, manualNumber: null, dueDate: null, salesmanName: "Test", gstNotRequired: false, placeOfSupplyStateCode: null, gstSupplyType: null },
+        kyc: { panNumber: null, aadhaarNumber: null, documentImagePath: null }
+      });
+
+    expect(checkoutRes.status).toBe(201);
+    const invoiceId = checkoutRes.body.invoice_id;
+    expect(invoiceId).toBeDefined();
+
+    // Verify the loose item was created in DB and is SOLD
+    const invoiceLine = db.select().from(invoiceLines).where(eq(invoiceLines.invoice_id, invoiceId)).get();
+    expect(invoiceLine).toBeDefined();
+    expect(invoiceLine?.item_id).toBeDefined();
+
+    const createdItem = db.select().from(items).where(eq(items.id, invoiceLine!.item_id)).get();
+    expect(createdItem).toBeDefined();
+    expect(createdItem?.barcode).toMatch(/^MAN\d+/);
+    expect(createdItem?.status).toBe("SOLD");
+    expect(createdItem?.stock_form).toBe("LOOSE");
+    expect(createdItem?.category).toBe("Ring");
   });
 });

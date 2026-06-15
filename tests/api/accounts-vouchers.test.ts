@@ -312,4 +312,47 @@ describe("Voucher accounting and ledger reports API", () => {
       res.body.balance_sheet.total_liabilities_paise + res.body.balance_sheet.equity_paise
     );
   });
+
+  it("supports date range query for daybook", async () => {
+    // 1. Post a manual payment voucher on 2026-05-10
+    await request(app)
+      .post("/api/accounts/vouchers")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        debit_ledger_id: expenseLedgerId,
+        credit_ledger_id: cashLedgerId,
+        amount_paise: 500000, // Rs 5000
+        reference_type: "MANUAL",
+        created_at: "2026-05-10",
+        description: "Rent 1"
+      });
+
+    // 2. Post a manual payment voucher on 2026-05-20
+    await request(app)
+      .post("/api/accounts/vouchers")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        debit_ledger_id: expenseLedgerId,
+        credit_ledger_id: cashLedgerId,
+        amount_paise: 300000, // Rs 3000
+        reference_type: "MANUAL",
+        created_at: "2026-05-20",
+        description: "Rent 2"
+      });
+
+    // 3. Query daybook for range 2026-05-01 to 2026-05-30
+    const daybookRes = await request(app)
+      .get("/api/accounts/daybook")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .query({
+        from_date: "2026-05-01",
+        to_date: "2026-05-30"
+      });
+
+    expect(daybookRes.status).toBe(200);
+    expect(daybookRes.body.entries).toHaveLength(2);
+    const descriptions = daybookRes.body.entries.map((e: any) => e.description);
+    expect(descriptions).toContain("Rent 1");
+    expect(descriptions).toContain("Rent 2");
+  });
 });

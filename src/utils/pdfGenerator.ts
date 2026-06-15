@@ -166,6 +166,11 @@ export type PrintTemplateContent = {
   accentColor?: string;
   headerTextColor?: string;
   fontSizeBase?: "small" | "medium" | "large";
+  fontFamily?: "sans" | "serif" | "mono";
+  tableStyle?: "lined" | "clean" | "zebra";
+  logoPosition?: "left" | "center" | "right";
+  logoImagePath?: string | null;
+  logoHeight?: number;
 };
 
 export type PrintTemplateData = {
@@ -644,12 +649,67 @@ function templateHeader(organizationData: OrganizationData, template: PrintTempl
   const tokenMap = templateShopTokenMap(organizationData);
   const lines = template.content.headerLines.length ? template.content.headerLines : ["{{shop.name}}", "{{shop.address}}"];
 
-  return lines.map((line, index) => ({
+  const textLines = lines.map((line, index) => ({
     text: templateText(line, tokenMap),
     style: index === 0 ? "shop" : undefined,
-    alignment: "center",
+    alignment: template.content.logoPosition === "center" ? "center" : "left",
     margin: [0, 0, 0, index === lines.length - 1 ? 8 : 1]
   }));
+
+  if (template.content.showLogo && template.content.logoImagePath) {
+    const logoBase64 = getImageBase64(template.content.logoImagePath);
+    if (logoBase64) {
+      const logoPosition = template.content.logoPosition ?? "left";
+      const logoHeight = template.content.logoHeight ?? 30;
+
+      if (logoPosition === "center") {
+        return [
+          {
+            image: logoBase64,
+            height: logoHeight,
+            alignment: "center",
+            margin: [0, 0, 0, 8]
+          },
+          ...textLines
+        ];
+      } else if (logoPosition === "right") {
+        return [
+          {
+            columns: [
+              { stack: textLines, width: "*" },
+              {
+                image: logoBase64,
+                height: logoHeight,
+                alignment: "right",
+                width: "auto",
+                margin: [8, 0, 0, 0]
+              }
+            ],
+            margin: [0, 0, 0, 8]
+          }
+        ];
+      } else {
+        // left
+        return [
+          {
+            columns: [
+              {
+                image: logoBase64,
+                height: logoHeight,
+                alignment: "left",
+                width: "auto",
+                margin: [0, 0, 8, 0]
+              },
+              { stack: textLines, width: "*" }
+            ],
+            margin: [0, 0, 0, 8]
+          }
+        ];
+      }
+    }
+  }
+
+  return textLines;
 }
 
 function templateInvoiceTokenMap(invoiceData: InvoiceDocumentData, organizationData: OrganizationData, grossTotalPaise: number) {

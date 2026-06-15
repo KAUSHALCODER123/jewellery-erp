@@ -135,9 +135,36 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
 
   try {
     const result = runWithRetry(() => db.transaction((tx) => {
+      // Create manual items on-the-fly so they exist in the items table
+      for (const line of validation.checkout.salesItems) {
+        if (line.isManual) {
+          const nextBarcode = getNextManualBarcode(tx);
+          const item = tx.insert(items).values({
+            barcode: nextBarcode,
+            category: line.category || "Other",
+            metal_type: line.metalType || "Gold",
+            purity_karat: line.purityKarat || 22,
+            gross_weight_mg: line.grossWeightMg || 0,
+            stone_weight_mg: line.stoneWeightMg || 0,
+            net_weight_mg: line.netWeightMg || 0,
+            making_charge_type: line.makingChargeType || "PER_GRAM",
+            making_charge_value: line.makingChargeValue || 0,
+            status: "IN_STOCK",
+            stock_form: "LOOSE",
+            huid: line.huid || null,
+            huid_status: line.huid ? "HUID_RECEIVED" : "NOT_APPLIED",
+            sale_mode: "WEIGHT_WISE",
+            uom: "GRAM"
+          }).returning().get();
+
+          line.itemId = item.id;
+          line.barcode = item.barcode;
+        }
+      }
+
       // 3. Block sale of any non-hallmarked Gold items
       for (const line of validation.checkout.salesItems) {
-        const item = tx.select().from(items).where(eq(items.id, line.itemId)).get();
+        const item = tx.select().from(items).where(eq(items.id, line.itemId as number)).get();
 
         if (!item) {
           throw new CheckoutConflictError(`Item ${line.barcode} was not found.`);
@@ -158,6 +185,11 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
           // Recycled URD gold purchased from customers is exempt from HUID validation at POS.
           // BIS hallmarking is applied during the next refinery/assay cycle.
           if (item.is_urd_recycled_gold) {
+            continue;
+          }
+
+          // Exempt manual/loose items from Gold HUID hallmarking enforcement
+          if (line.isManual) {
             continue;
           }
 
@@ -224,7 +256,7 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
       }
 
       const createdInvoiceLines = validation.checkout.salesItems.map((line, lineIndex) => {
-        const item = tx.select().from(items).where(eq(items.id, line.itemId)).get();
+        const item = tx.select().from(items).where(eq(items.id, line.itemId as number)).get();
 
         if (!item) {
           throw new CheckoutConflictError(`Item ${line.barcode} was not found.`);
@@ -247,7 +279,7 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
           .insert(invoiceLines)
           .values({
             invoice_id: invoice.id,
-            item_id: line.itemId,
+            item_id: line.itemId as number,
             metal_type: line.metalType ?? item.metal_type,
             purity_karat: line.purityKarat ?? item.purity_karat,
             gross_weight_mg: line.grossWeightMg ?? item.gross_weight_mg,
@@ -271,7 +303,7 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
         const updateResult = tx
           .update(items)
           .set({ status: "SOLD", huid_status: "SOLD" })
-          .where(and(eq(items.id, line.itemId), eq(items.status, "IN_STOCK")))
+          .where(and(eq(items.id, line.itemId as number), eq(items.status, "IN_STOCK")))
           .run();
 
         if (updateResult.changes !== 1) {
@@ -1545,8 +1577,10 @@ type CheckoutPayload = {
 };
 
 type SalesItemPayload = {
-  itemId: number;
+  itemId: number | null;
   barcode: string;
+  isManual?: boolean;
+  category?: string;
   metalType: string | null;
   purityKarat: number | null;
   grossWeightMg: number | null;
@@ -1557,6 +1591,9 @@ type SalesItemPayload = {
   wastageChargePaise: number;
   gstPaise: number | null;
   itemTotalPaise: number;
+  makingChargeType?: "PER_GRAM" | "FLAT";
+  makingChargeValue?: number;
+  huid?: string | null;
 };
 
 type UrdItemPayload = {
@@ -2034,23 +2071,52 @@ function validateSalesItem(value: unknown, errors: string[]): SalesItemPayload |
     return undefined;
   }
 
+  const isManual = Boolean(value.is_manual ?? value.isManual);
+  const itemId = isManual ? null : requiredPositiveInteger(value.item_id ?? value.itemId ?? value.id, "cartItems.item_id", errors);
+  const barcode = isManual ? "MANUAL" : requiredText(value.barcode, "cartItems.barcode", errors);
+
   const line = {
-    itemId: requiredPositiveInteger(value.item_id ?? value.itemId ?? value.id, "cartItems.item_id", errors),
-    barcode: requiredText(value.barcode, "cartItems.barcode", errors),
+    itemId,
+    barcode,
+    isManual,
+    category: isManual ? requiredText(value.category, "cartItems.category", errors) : undefined,
     metalType: optionalTrimmedText(value.metal_type ?? value.metalType) ?? null,
     purityKarat: optionalPositiveInteger(value.purity_karat ?? value.purityKarat, "cartItems.purity_karat", errors),
     grossWeightMg: optionalPositiveInteger(value.gross_weight_mg ?? value.grossWeightMg, "cartItems.gross_weight_mg", errors),
     netWeightMg: optionalPositiveInteger(value.net_weight_mg ?? value.netWeightMg, "cartItems.net_weight_mg", errors),
-    stoneWeightMg: optionalNonNegativeInteger(value.stone_weight_mg ?? value.stoneWeightMg, "cartItems.stone_weight_mg", errors),
+    stoneWeightMg: optionalNonNegativeInteger(value.stone_weight_mg ?? value.stoneWeightMg, "cartItems.stone_weight_mg", errors) ?? 0,
     metalRatePaisePerGram: requiredNonNegativeInteger(value.metal_rate_paise_per_gram ?? value.metalRatePaisePerGram, "cartItems.metal_rate_paise_per_gram", errors),
     makingChargePaise: requiredNonNegativeInteger(value.making_charge_paise ?? value.makingChargePaise, "cartItems.making_charge_paise", errors),
     wastageChargePaise: optionalNonNegativeInteger(value.wastage_charge_paise ?? value.wastageChargePaise, "cartItems.wastage_charge_paise", errors) ?? 0,
     gstPaise: optionalNonNegativeInteger(value.gst_paise ?? value.gstPaise, "cartItems.gst_paise", errors),
-    itemTotalPaise: requiredNonNegativeInteger(value.item_total_paise ?? value.line_total_paise ?? value.itemTotalPaise ?? value.lineTotalPaise, "cartItems.item_total_paise", errors)
+    itemTotalPaise: requiredNonNegativeInteger(value.item_total_paise ?? value.line_total_paise ?? value.itemTotalPaise ?? value.lineTotalPaise, "cartItems.item_total_paise", errors),
+    makingChargeType: isManual ? (value.making_charge_type === "FLAT" ? "FLAT" : "PER_GRAM") : undefined,
+    makingChargeValue: isManual ? requiredNonNegativeInteger(value.making_charge_value ?? value.makingChargeValue, "cartItems.making_charge_value", errors) : undefined,
+    huid: isManual ? (optionalTrimmedText(value.huid) ?? null) : undefined
   };
 
-  if (line.itemId === undefined || !line.barcode || line.metalRatePaisePerGram === undefined || line.makingChargePaise === undefined || line.itemTotalPaise === undefined) {
+  if ((!isManual && itemId === undefined) || !barcode || line.metalRatePaisePerGram === undefined || line.makingChargePaise === undefined || line.itemTotalPaise === undefined) {
     return undefined;
+  }
+
+  if (isManual) {
+    if (!line.category) return undefined;
+    if (!line.metalType) {
+      errors.push("cartItems.metal_type is required for manual items.");
+      return undefined;
+    }
+    if (!line.purityKarat) {
+      errors.push("cartItems.purity_karat is required for manual items.");
+      return undefined;
+    }
+    if (!line.grossWeightMg) {
+      errors.push("cartItems.gross_weight_mg is required for manual items.");
+      return undefined;
+    }
+    if (!line.netWeightMg) {
+      errors.push("cartItems.net_weight_mg is required for manual items.");
+      return undefined;
+    }
   }
 
   return line as SalesItemPayload;
@@ -2647,7 +2713,7 @@ function calculateLoyaltyPointsEarned(tx: Tx, checkout: CheckoutPayload, setting
   if (mode === "PER_GRAM_GOLD") {
     const pointsPerGram = settings?.loyalty_points_per_gram_gold ?? 1;
     const goldNetWeightMg = checkout.salesItems.reduce((total, line) => {
-      const item = tx.select().from(items).where(eq(items.id, line.itemId)).get();
+      const item = tx.select().from(items).where(eq(items.id, line.itemId as number)).get();
       const metalType = (line.metalType ?? item?.metal_type ?? "").trim().toLowerCase();
       return metalType === "gold" ? total + (line.netWeightMg ?? item?.net_weight_mg ?? 0) : total;
     }, 0);
@@ -3197,6 +3263,22 @@ function maskDocumentNumber(value: string) {
   const suffix = normalized.slice(-4);
 
   return `****${suffix}`;
+}
+
+function formatBarcode(prefix: string, number: number): string {
+  return `${prefix}${String(number).padStart(5, "0")}`;
+}
+
+function getNextManualBarcode(tx: any): string {
+  const prefix = "MAN";
+  const seq = tx.select().from(barcodeSequences).where(eq(barcodeSequences.prefix, prefix)).get();
+  const nextNum = seq ? seq.next_number : 1;
+  if (seq) {
+    tx.update(barcodeSequences).set({ next_number: nextNum + 1 }).where(eq(barcodeSequences.prefix, prefix)).run();
+  } else {
+    tx.insert(barcodeSequences).values({ prefix, next_number: 2 }).run();
+  }
+  return formatBarcode(prefix, nextNum);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

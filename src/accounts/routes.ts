@@ -231,7 +231,14 @@ accountsRouter.get("/ledgers", requireAdmin, (_request, response) => {
 });
 
 accountsRouter.get("/daybook", requireAdmin, (request, response) => {
-  const dateRange = getDateRange(typeof request.query.date === "string" ? request.query.date : undefined);
+  const fromVal = request.query.from_date || request.query.date;
+  const toVal = request.query.to_date || request.query.date;
+
+  const fromStr = typeof fromVal === "string" ? fromVal : undefined;
+  const toStr = typeof toVal === "string" ? toVal : undefined;
+
+  const range = parseDateRange(fromStr, toStr);
+
   const cashBankLedgers = db
     .select()
     .from(ledgers)
@@ -240,13 +247,13 @@ accountsRouter.get("/daybook", requireAdmin, (request, response) => {
   const ledgerIds = cashBankLedgers.map((ledger) => ledger.id);
 
   if (ledgerIds.length === 0) {
-    return response.json(createDaybookResponse(dateRange.date, 0, [], []));
+    return response.json(createDaybookResponse(range.fromDate, 0, [], []));
   }
 
   const priorEntries = db
     .select()
     .from(journalEntries)
-    .where(and(inArray(journalEntries.ledger_id, ledgerIds), lt(journalEntries.created_at, dateRange.start)))
+    .where(and(inArray(journalEntries.ledger_id, ledgerIds), lt(journalEntries.created_at, range.start)))
     .all();
   const dayEntries = db
     .select()
@@ -254,13 +261,13 @@ accountsRouter.get("/daybook", requireAdmin, (request, response) => {
     .where(
       and(
         inArray(journalEntries.ledger_id, ledgerIds),
-        sql`${journalEntries.created_at} >= ${dateRange.start}`,
-        lt(journalEntries.created_at, dateRange.end)
+        sql`${journalEntries.created_at} >= ${range.start}`,
+        lt(journalEntries.created_at, range.end)
       )
     )
     .all();
 
-  return response.json(createDaybookResponse(dateRange.date, calculateEntryNetPaise(priorEntries), dayEntries, cashBankLedgers));
+  return response.json(createDaybookResponse(range.fromDate, calculateEntryNetPaise(priorEntries), dayEntries, cashBankLedgers));
 });
 
 accountsRouter.get("/udhari", requireAdmin, (_request, response) => {

@@ -18,7 +18,7 @@ if (!fs.existsSync(binariesDir)) {
 if (!renameOnly) {
   // Bundle backend to CommonJS using esbuild.
   console.log("Bundling Node.js backend using esbuild...");
-  execSync("npx esbuild ./src/server.ts --bundle --platform=node --target=node18 --outfile=dist/server.cjs --external:better-sqlite3 --external:serialport", { stdio: "inherit" });
+  execSync("npx esbuild ./src/server.ts --bundle --platform=node --target=node18 --outfile=dist/server.cjs --external:better-sqlite3 --external:serialport --external:exceljs", { stdio: "inherit" });
 }
 
 if (bundleOnly) {

@@ -186,7 +186,8 @@ const initialExpense = (): ExpenseForm => ({
 export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBookModuleProps) {
   const { session } = useAuthSession();
   const [activeTab, setActiveTab] = useState<ActiveTab>("daybook");
-  const [selectedDate, setSelectedDate] = useState(getToday());
+  const [daybookFromDate, setDaybookFromDate] = useState(getToday());
+  const [daybookToDate, setDaybookToDate] = useState(getToday());
   const [daybook, setDaybook] = useState<DaybookResponse>(initialDaybook);
   const [expenseDate, setExpenseDate] = useState(getToday());
   const [expenses, setExpenses] = useState<ExpensesResponse | null>(null);
@@ -222,8 +223,8 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
   );
 
   useEffect(() => {
-    void loadDaybook(selectedDate);
-  }, [selectedDate]);
+    void loadDaybook(daybookFromDate, daybookToDate);
+  }, [daybookFromDate, daybookToDate]);
 
   useEffect(() => {
     if (activeTab === "udhari") {
@@ -281,9 +282,9 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
     [udhari]
   );
 
-  async function loadDaybook(date: string) {
+  async function loadDaybook(fromDate: string, toDate: string) {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/accounts/daybook?date=${encodeURIComponent(date)}`, {
+      const response = await fetch(`${apiBaseUrl}/api/accounts/daybook?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}`, {
         headers: authHeaders
       });
       const result = (await response.json().catch(() => null)) as DaybookResponse | { errors?: string[] } | null;
@@ -462,7 +463,7 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
       setMessage("Voucher saved successfully.");
       setLastVoucherPdfId(typeof result?.voucher?.id === "number" ? result.voucher.id : null);
       setVoucher(initialVoucher());
-      void loadDaybook(selectedDate);
+      void loadDaybook(daybookFromDate, daybookToDate);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save voucher.");
     }
@@ -501,7 +502,7 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
       setExpenseDate(expenseForm.expenseDate);
       setExpenseForm((current) => ({ ...initialExpense(), expenseDate: current.expenseDate }));
       void loadExpenses(expenseForm.expenseDate);
-      void loadDaybook(selectedDate);
+      void loadDaybook(daybookFromDate, daybookToDate);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save expense.");
     }
@@ -637,8 +638,10 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
 
         {activeTab === "daybook" && (
           <DaybookView
-            date={selectedDate}
-            setDate={setSelectedDate}
+            fromDate={daybookFromDate}
+            setFromDate={setDaybookFromDate}
+            toDate={daybookToDate}
+            setToDate={setDaybookToDate}
             daybook={daybook}
           />
         )}
@@ -723,19 +726,81 @@ export default function AccountsDayBookModule({ apiBaseUrl = "" }: AccountsDayBo
 }
 
 function DaybookView({
-  date,
-  setDate,
+  fromDate,
+  setFromDate,
+  toDate,
+  setToDate,
   daybook
 }: {
-  date: string;
-  setDate: (date: string) => void;
+  fromDate: string;
+  setFromDate: (date: string) => void;
+  toDate: string;
+  setToDate: (date: string) => void;
   daybook: DaybookResponse;
 }) {
   return (
     <div className="grid h-full grid-rows-[auto_auto_1fr]">
-      <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900 px-3 py-2">
-        <label className="text-xs font-semibold uppercase text-slate-400">Date</label>
-        <DateInput value={date} onChange={setDate} className={controlClassName} />
+      <div className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-900 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold uppercase text-slate-400">From</label>
+          <DateInput value={fromDate} onChange={setFromDate} className={controlClassName} />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold uppercase text-slate-400">To</label>
+          <DateInput value={toDate} onChange={setToDate} className={controlClassName} />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 border-l border-slate-800 pl-4">
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date().toISOString().slice(0, 10);
+              setFromDate(today);
+              setToDate(today);
+            }}
+            className="rounded bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-300 hover:bg-slate-750 active:scale-95 transition-all"
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const twoWeeksAgo = new Date();
+              twoWeeksAgo.setDate(today.getDate() - 14);
+              setFromDate(twoWeeksAgo.toISOString().slice(0, 10));
+              setToDate(today.toISOString().slice(0, 10));
+            }}
+            className="rounded bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-300 hover:bg-slate-750 active:scale-95 transition-all"
+          >
+            2 Weeks
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const oneMonthAgo = new Date();
+              oneMonthAgo.setMonth(today.getMonth() - 1);
+              setFromDate(oneMonthAgo.toISOString().slice(0, 10));
+              setToDate(today.toISOString().slice(0, 10));
+            }}
+            className="rounded bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-300 hover:bg-slate-750 active:scale-95 transition-all"
+          >
+            1 Month
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const twoMonthsAgo = new Date();
+              twoMonthsAgo.setMonth(today.getMonth() - 2);
+              setFromDate(twoMonthsAgo.toISOString().slice(0, 10));
+              setToDate(today.toISOString().slice(0, 10));
+            }}
+            className="rounded bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-300 hover:bg-slate-750 active:scale-95 transition-all"
+          >
+            2 Months
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-4 border-b border-slate-800">
         <MetricBox label="Opening Balance" value={formatPaise(daybook.opening_balance_paise)} />
