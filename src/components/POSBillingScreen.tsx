@@ -157,6 +157,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   const [customerListOpen, setCustomerListOpen] = useState(false);
   const [walkInName, setWalkInName] = useState("");
   const [itemQuery, setItemQuery] = useState("");
+  const [showQuickBill, setShowQuickBill] = useState(false);
   const [showCreditConfirm, setShowCreditConfirm] = useState(false);
   const [printContext, setPrintContext] = useState<{ phone: string | null; invoiceNumber: string } | null>(null);
   const [scanNotice, setScanNotice] = useState("");
@@ -883,6 +884,16 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
               placeholder="Type barcode / HUID + Enter to add"
               className="h-8 w-64 border border-slate-700 bg-slate-950 px-2 text-xs text-slate-50 outline-none focus:border-emerald-400"
             />
+            {/* Escape hatch for an item that was never tagged into inventory:
+                creates a real IN_STOCK item on the fly, then adds it to the cart. */}
+            <button
+              type="button"
+              onClick={() => setShowQuickBill(true)}
+              title="Bill an item that is not yet in inventory"
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded border border-emerald-700 bg-emerald-950/40 px-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900/50 active:scale-95"
+            >
+              <Plus className="h-3.5 w-3.5" /> Quick Bill
+            </button>
             {scanNotice ? (
               <span className="animate-fade-in shrink-0 rounded bg-rose-950/60 px-2 py-0.5 text-[11px] font-semibold text-rose-300">{scanNotice}</span>
             ) : (
@@ -1139,6 +1150,21 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
           onSaved={handleCustomerSaved}
         />
       )}
+
+      {showQuickBill && (
+        <QuickBillItemModal
+          apiBaseUrl={apiBaseUrl}
+          authHeaders={authHeaders}
+          onCreated={async (barcode) => {
+            const added = await appendScannedItem(barcode);
+            if (added) {
+              setShowQuickBill(false);
+              setMessage(`Quick item ${barcode} created and added to the bill.`);
+            }
+          }}
+          onClose={() => setShowQuickBill(false)}
+        />
+      )}
     </form>
   );
 }
@@ -1185,6 +1211,188 @@ function PaymentInput({ label, value, onChange }: { label: string; value: string
       <span className="font-semibold uppercase text-slate-400">{label}</span>
       <input value={value} onChange={(event) => onChange(sanitizeDecimalInput(event.target.value))} className={tableInputClassName} inputMode="decimal" />
     </label>
+  );
+}
+
+// Quick Bill — create a real IN_STOCK item on the spot for a piece that was
+// never tagged into inventory, then hand its barcode back so the parent adds it
+// to the cart. Reuses /api/inventory/barcode/create (the Barcode Desk endpoint),
+// so the item is an ordinary stock row and checkout marks it SOLD with a full
+// audit trail — no schema change, no nullable invoice line.
+function QuickBillItemModal({
+  apiBaseUrl,
+  authHeaders,
+  onCreated,
+  onClose
+}: {
+  apiBaseUrl: string;
+  authHeaders: Record<string, string>;
+  onCreated: (barcode: string) => void | Promise<void>;
+  onClose: () => void;
+}) {
+  const [mode, setMode] = useState<"WEIGHT_WISE" | "FLAT">("WEIGHT_WISE");
+  const [category, setCategory] = useState("");
+  const [metalType, setMetalType] = useState("Gold");
+  const [purityKarat, setPurityKarat] = useState("22");
+  const [grossWeightG, setGrossWeightG] = useState("");
+  const [stoneWeightG, setStoneWeightG] = useState("0");
+  const [makingType, setMakingType] = useState<"PER_GRAM" | "FLAT">("FLAT");
+  const [makingValue, setMakingValue] = useState("");
+  const [huid, setHuid] = useState("");
+  const [flatDescription, setFlatDescription] = useState("");
+  const [flatAmount, setFlatAmount] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  const netWeightMg = Math.max(gramsToMg(grossWeightG) - gramsToMg(stoneWeightG), 0);
+
+  async function submit() {
+    setErrors([]);
+    const localErrors: string[] = [];
+    let body: Record<string, unknown>;
+
+    if (mode === "FLAT") {
+      const cat = flatDescription.trim();
+      const amountPaise = rupeesToPaise(flatAmount);
+      if (!cat) localErrors.push("Description is required.");
+      if (amountPaise <= 0) localErrors.push("Amount must be greater than zero.");
+      body = {
+        quantity: 1,
+        sale_mode: "QUANTITY_WISE",
+        uom: "PIECE",
+        category: cat,
+        metal_type: "NA",
+        unit_price_paise: amountPaise
+      };
+    } else {
+      const cat = category.trim();
+      const purity = Number(purityKarat);
+      const grossMg = gramsToMg(grossWeightG);
+      if (!cat) localErrors.push("Category is required.");
+      if (!Number.isInteger(purity) || purity <= 0) localErrors.push("Purity must be a whole number greater than zero.");
+      if (grossMg <= 0) localErrors.push("Gross weight must be greater than zero.");
+      if (netWeightMg <= 0) localErrors.push("Net weight must be greater than zero after the stone deduction.");
+      if (huid.trim() && !/^[A-Z0-9]{6}$/.test(huid.trim())) localErrors.push("HUID must be exactly 6 uppercase alphanumeric characters.");
+      body = {
+        quantity: 1,
+        sale_mode: "WEIGHT_WISE",
+        category: cat,
+        metal_type: metalType,
+        purity_karat: purity,
+        gross_weight_mg: grossMg,
+        stone_weight_mg: gramsToMg(stoneWeightG),
+        making_charge_type: makingType,
+        making_charge_value: rupeesToPaise(makingValue),
+        ...(huid.trim() ? { huid: huid.trim() } : {})
+      };
+    }
+
+    if (localErrors.length > 0) {
+      setErrors(localErrors);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/inventory/barcode/create`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const result = (await response.json().catch(() => null)) as { items?: { barcode: string }[]; errors?: string[] } | null;
+      if (!response.ok || !result?.items?.length) {
+        setErrors(result?.errors ?? ["Could not create the item."]);
+        return;
+      }
+      await onCreated(result.items[0].barcode);
+    } catch {
+      setErrors(["Could not create the item. Check the connection and try again."]);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const tabClassName = (active: boolean) =>
+    `flex-1 rounded px-3 py-1.5 text-xs font-semibold uppercase transition ${active ? "bg-emerald-500 text-slate-950" : "bg-slate-900 text-slate-400 hover:text-slate-200"}`;
+
+  return (
+    <div className="animate-fade-in fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={onClose}>
+      <div className="animate-scale-in grid w-full max-w-md gap-3 rounded-lg border border-slate-700 bg-slate-950 p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase text-slate-50">Quick Bill — Untagged Item</h2>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-200">✕</button>
+        </div>
+
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setMode("WEIGHT_WISE")} className={tabClassName(mode === "WEIGHT_WISE")}>Weight-wise</button>
+          <button type="button" onClick={() => setMode("FLAT")} className={tabClassName(mode === "FLAT")}>Flat price</button>
+        </div>
+
+        {mode === "WEIGHT_WISE" ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Category">
+              <input value={category} onChange={(event) => setCategory(event.target.value)} placeholder="e.g. Ring" className={controlClassName} />
+            </Field>
+            <Field label="Metal">
+              <select value={metalType} onChange={(event) => setMetalType(event.target.value)} className={controlClassName}>
+                <option value="Gold">Gold</option>
+                <option value="Silver">Silver</option>
+                <option value="Platinum">Platinum</option>
+              </select>
+            </Field>
+            <Field label="Purity (K)">
+              <input value={purityKarat} onChange={(event) => setPurityKarat(event.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" className={controlClassName} />
+            </Field>
+            <Field label="HUID (optional)">
+              <input value={huid} onChange={(event) => setHuid(event.target.value.toUpperCase())} maxLength={6} placeholder="6 chars" className={controlClassName} />
+            </Field>
+            <Field label="Gross Wt (g)">
+              <input value={grossWeightG} onChange={(event) => setGrossWeightG(sanitizeDecimalInput(event.target.value))} inputMode="decimal" className={controlClassName} />
+            </Field>
+            <Field label="Stone / Less (g)">
+              <input value={stoneWeightG} onChange={(event) => setStoneWeightG(sanitizeDecimalInput(event.target.value))} inputMode="decimal" className={controlClassName} />
+            </Field>
+            <Field label="Making Type">
+              <select value={makingType} onChange={(event) => setMakingType(event.target.value as "PER_GRAM" | "FLAT")} className={controlClassName}>
+                <option value="FLAT">Flat (₹)</option>
+                <option value="PER_GRAM">Per gram (₹/g)</option>
+              </select>
+            </Field>
+            <Field label="Making (₹)">
+              <input value={makingValue} onChange={(event) => setMakingValue(sanitizeDecimalInput(event.target.value))} inputMode="decimal" className={controlClassName} />
+            </Field>
+            <div className="col-span-2 flex justify-between border-t border-slate-800 pt-2 text-xs">
+              <span className="font-semibold uppercase text-slate-400">Net Weight</span>
+              <span className="font-mono text-slate-200">{formatMg(netWeightMg)} g</span>
+            </div>
+            <p className="col-span-2 text-[11px] text-slate-500">Metal rate inherits today&rsquo;s rate in the cart and can be edited on the line.</p>
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            <Field label="Description">
+              <input value={flatDescription} onChange={(event) => setFlatDescription(event.target.value)} placeholder="e.g. Gift box" className={controlClassName} />
+            </Field>
+            <Field label="Flat Amount (₹)">
+              <input value={flatAmount} onChange={(event) => setFlatAmount(sanitizeDecimalInput(event.target.value))} inputMode="decimal" className={controlClassName} />
+            </Field>
+            <p className="text-[11px] text-slate-500">Sold as a single fixed-price piece — no weight or metal detail.</p>
+          </div>
+        )}
+
+        {errors.length > 0 && (
+          <ul className="grid gap-0.5 rounded border border-rose-800 bg-rose-950/40 px-2 py-1.5 text-[11px] text-rose-300">
+            {errors.map((err) => <li key={err}>{err}</li>)}
+          </ul>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 active:scale-95">Cancel</button>
+          <button type="button" onClick={() => void submit()} disabled={saving} className="rounded bg-emerald-500 px-4 py-2 text-xs font-bold uppercase text-slate-950 transition hover:bg-emerald-400 active:scale-95 disabled:opacity-50">
+            {saving ? "Saving…" : "Create & Add"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
