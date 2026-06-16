@@ -2,7 +2,7 @@ import { and, eq, like, or, sql, type SQL } from "drizzle-orm";
 import { Router } from "express";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
-import { barcodeSequences, items, stockVerificationScans, stockVerificationSessions, scannerAuditLogs, itemGroups, itemDefinitions } from "../db/schema.js";
+import { barcodeSequences, items, stockVerificationScans, stockVerificationSessions, scannerAuditLogs, itemGroups, itemDefinitions, huidLifecycleEvents } from "../db/schema.js";
 import { milligramsToGrams, paiseToRupees } from "../utils/decimal.js";
 
 export const inventoryRouter = Router();
@@ -165,6 +165,8 @@ inventoryRouter.post("/barcode/create", requireAuth, (request, response) => {
     return response.status(400).json({ errors: validation.errors });
   }
 
+  const userId = (request as AuthenticatedRequest).user.id;
+
   const createdItems = db.transaction((tx) => {
     const sequence = tx.query.barcodeSequences.findFirst({
       where: eq(barcodeSequences.prefix, validation.payload.prefix)
@@ -184,35 +186,53 @@ inventoryRouter.post("/barcode/create", requireAuth, (request, response) => {
         throw new Error(`Barcode or HUID already exists: ${barcode}`);
       }
 
-      rows.push(
-        tx.insert(items)
+      const hallmarked = validation.payload.huidStatus === "HUID_RECEIVED";
+      const inserted = tx.insert(items)
+        .values({
+          barcode,
+          huid,
+          category: validation.payload.category,
+          metal_type: validation.payload.metalType,
+          purity_karat: validation.payload.purityKarat,
+          gross_weight_mg: validation.payload.grossWeightMg,
+          stone_weight_mg: validation.payload.stoneWeightMg,
+          black_bead_weight_mg: validation.payload.blackBeadWeightMg,
+          net_weight_mg: validation.payload.netWeightMg,
+          final_weight_mg: validation.payload.finalWeightMg,
+          fine_weight_mg: validation.payload.fineWeightMg,
+          making_charge_type: validation.payload.makingChargeType,
+          making_charge_value: validation.payload.makingChargeValue,
+          hallmark_charge_paise: validation.payload.hallmarkChargePaise,
+          design_name: validation.payload.designName,
+          tag_prefix: validation.payload.prefix,
+          tag_number: tagNumber,
+          location: validation.payload.location,
+          status: "IN_STOCK",
+          huid_status: validation.payload.huidStatus,
+          hallmark_returned_at: hallmarked ? new Date().toISOString().slice(0, 10) : undefined,
+          sale_mode: validation.payload.saleMode,
+          uom: validation.payload.uom,
+          unit_price_paise: validation.payload.unitPricePaise
+        })
+        .returning()
+        .get();
+      rows.push(inserted);
+
+      // Record the hallmark attestation in the HUID lifecycle log so a quick-billed
+      // already-hallmarked piece carries the same audit trail as the BIS-return flow.
+      if (hallmarked) {
+        tx.insert(huidLifecycleEvents)
           .values({
-            barcode,
-            huid,
-            category: validation.payload.category,
-            metal_type: validation.payload.metalType,
-            purity_karat: validation.payload.purityKarat,
-            gross_weight_mg: validation.payload.grossWeightMg,
-            stone_weight_mg: validation.payload.stoneWeightMg,
-            black_bead_weight_mg: validation.payload.blackBeadWeightMg,
-            net_weight_mg: validation.payload.netWeightMg,
-            final_weight_mg: validation.payload.finalWeightMg,
-            fine_weight_mg: validation.payload.fineWeightMg,
-            making_charge_type: validation.payload.makingChargeType,
-            making_charge_value: validation.payload.makingChargeValue,
-            hallmark_charge_paise: validation.payload.hallmarkChargePaise,
-            design_name: validation.payload.designName,
-            tag_prefix: validation.payload.prefix,
-            tag_number: tagNumber,
-            location: validation.payload.location,
-            status: "IN_STOCK",
-            sale_mode: validation.payload.saleMode,
-            uom: validation.payload.uom,
-            unit_price_paise: validation.payload.unitPricePaise
+            item_id: inserted.id,
+            from_status: "NOT_APPLIED",
+            to_status: "HUID_RECEIVED",
+            event_type: "HUID_ATTESTED",
+            remarks: "HUID attested at point of sale (Quick Bill).",
+            huid: huid ?? null,
+            created_by: userId
           })
-          .returning()
-          .get()
-      );
+          .run();
+      }
     }
 
     if (sequence) {
@@ -613,6 +633,7 @@ type BarcodeCreateValidation =
         saleMode: "WEIGHT_WISE" | "QUANTITY_WISE";
         uom: "GRAM" | "CARAT" | "PIECE";
         unitPricePaise: number;
+        huidStatus: "NOT_APPLIED" | "HUID_RECEIVED";
       };
     }
   | { ok: false; errors: string[] };
@@ -652,6 +673,19 @@ function validateBarcodeCreatePayload(payload: unknown): BarcodeCreateValidation
     errors.push("huid must be exactly 6 uppercase alphanumeric characters.");
   }
 
+  // Attestation that the physical piece already carries a hallmark (HUID).
+  // Used by POS Quick Bill so an already-hallmarked but never-tagged gold item
+  // can be sold. Requires a valid HUID on a single tag; recorded in the HUID
+  // lifecycle log by the caller. Without it the item stays NOT_APPLIED.
+  const markHallmarked = payload.mark_hallmarked === true;
+  if (markHallmarked && (!huid || !HUID_PATTERN.test(huid))) {
+    errors.push("A valid HUID is required to mark an item as hallmarked.");
+  }
+  if (markHallmarked && quantity > 1) {
+    errors.push("Only a single item can be marked hallmarked at a time.");
+  }
+  const huidStatus: "NOT_APPLIED" | "HUID_RECEIVED" = markHallmarked ? "HUID_RECEIVED" : "NOT_APPLIED";
+
   // Quantity-wise (per-piece) tags: weights optional, unit price required.
   if (saleMode === "QUANTITY_WISE") {
     const unitPricePaise = requiredPositiveInteger(payload.unit_price_paise, "unit_price_paise", errors);
@@ -686,7 +720,8 @@ function validateBarcodeCreatePayload(payload: unknown): BarcodeCreateValidation
         location,
         saleMode,
         uom,
-        unitPricePaise
+        unitPricePaise,
+        huidStatus
       }
     };
   }
@@ -735,7 +770,8 @@ function validateBarcodeCreatePayload(payload: unknown): BarcodeCreateValidation
       location,
       saleMode,
       uom,
-      unitPricePaise: 0
+      unitPricePaise: 0,
+      huidStatus
     }
   };
 }

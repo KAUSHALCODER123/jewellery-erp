@@ -1268,11 +1268,16 @@ function QuickBillItemModal({
       const cat = category.trim();
       const purity = Number(purityKarat);
       const grossMg = gramsToMg(grossWeightG);
+      const isGold = metalType.toLowerCase() === "gold";
+      const trimmedHuid = huid.trim();
       if (!cat) localErrors.push("Category is required.");
       if (!Number.isInteger(purity) || purity <= 0) localErrors.push("Purity must be a whole number greater than zero.");
       if (grossMg <= 0) localErrors.push("Gross weight must be greater than zero.");
       if (netWeightMg <= 0) localErrors.push("Net weight must be greater than zero after the stone deduction.");
-      if (huid.trim() && !/^[A-Z0-9]{6}$/.test(huid.trim())) localErrors.push("HUID must be exactly 6 uppercase alphanumeric characters.");
+      if (trimmedHuid && !/^[A-Z0-9]{6}$/.test(trimmedHuid)) localErrors.push("HUID must be exactly 6 uppercase alphanumeric characters.");
+      // Gold can only be sold if hallmarked, so a HUID is mandatory here — the
+      // cashier enters the HUID stamped on the physical piece, attesting it.
+      if (isGold && !trimmedHuid) localErrors.push("HUID is required for gold (BIS hallmarking). Enter the HUID stamped on the piece, or bill it as Flat price.");
       body = {
         quantity: 1,
         sale_mode: "WEIGHT_WISE",
@@ -1283,7 +1288,9 @@ function QuickBillItemModal({
         stone_weight_mg: gramsToMg(stoneWeightG),
         making_charge_type: makingType,
         making_charge_value: rupeesToPaise(makingValue),
-        ...(huid.trim() ? { huid: huid.trim() } : {})
+        // A provided HUID means the piece is already hallmarked; mark it so it
+        // passes the POS hallmark guard at checkout.
+        ...(trimmedHuid ? { huid: trimmedHuid, mark_hallmarked: true } : {})
       };
     }
 
@@ -1343,7 +1350,7 @@ function QuickBillItemModal({
             <Field label="Purity (K)">
               <input value={purityKarat} onChange={(event) => setPurityKarat(event.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" className={controlClassName} />
             </Field>
-            <Field label="HUID (optional)">
+            <Field label={metalType.toLowerCase() === "gold" ? "HUID (required for gold)" : "HUID (optional)"}>
               <input value={huid} onChange={(event) => setHuid(event.target.value.toUpperCase())} maxLength={6} placeholder="6 chars" className={controlClassName} />
             </Field>
             <Field label="Gross Wt (g)">
@@ -1366,6 +1373,9 @@ function QuickBillItemModal({
               <span className="font-mono text-slate-200">{formatMg(netWeightMg)} g</span>
             </div>
             <p className="col-span-2 text-[11px] text-slate-500">Metal rate inherits today&rsquo;s rate in the cart and can be edited on the line.</p>
+            {metalType.toLowerCase() === "gold" && (
+              <p className="col-span-2 text-[11px] text-amber-400">Gold can only be sold if hallmarked. Enter the HUID stamped on the piece — that attests it is hallmarked. No HUID? It can&rsquo;t be POS-sold until hallmarked (or bill it as Flat price).</p>
+            )}
           </div>
         ) : (
           <div className="grid gap-2">
