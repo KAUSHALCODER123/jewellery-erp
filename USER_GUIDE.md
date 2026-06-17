@@ -191,9 +191,22 @@ The core daily screen. Three columns: **Customer (left) · Cart (center) · Paym
    - Optionally collect **Old Dues**, redeem **Loyalty Points**, and set **Invoice Details**
      (prefix, manual number, due date, salesman, "GST Not Required" checkbox).
 3. **Build the cart (center):**
-   - **Scan the item's barcode** (it auto-adds), or search by name.
+   - **Scan the item's barcode** (it auto-adds), or type the barcode/HUID in the box and press
+     **Enter** (use this when the scanner is unplugged or a tag is damaged).
+   - **Quick Bill** (item not yet in inventory): click **Quick Bill** to create and add an
+     untagged item on the spot. Two modes:
+     - **Weight-wise** — Category, Metal, Purity, Gross/Stone weight, Making. For **gold the HUID
+       is required** (enter the 6-character HUID stamped on the piece — see the hallmark note below).
+     - **Flat price** — a Description and a fixed amount, for a non-gold or fixed-price article.
+     The item is created as live stock and added to the cart; checkout marks it **SOLD** like any other.
    - Each row lets you adjust the **Metal Rate** and **Making** charge, or remove the line (trash icon).
    - **Old Gold exchange:** under URD, enter Description / Tunch / Weight / Rate → **Add** to deduct it.
+
+   > **Gold & hallmarking (HUID):** Indian BIS law allows a gold item to be sold only if it is
+   > hallmarked — it must carry a valid 6-character **HUID** and a hallmarked status. Normally
+   > tagged stock is hallmarked through the BIS flow. For a Quick Bill gold item, entering the HUID
+   > stamped on the piece marks it hallmarked so it can be billed. **Gold with no HUID cannot be
+   > sold at POS** — get it hallmarked first, or bill it as **Flat price**.
 4. **Take payment (right):**
    - Review **Total Gross**, apply a **Total Discount**, see **Net Payable**.
    - Enter a **split payment**: Cash / UPI / Card / Udhari (credit), with reference fields.
