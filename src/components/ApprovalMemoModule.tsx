@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardList, PackageCheck, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { ClipboardList, PackageCheck, Plus, RotateCcw, Search, Trash2, X, ReceiptIndianRupee } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuthSession } from "../auth/AuthSessionContext.js";
 import { DateInput } from "./ui.js";
 
@@ -33,12 +34,14 @@ type MemoLine = {
   estimated_value_rupees: string;
   line_status: "OUT" | "RETURNED" | "SOLD";
   returned_at: string | null;
+  invoice_id: number | null;
 };
 
 type Memo = {
   id: number;
   memo_number: string;
   memo_type: "CUSTOMER" | "OUTWARD";
+  customer_id: number | null;
   party_name: string;
   party_phone: string | null;
   issue_date: string;
@@ -72,6 +75,7 @@ function rupeesToPaise(value: string): number {
 
 export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModuleProps) {
   const { session } = useAuthSession();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ActiveTab>("register");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -80,6 +84,10 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
   const [memoType, setMemoType] = useState<"CUSTOMER" | "OUTWARD">("CUSTOMER");
   const [partyName, setPartyName] = useState("");
   const [partyPhone, setPartyPhone] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const [matchingCustomers, setMatchingCustomers] = useState<{ id: number; name: string; phone: string }[]>([]);
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
   const [issueDate, setIssueDate] = useState(todayIso());
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -101,18 +109,92 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
 
   const loadMemos = useCallback(async () => {
     try {
-      const qs = statusFilter ? `?status=${statusFilter}` : "";
-      const res = await fetch(`${apiBaseUrl}/api/approvals${qs}`, { headers: authHeaders });
+      const res = await fetch(`${apiBaseUrl}/api/approvals`, { headers: authHeaders });
       const data = await res.json();
       setMemos(res.ok && Array.isArray(data.memos) ? data.memos : []);
     } catch {
       setMemos([]);
     }
-  }, [apiBaseUrl, authHeaders, statusFilter]);
+  }, [apiBaseUrl, authHeaders]);
 
   useEffect(() => {
     if (activeTab === "register") void loadMemos();
   }, [activeTab, loadMemos]);
+
+  // Debounced customer lookup
+  useEffect(() => {
+    if (activeTab !== "issue" || memoType !== "CUSTOMER") return;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/approvals/customers?search=${encodeURIComponent(customerSearchQuery)}`, { headers: authHeaders });
+        const data = await res.json();
+        setMatchingCustomers(res.ok && Array.isArray(data.customers) ? data.customers : []);
+      } catch {
+        setMatchingCustomers([]);
+      }
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [activeTab, memoType, customerSearchQuery, apiBaseUrl, authHeaders]);
+
+  const selectCustomer = (customer: { id: number; name: string; phone: string } | null) => {
+    if (customer) {
+      setSelectedCustomerId(customer.id);
+      setCustomerSearchQuery(customer.name);
+      setPartyName(customer.name);
+      setPartyPhone(customer.phone || "");
+    } else {
+      setSelectedCustomerId(null);
+      setCustomerSearchQuery("");
+      setPartyName("");
+      setPartyPhone("");
+    }
+    setCustomerDropdownOpen(false);
+  };
+
+  const filteredMemos = useMemo(() => {
+    if (!statusFilter) return memos;
+    return memos.filter((m) => m.status === statusFilter);
+  }, [memos, statusFilter]);
+
+  const stats = useMemo(() => {
+    let pendingMemos = 0;
+    let convertedMemos = 0;
+    let closedMemos = 0;
+    let totalPendingPaise = 0;
+    let totalSoldPaise = 0;
+    let totalReturnedPaise = 0;
+
+    for (const memo of memos) {
+      if (memo.status === "OPEN" || memo.status === "PARTIAL") {
+        pendingMemos += 1;
+      } else if (memo.status === "CONVERTED") {
+        convertedMemos += 1;
+      } else if (memo.status === "CLOSED") {
+        closedMemos += 1;
+      }
+
+      for (const line of memo.lines) {
+        const valPaise = rupeesToPaise(line.estimated_value_rupees || "0");
+        if (line.line_status === "OUT") {
+          totalPendingPaise += valPaise;
+        } else if (line.line_status === "SOLD") {
+          totalSoldPaise += valPaise;
+        } else if (line.line_status === "RETURNED") {
+          totalReturnedPaise += valPaise;
+        }
+      }
+    }
+
+    return {
+      pendingMemos,
+      convertedMemos,
+      closedMemos,
+      totalMemos: memos.length,
+      pendingValRs: (totalPendingPaise / 100).toFixed(2),
+      soldValRs: (totalSoldPaise / 100).toFixed(2),
+      returnedValRs: (totalReturnedPaise / 100).toFixed(2)
+    };
+  }, [memos]);
 
   // Debounced available-item search
   useEffect(() => {
@@ -141,6 +223,8 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
   const resetIssueForm = () => {
     setPartyName("");
     setPartyPhone("");
+    setSelectedCustomerId(null);
+    setCustomerSearchQuery("");
     setIssueDate(todayIso());
     setDueDate("");
     setNotes("");
@@ -167,6 +251,7 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
         headers: { ...authHeaders, "Content-Type": "application/json" },
         body: JSON.stringify({
           memo_type: memoType,
+          customer_id: selectedCustomerId,
           party_name: partyName.trim(),
           party_phone: partyPhone.trim() || null,
           issue_date: issueDate,
@@ -268,10 +353,49 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                   <option value="OUTWARD">Outward / Other Jeweller / Exhibition</option>
                 </select>
               </label>
-              <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
-                {memoType === "CUSTOMER" ? "Customer Name" : "Party / Firm Name"}
-                <input value={partyName} onChange={(e) => setPartyName(e.target.value)} className={controlClassName} required />
-              </label>
+              <div className="relative">
+                <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
+                  {memoType === "CUSTOMER" ? "Customer Name" : "Party / Firm Name"}
+                  <input
+                    value={partyName}
+                    onChange={(e) => {
+                      setPartyName(e.target.value);
+                      if (memoType === "CUSTOMER") {
+                        setCustomerSearchQuery(e.target.value);
+                        setSelectedCustomerId(null);
+                        setCustomerDropdownOpen(true);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (memoType === "CUSTOMER") setCustomerDropdownOpen(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setCustomerDropdownOpen(false), 200);
+                    }}
+                    className={controlClassName}
+                    required
+                  />
+                </label>
+                {customerDropdownOpen && memoType === "CUSTOMER" && matchingCustomers.length > 0 && (
+                  <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-sm border border-slate-700 bg-slate-900 shadow-lg shadow-black/40">
+                    {matchingCustomers.map((cust) => (
+                      <li key={cust.id}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            selectCustomer(cust);
+                          }}
+                          className="block w-full px-2 py-1.5 text-left text-xs text-slate-100 hover:bg-slate-800 transition-colors"
+                        >
+                          <span className="font-medium">{cust.name}</span>
+                          {cust.phone ? <span className="text-slate-500 font-mono"> — {cust.phone}</span> : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <label className="grid gap-1 text-[10px] font-bold uppercase text-slate-400">
                 Phone
                 <input value={partyPhone} onChange={(e) => setPartyPhone(e.target.value)} className={controlClassName} />
@@ -380,7 +504,38 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
             </aside>
           </form>
         ) : (
-          <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
+          <div className="grid h-full grid-rows-[auto_auto_1fr] overflow-hidden">
+            {/* Mini Dashboard */}
+            <div className="grid grid-cols-3 gap-3 border-b border-slate-800 bg-slate-900/40 p-4">
+              <div className="rounded-lg border border-slate-800 bg-slate-950 p-3 flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-amber-400 tracking-wider">Pending Approvals</span>
+                  <div className="text-xl font-bold text-slate-50 mt-1">{stats.pendingMemos} <span className="text-xs font-normal text-slate-400">memos</span></div>
+                </div>
+                <div className="text-xs text-slate-400 mt-2">
+                  Out value: <span className="font-mono text-amber-300 font-semibold text-[10px]">Rs {stats.pendingValRs}</span>
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-950 p-3 flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-emerald-400 tracking-wider">Billed / Sold</span>
+                  <div className="text-xl font-bold text-slate-50 mt-1">{stats.convertedMemos} <span className="text-xs font-normal text-slate-400">memos</span></div>
+                </div>
+                <div className="text-xs text-slate-400 mt-2">
+                  Sold value: <span className="font-mono text-emerald-300 font-semibold text-[10px]">Rs {stats.soldValRs}</span>
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-950 p-3 flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Returned to Stock</span>
+                  <div className="text-xl font-bold text-slate-50 mt-1">{stats.closedMemos} <span className="text-xs font-normal text-slate-400">memos</span></div>
+                </div>
+                <div className="text-xs text-slate-400 mt-2">
+                  Returned value: <span className="font-mono text-slate-300 font-semibold text-[10px]">Rs {stats.returnedValRs}</span>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900/60 px-4 py-2">
               <span className="text-[10px] font-bold uppercase text-slate-400">Filter</span>
               {(["OPEN", "PARTIAL", "CONVERTED", "CLOSED", ""] as const).map((s) => (
@@ -390,11 +545,11 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
               ))}
             </div>
             <div className="min-h-0 overflow-auto p-4">
-              {memos.length === 0 ? (
+              {filteredMemos.length === 0 ? (
                 <p className="text-center text-slate-500 py-16 uppercase text-xs font-semibold">No memos in this view.</p>
               ) : (
                 <div className="grid gap-3">
-                  {memos.map((memo) => {
+                  {filteredMemos.map((memo) => {
                     const expanded = expandedId === memo.id;
                     const busy = busyMemo === memo.id;
                     const outLines = memo.lines.filter((l) => l.line_status === "OUT");
@@ -456,16 +611,48 @@ export default function ApprovalMemoModule({ apiBaseUrl = "" }: ApprovalMemoModu
                                 ))}
                               </tbody>
                             </table>
-                            {outLines.length > 0 && (
-                              <div className="mt-3 flex justify-end gap-2">
-                                <button type="button" disabled={busy} onClick={() => returnLines(memo, null)} className="flex items-center gap-1 rounded border border-slate-700 px-3 py-1.5 text-[11px] font-semibold uppercase text-slate-200 hover:bg-slate-800 disabled:opacity-50">
-                                  <RotateCcw size={13} /> Return All to Stock
-                                </button>
-                                <button type="button" disabled={busy} onClick={() => convertLines(memo, null)} className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:opacity-50">
-                                  <PackageCheck size={13} /> Mark All Sold
-                                </button>
-                              </div>
-                            )}
+                            {(() => {
+                              const soldUnbilledLines = memo.lines.filter((l) => l.line_status === "SOLD" && !l.invoice_id);
+                              if (outLines.length === 0 && soldUnbilledLines.length === 0) return null;
+                              return (
+                                <div className="mt-3 flex justify-end gap-2">
+                                  {soldUnbilledLines.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigate("/pos", {
+                                          state: {
+                                            approvalMemoId: memo.id,
+                                            memoNumber: memo.memo_number,
+                                            customerId: memo.customer_id,
+                                            partyName: memo.party_name,
+                                            partyPhone: memo.party_phone,
+                                            items: soldUnbilledLines.map((line) => ({
+                                              id: line.item_id,
+                                              barcode: line.barcode,
+                                              description: line.description
+                                            }))
+                                          }
+                                        });
+                                      }}
+                                      className="flex items-center gap-1 rounded bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-950 transition-colors cursor-pointer"
+                                    >
+                                      <ReceiptIndianRupee size={13} /> Bill Sold Items in POS
+                                    </button>
+                                  )}
+                                  {outLines.length > 0 && (
+                                    <>
+                                      <button type="button" disabled={busy} onClick={() => returnLines(memo, null)} className="flex items-center gap-1 rounded border border-slate-700 px-3 py-1.5 text-[11px] font-semibold uppercase text-slate-200 hover:bg-slate-800 disabled:opacity-50 cursor-pointer">
+                                        <RotateCcw size={13} /> Return All to Stock
+                                      </button>
+                                      <button type="button" disabled={busy} onClick={() => convertLines(memo, null)} className="flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 text-[11px] font-bold uppercase text-slate-50 hover:bg-emerald-400 disabled:opacity-50 cursor-pointer">
+                                        <PackageCheck size={13} /> Mark All Sold
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>

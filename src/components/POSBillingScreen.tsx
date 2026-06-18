@@ -139,6 +139,9 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   // Set when arriving from "Convert to Invoice" on a booked order: its collected
   // advance is applied as a tender and the order is closed out on checkout.
   const [orderContext, setOrderContext] = useState<{ orderId: number; advancePaise: number; orderNumber: string } | null>(null);
+  const hasLoadedOrderRef = useRef<number | null>(null);
+  const [approvalMemoContext, setApprovalMemoContext] = useState<{ memoId: number; memoNumber: string } | null>(null);
+  const hasLoadedApprovalRef = useRef<number | null>(null);
   const [discountRupees, setDiscountRupees] = useState("");
   const [rates, setRates] = useState<RatesState>(emptyRates);
   const [message, setMessage] = useState("");
@@ -443,14 +446,112 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
   // Arriving from a customer order's "Convert to Invoice" — prefill the customer and
   // carry the advance so it auto-applies as a tender. Runs once per navigation.
   useEffect(() => {
-    const state = location.state as { customerOrderId?: number; customerId?: number; advancePaise?: number; orderNumber?: string } | null;
+    const state = location.state as {
+      customerOrderId?: number;
+      customerId?: number;
+      advancePaise?: number;
+      orderNumber?: string;
+      approvalMemoId?: number;
+      memoNumber?: string;
+      partyName?: string;
+      partyPhone?: string;
+      items?: { id: number; barcode: string; description: string }[];
+    } | null;
+
     if (state && typeof state.customerOrderId === "number") {
+      if (hasLoadedOrderRef.current === state.customerOrderId) {
+        return;
+      }
+      hasLoadedOrderRef.current = state.customerOrderId;
+
       setOrderContext({ orderId: state.customerOrderId, advancePaise: state.advancePaise ?? 0, orderNumber: state.orderNumber ?? "" });
       if (typeof state.customerId === "number") {
         setCustomerId(String(state.customerId));
       }
+
+      // Fetch and auto-append finished ornaments associated with this order
+      if (state.orderNumber) {
+        const fetchFinishedOrnaments = async () => {
+          try {
+            const response = await fetch(`${apiBaseUrl}/api/inventory?design_name=${encodeURIComponent(state.orderNumber ?? "")}&status=IN_STOCK`, {
+              headers: authHeaders
+            });
+            const result = (await response.json().catch(() => null)) as { items?: InventoryItem[] } | null;
+            if (response.ok && result?.items?.length) {
+              setCart((current) => {
+                const updated = [...current];
+                for (const item of result.items!) {
+                  if (!updated.some((line) => line.id === item.id)) {
+                    updated.push({
+                      ...item,
+                      metalRateRupees: getDefaultRateForItem(item, rates),
+                      makingRupees: (item.making_charge_value / 100).toFixed(2)
+                    });
+                  }
+                }
+                return updated;
+              });
+            }
+          } catch (err) {
+            console.error("Failed to auto-load finished ornaments for order", err);
+          }
+        };
+        void fetchFinishedOrnaments();
+      }
+    } else if (state && typeof state.approvalMemoId === "number") {
+      if (hasLoadedApprovalRef.current === state.approvalMemoId) {
+        return;
+      }
+      hasLoadedApprovalRef.current = state.approvalMemoId;
+
+      setApprovalMemoContext({ memoId: state.approvalMemoId, memoNumber: state.memoNumber ?? "" });
+      if (typeof state.customerId === "number") {
+        setCustomerId(String(state.customerId));
+      } else if (state.partyName) {
+        setWalkInName(state.partyName);
+      }
+
+      if (state.items && state.items.length > 0) {
+        const fetchApprovalItems = async () => {
+          try {
+            const fetchedItems: CartLine[] = [];
+            for (const stateItem of state.items!) {
+              if (!stateItem.barcode) continue;
+              const response = await fetch(`${apiBaseUrl}/api/inventory?search=${encodeURIComponent(stateItem.barcode)}`, {
+                headers: authHeaders
+              });
+              const result = (await response.json().catch(() => null)) as { items?: InventoryItem[] } | null;
+              if (response.ok && result?.items?.length) {
+                const item = result.items.find(it => it.barcode === stateItem.barcode) ?? result.items[0];
+                fetchedItems.push({
+                  ...item,
+                  metalRateRupees: getDefaultRateForItem(item, rates),
+                  makingRupees: (item.making_charge_value / 100).toFixed(2)
+                });
+              }
+            }
+            if (fetchedItems.length > 0) {
+              setCart((current) => {
+                const updated = [...current];
+                for (const item of fetchedItems) {
+                  if (!updated.some((line) => line.id === item.id)) {
+                    updated.push(item);
+                  }
+                }
+                return updated;
+              });
+            }
+          } catch (err) {
+            console.error("Failed to auto-load approval memo items", err);
+          }
+        };
+        void fetchApprovalItems();
+      }
+    } else {
+      hasLoadedOrderRef.current = null;
+      hasLoadedApprovalRef.current = null;
     }
-  }, [location.state]);
+  }, [location.state, apiBaseUrl, authHeaders, rates]);
 
   const loyaltyRedeemPaiseInput = Math.max(0, Math.trunc(Number(loyaltyRedeemPoints) || 0)) * 100;
   const advanceAvailablePaise = orderContext?.advancePaise ?? 0;
@@ -570,6 +671,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
         oldDuesRupees,
         loyaltyRedeemPoints,
         customerOrderId: orderContext?.orderId ?? null,
+        approvalMemoId: approvalMemoContext?.memoId ?? null,
         totals
       });
 
@@ -602,6 +704,7 @@ export default function POSBillingScreen({ apiBaseUrl = "" }: POSBillingScreenPr
       setInvoiceMeta(emptyInvoiceMeta);
       setGssCreditAppliedPaise(0);
       setOrderContext(null);
+      setApprovalMemoContext(null);
       clearPosCreditBalance();
       setDiscountRupees("");
       setOldDuesRupees("");
@@ -2010,6 +2113,7 @@ function buildCheckoutPayload({
   oldDuesRupees,
   loyaltyRedeemPoints,
   customerOrderId,
+  approvalMemoId,
   totals
 }: {
   customerId: string;
@@ -2028,11 +2132,13 @@ function buildCheckoutPayload({
   oldDuesRupees: string;
   loyaltyRedeemPoints: string;
   customerOrderId: number | null;
+  approvalMemoId: number | null;
   totals: ReturnType<typeof calculateTotals>;
 }) {
   return {
     customer_id: customerId ? Number(customerId) : null,
     customer_order_id: customerOrderId,
+    approval_memo_id: approvalMemoId,
     walk_in_name: walkInName.trim() || null,
     pan_number: panNumber.trim() || null,
     aadhaar_number: aadhaarNumber.trim() || null,

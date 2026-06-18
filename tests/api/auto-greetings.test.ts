@@ -29,7 +29,8 @@ describe("Automated customer greetings", () => {
   function seedCustomerWithOccasionToday(name: string, kind: "birthday" | "anniversary") {
     // Use a past year with today's month-day so the worker's MM-DD match fires.
     const today = new Date();
-    const mmdd = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const dateStr = today.toISOString().slice(0, 10);
+    const mmdd = dateStr.slice(5, 10);
     const dateValue = `1990-${mmdd}`;
     return db
       .insert(customers)

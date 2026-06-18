@@ -67,112 +67,21 @@ settingsRouter.put("/rates", requireAuth, requireAdmin, (request, response) => {
 });
 
 settingsRouter.post("/rates/sync", requireAuth, requireAdmin, async (request, response) => {
-  const authUser = (request as AuthenticatedRequest).user;
-  const settings = db.query.organizationSettings.findFirst().sync();
-
-  if (!settings) {
-    return response.status(404).json({ errors: ["Organization settings not found."] });
-  }
-
-  try {
-    const oldRates = formatRates(settings);
-    const liveRates = await fetchLiveMetalRates({
-      apiKey: settings.gold_api_key,
-      apiUrl: settings.gold_api_url
-    });
-
-    db.update(organizationSettings)
-      .set({
-        gold_24k_rate_per_gram: liveRates.gold24kRatePaise,
-        gold_22k_rate_per_gram: liveRates.gold22kRatePaise,
-        gold_18k_rate_per_gram: liveRates.gold18kRatePaise,
-        silver_rate_per_gram: liveRates.silverRatePaise,
-        updated_at: sql`CURRENT_TIMESTAMP`
-      })
-      .where(eq(organizationSettings.id, settings.id))
-      .run();
-
-    const updatedSettings = db.query.organizationSettings.findFirst({
-      where: eq(organizationSettings.id, settings.id)
-    }).sync();
-    const newRates = formatRates(updatedSettings ?? {
-      ...settings,
-      gold_24k_rate_per_gram: liveRates.gold24kRatePaise,
-      gold_22k_rate_per_gram: liveRates.gold22kRatePaise,
-      gold_18k_rate_per_gram: liveRates.gold18kRatePaise,
-      silver_rate_per_gram: liveRates.silverRatePaise,
-      updated_at: liveRates.syncedAt
-    });
-
-    logAction(authUser.id, "SYNC_LIVE_RATE", "organization_settings", settings.id, oldRates, {
-      ...newRates,
-      source: liveRates.source,
-      provider_synced_at: liveRates.syncedAt
-    });
-
-    return response.json({ rates: newRates });
-  } catch (caught) {
-    return response.status(502).json({
-      errors: [caught instanceof Error ? caught.message : "Could not sync live metal rates."]
-    });
-  }
+  return response.status(400).json({ errors: ["Live rate sync has been disabled. Please enter rates manually."] });
 });
 
 // Report whether a live-rate API key is configured (never returns the raw key).
 settingsRouter.get("/rate-provider", requireAuth, (_request, response) => {
-  const settings = db.query.organizationSettings.findFirst().sync();
-
-  if (!settings) {
-    return response.status(404).json({ errors: ["Organization settings not found."] });
-  }
-
-  const key = settings.gold_api_key ?? "";
   return response.json({
-    configured: key.trim().length > 0,
-    key_hint: key.trim().length > 0 ? `••••${key.trim().slice(-4)}` : null,
-    gold_api_url: settings.gold_api_url ?? null
+    configured: false,
+    key_hint: null,
+    gold_api_url: null
   });
 });
 
 // Save / clear the per-shop live-rate provider credentials.
 settingsRouter.put("/rate-provider", requireAuth, requireAdmin, (request, response) => {
-  const authUser = (request as AuthenticatedRequest).user;
-  const body = (request.body ?? {}) as { gold_api_key?: unknown; gold_api_url?: unknown };
-
-  if (body.gold_api_key !== undefined && typeof body.gold_api_key !== "string") {
-    return response.status(400).json({ errors: ["gold_api_key must be a string."] });
-  }
-  if (body.gold_api_url !== undefined && typeof body.gold_api_url !== "string") {
-    return response.status(400).json({ errors: ["gold_api_url must be a string."] });
-  }
-
-  const settings = db.query.organizationSettings.findFirst().sync();
-
-  if (!settings) {
-    return response.status(404).json({ errors: ["Organization settings not found."] });
-  }
-
-  // Empty string clears the value; omitted field leaves it unchanged.
-  const nextKey =
-    body.gold_api_key === undefined ? settings.gold_api_key : body.gold_api_key.trim() || null;
-  const nextUrl =
-    body.gold_api_url === undefined ? settings.gold_api_url : body.gold_api_url.trim() || null;
-
-  db.update(organizationSettings)
-    .set({ gold_api_key: nextKey, gold_api_url: nextUrl, updated_at: sql`CURRENT_TIMESTAMP` })
-    .where(eq(organizationSettings.id, settings.id))
-    .run();
-
-  logAction(authUser.id, "UPDATE_RATE_PROVIDER", "organization_settings", settings.id, null, {
-    configured: !!nextKey,
-    gold_api_url: nextUrl
-  });
-
-  return response.json({
-    configured: !!nextKey,
-    key_hint: nextKey ? `••••${nextKey.slice(-4)}` : null,
-    gold_api_url: nextUrl
-  });
+  return response.status(400).json({ errors: ["Live rate provider configuration has been disabled."] });
 });
 
 settingsRouter.get("/loyalty", requireAuth, (_request, response) => {

@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, ne, sql, or, inArray, type SQL } from "drizzle-orm";
 import { Router } from "express";
 import { requireAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 import { db } from "../db/client.js";
@@ -28,7 +28,9 @@ import {
   scannerAuditLogs,
   ledgers,
   customerOrders,
-  voucherHeaders
+  voucherHeaders,
+  approvalMemos,
+  approvalMemoLines
 } from "../db/schema.js";
 import { paiseToRupees } from "../utils/decimal.js";
 import { triggerMessage } from "../utils/messageService.js";
@@ -41,6 +43,17 @@ export const posRouter = Router();
 const CASH_PAN_AADHAAR_THRESHOLD_PAISE = 20000000;
 const LOYALTY_PAISE_PER_POINT = 100; // 1 loyalty point = Rs 1 when redeemed
 const DEFAULT_HSN_CODE = "7113";
+
+function deriveApprovalMemoStatus(lines: { line_status: "OUT" | "RETURNED" | "SOLD" }[]): "OPEN" | "PARTIAL" | "CLOSED" | "CONVERTED" {
+  if (lines.length === 0) return "OPEN";
+  const out = lines.filter((l) => l.line_status === "OUT").length;
+  const sold = lines.filter((l) => l.line_status === "SOLD").length;
+  if (out === 0) {
+    return sold > 0 ? "CONVERTED" : "CLOSED";
+  }
+  if (out === lines.length) return "OPEN";
+  return "PARTIAL";
+}
 
 posRouter.post("/checkout", requireAuth, (request, response) => {
   const validation = validateCheckoutPayload(request.body);
@@ -170,7 +183,19 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
           throw new CheckoutConflictError(`Item ${line.barcode} was not found.`);
         }
 
-        if (item.status !== "IN_STOCK") {
+        let allowed = item.status === "IN_STOCK";
+        if (!allowed && validation.checkout.approvalMemoId !== null && (item.status === "ON_APPROVAL" || item.status === "SOLD")) {
+          const memoLine = tx.select().from(approvalMemoLines)
+            .where(and(
+              eq(approvalMemoLines.memo_id, validation.checkout.approvalMemoId),
+              eq(approvalMemoLines.item_id, item.id),
+              inArray(approvalMemoLines.line_status, ["OUT", "SOLD"])
+            )).get();
+          if (memoLine && !memoLine.invoice_id) {
+            allowed = true;
+          }
+        }
+        if (!allowed) {
           throw new ItemAlreadySoldError(`Item ${line.barcode} is not available in stock.`);
         }
 
@@ -300,10 +325,20 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
       });
 
       for (const line of validation.checkout.salesItems) {
+        const item = tx.select().from(items).where(eq(items.id, line.itemId as number)).get();
+        if (!item) {
+          throw new ItemAlreadySoldError(`Item ${line.barcode} is not available in stock.`);
+        }
+
+        let statusCondition: SQL = eq(items.status, "IN_STOCK");
+        if (item.status === "ON_APPROVAL" || item.status === "SOLD") {
+          statusCondition = inArray(items.status, ["ON_APPROVAL", "SOLD"]);
+        }
+
         const updateResult = tx
           .update(items)
           .set({ status: "SOLD", huid_status: "SOLD" })
-          .where(and(eq(items.id, line.itemId as number), eq(items.status, "IN_STOCK")))
+          .where(and(eq(items.id, line.itemId as number), statusCondition))
           .run();
 
         if (updateResult.changes !== 1) {
@@ -342,6 +377,28 @@ posRouter.post("/checkout", requireAuth, (request, response) => {
         tx.update(customerOrders)
           .set({ status: "COMPLETED" })
           .where(eq(customerOrders.id, validation.checkout.customerOrderId))
+          .run();
+      }
+
+      // Converting/selling a Jangad/approval memo: update the corresponding approval lines and derivation of memo status.
+      if (validation.checkout.approvalMemoId !== null) {
+        const salesItemIds = validation.checkout.salesItems.map((line) => line.itemId).filter((id): id is number => id !== null);
+        if (salesItemIds.length > 0) {
+          tx.update(approvalMemoLines)
+            .set({ line_status: "SOLD", invoice_id: invoice.id })
+            .where(and(
+              eq(approvalMemoLines.memo_id, validation.checkout.approvalMemoId),
+              inArray(approvalMemoLines.item_id, salesItemIds)
+            ))
+            .run();
+        }
+
+        // Recompute the approval memo's status
+        const refreshed = tx.select().from(approvalMemoLines).where(eq(approvalMemoLines.memo_id, validation.checkout.approvalMemoId)).all();
+        const nextStatus = deriveApprovalMemoStatus(refreshed);
+        tx.update(approvalMemos)
+          .set({ status: nextStatus })
+          .where(eq(approvalMemos.id, validation.checkout.approvalMemoId))
           .run();
       }
 
@@ -1526,6 +1583,7 @@ type CheckoutPayload = {
   // When converting a booked customer order, the advance collected at booking is
   // applied as a tender (see payments.advance) and the order is marked COMPLETED.
   customerOrderId: number | null;
+  approvalMemoId: number | null;
   salesItems: SalesItemPayload[];
   urdItems: UrdItemPayload[];
   totals: {
@@ -1723,6 +1781,13 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
     errors.push("customer_order_id must be a positive integer when provided.");
   }
 
+  const rawApprovalMemoId = body.approval_memo_id ?? body.approvalMemoId ?? null;
+  const approvalMemoId = rawApprovalMemoId === null ? null : Number(rawApprovalMemoId);
+
+  if (approvalMemoId !== null && (!Number.isInteger(approvalMemoId) || approvalMemoId <= 0)) {
+    errors.push("approval_memo_id must be a positive integer when provided.");
+  }
+
   const panNumber = optionalTrimmedText(body.pan_number ?? body.panNumber) ?? null;
   const aadhaarNumber = optionalTrimmedText(body.aadhaar_number ?? body.aadhaarNumber) ?? null;
   const documentImagePath = optionalTrimmedText(body.document_image_path ?? body.kyc_photo_path ?? body.kycPhotoPath) ?? null;
@@ -1846,6 +1911,7 @@ function validateCheckoutPayload(body: unknown): CheckoutValidation {
       walkInName,
       gssAccountId: (gssAccountId ?? null) as number | null,
       customerOrderId: (customerOrderId ?? null) as number | null,
+      approvalMemoId: (approvalMemoId ?? null) as number | null,
       salesItems,
       urdItems,
       totals,

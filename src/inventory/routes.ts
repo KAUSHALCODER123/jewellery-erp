@@ -440,9 +440,13 @@ function buildInventoryFilters(query: Record<string, unknown>) {
     filters.push(eq(items.status, query.status.trim()));
   }
 
+  if (typeof query.design_name === "string" && query.design_name.trim()) {
+    filters.push(eq(sql`lower(${items.design_name})`, query.design_name.trim().toLowerCase()));
+  }
+
   if (typeof query.search === "string" && query.search.trim()) {
     const search = `%${query.search.trim()}%`;
-    filters.push(or(like(items.barcode, search), like(items.huid, search)) as SQL);
+    filters.push(or(like(items.barcode, search), like(items.huid, search), like(items.design_name, search)) as SQL);
   }
 
   return filters;
